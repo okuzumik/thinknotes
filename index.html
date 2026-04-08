@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThinkNotes</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#f5f3ee; --bg2:#ffffff; --bg3:#f0ede6; --surface:#e8e4db; --surface2:#dedad0;
+  --border:#dbd6ca; --border2:#c8c2b4;
+  --text:#1c1a14; --text2:#5a5446; --text3:#9a9080;
+  --accent:#7a5c1e; --accent-d:#5a4214; --accent-l:#f5edda; --accent-m:#c8960a;
+  --red:#b03828; --red-l:#fdf0ee;
+  --teal:#2a7a58; --teal-l:#e8f5ee;
+  --sticky:#eae5d8; --sticky-b:#b8a880; --sticky2:#dce6df; --sticky2-b:#7a9e8c;
+  --r:9px; --rsm:6px; --indent:22px;
+}
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'Hiragino Mincho ProN','Yu Mincho','ＭＳ 明朝',Georgia,serif;
+  font-size:15px; line-height:1.75; height:100vh;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+
+/* ─ Topbar ─ */
+.topbar { display:flex; align-items:center; padding:0 1rem; height:46px; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.app-name { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:700; color:var(--accent); letter-spacing:.06em; margin-right:1.5rem; }
+.nav-tabs { display:flex; gap:2px; flex:1; }
+.nav-tab { padding:5px 12px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; background:none; border:none; color:var(--text3); cursor:pointer; border-radius:var(--rsm); transition:all .12s; }
+.nav-tab:hover { color:var(--text2); background:var(--bg3); }
+.nav-tab.active { color:var(--accent); background:var(--accent-l); font-weight:600; }
+.search-wrap { position:relative; width:190px; }
+.search-in { width:100%; padding:5px 10px 5px 27px; background:var(--bg3); border:0.5px solid var(--border); border-radius:20px; font-size:12px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; color:var(--text); outline:none; }
+.search-in::placeholder { color:var(--text3); }
+.search-icon { position:absolute; left:9px; top:50%; transform:translateY(-50%); font-size:11px; color:var(--text3); pointer-events:none; }
+
+.main { display:flex; flex:1; overflow:hidden; }
+
+/* ─ Sidebar ─ */
+.sidebar { width:170px; flex-shrink:0; border-right:0.5px solid var(--border); padding:.75rem 0; overflow-y:auto; background:var(--bg); }
+.sb-section { margin-bottom:1rem; }
+.sb-head { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; letter-spacing:.1em; color:var(--text3); padding:0 13px; margin-bottom:3px; }
+.sb-item { display:flex; align-items:center; gap:7px; padding:5px 13px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text2); cursor:pointer; transition:all .1s; }
+.sb-item:hover { background:var(--bg3); color:var(--text); }
+.sb-item.active { background:var(--accent-l); color:var(--accent); }
+.sb-tag-dot { width:6px; height:6px; border-radius:50%; background:var(--accent-m); flex-shrink:0; }
+.sb-count { margin-left:auto; font-size:11px; color:var(--text3); }
+
+.content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+/* ─ Compose ─ */
+.compose-wrap { padding:.85rem 1.25rem .7rem; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.compose-inner { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--r); overflow:hidden; }
+.compose-inner:focus-within { border-color:var(--border2); }
+.compose-ta { width:100%; min-height:64px; max-height:180px; padding:10px 13px 7px; background:transparent; border:none; outline:none; font-family:inherit; font-size:14px; color:var(--text); line-height:1.75; resize:none; overflow-y:auto; }
+.compose-ta::placeholder { color:var(--text3); }
+.compose-footer { display:flex; align-items:center; justify-content:space-between; padding:5px 10px; border-top:0.5px solid var(--border); }
+.compose-hint { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); }
+.compose-hint span { color:var(--accent-d); }
+.compose-btn { padding:4px 14px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; font-weight:700; cursor:pointer; }
+.compose-btn:hover { background:var(--accent-d); }
+
+/* ─ View ctrl ─ */
+.view-ctrl { display:flex; align-items:center; gap:8px; padding:7px 1.25rem; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.view-btn { padding:3px 10px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; background:none; border:0.5px solid var(--border); border-radius:20px; color:var(--text3); cursor:pointer; }
+.view-btn.active { background:var(--surface); border-color:var(--border2); color:var(--text); }
+.sel-ctrl { margin-left:auto; display:flex; align-items:center; gap:8px; }
+.sel-label { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); }
+.sel-action { padding:3px 10px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; background:var(--teal-l); border:0.5px solid var(--teal); border-radius:20px; color:var(--teal); cursor:pointer; }
+.sel-action:hover { background:var(--teal); color:#fff; }
+
+/* ─ Feed ─ */
+.feed { flex:1; overflow-y:auto; padding:.5rem 1.25rem 2rem; }
+.post { padding:11px 0; border-bottom:0.5px solid var(--border); }
+.post:hover { background:rgba(0,0,0,.015); }
+.post.selected { background:rgba(42,122,88,.05); }
+.post-row1 { display:flex; gap:10px; }
+.post-sel { width:17px; flex-shrink:0; padding-top:3px; }
+.post-sel-box { width:14px; height:14px; border:1.5px solid var(--border2); border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.post-sel-box:hover { border-color:var(--teal); }
+.post-sel-box.checked { background:var(--teal); border-color:var(--teal); }
+.post-sel-box.checked::after { content:'✓'; font-size:8px; color:#fff; font-weight:700; }
+.post-body { flex:1; min-width:0; }
+.post-text { font-size:14px; line-height:1.8; white-space:pre-wrap; word-break:break-word; color:var(--text); }
+.post-text .tag { color:var(--accent); cursor:pointer; }
+.post-text .tag:hover { text-decoration:underline; }
+.post-meta { display:flex; align-items:center; gap:8px; margin-top:5px; flex-wrap:wrap; }
+.post-time { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); }
+.post-actions { display:flex; gap:2px; margin-left:auto; opacity:0; transition:opacity .15s; }
+.post:hover .post-actions { opacity:1; }
+.pa { width:24px; height:24px; display:flex; align-items:center; justify-content:center; background:none; border:none; cursor:pointer; font-size:12px; color:var(--text3); border-radius:var(--rsm); }
+.pa:hover { background:var(--surface); color:var(--text); }
+.pa.del:hover { background:var(--red-l); color:var(--red); }
+.pa.star.on { color:var(--accent-m); }
+/* 編集モード */
+.post-edit-wrap { margin-top:6px; padding-left:27px; }
+.post-edit-ta {
+  width:100%; padding:8px 10px;
+  background:var(--bg2); border:0.5px solid var(--border2);
+  border-radius:var(--rsm); font-family:inherit; font-size:14px;
+  color:var(--text); line-height:1.75; resize:none; outline:none;
+  min-height:80px;
+}
+.post-edit-ta:focus { border-color:var(--accent-m); }
+.post-edit-actions { display:flex; gap:6px; margin-top:6px; }
+.post-edit-btn {
+  padding:4px 12px; border-radius:var(--rsm); border:none; cursor:pointer;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px;
+}
+.post-edit-btn.save { background:var(--accent); color:#fff; }
+.post-edit-btn.save:hover { background:var(--accent-d); }
+.post-edit-btn.cancel { background:var(--surface); color:var(--text2); }
+.post-edit-btn.cancel:hover { background:var(--surface2); }
+
+/* ── タグ管理エリア ── */
+.post-tags-row {
+  display:flex; align-items:center; flex-wrap:wrap; gap:4px;
+  margin-top:5px; padding-left:27px; /* align with text */
+}
+.tag-pill {
+  display:inline-flex; align-items:center; gap:3px;
+  padding:1px 7px 1px 8px;
+  background:var(--accent-l); border:0.5px solid var(--accent-m);
+  border-radius:20px;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:10px; color:var(--accent-d); cursor:pointer;
+}
+.tag-pill:hover { background:var(--accent-m); color:#fff; }
+.tag-pill-x {
+  font-size:9px; color:var(--accent-d); cursor:pointer; line-height:1;
+  padding:0 0 0 1px; background:none; border:none;
+}
+.tag-pill:hover .tag-pill-x { color:#fff; }
+.tag-add-btn {
+  display:inline-flex; align-items:center; gap:2px;
+  padding:1px 7px;
+  background:none; border:0.5px dashed var(--border2);
+  border-radius:20px; cursor:pointer;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:10px; color:var(--text3);
+  transition:all .1s;
+}
+.tag-add-btn:hover { border-color:var(--accent-m); color:var(--accent); }
+.tag-input-wrap { display:inline-flex; align-items:center; gap:3px; }
+.tag-input {
+  width:80px; padding:1px 6px;
+  background:var(--bg3); border:0.5px solid var(--border2);
+  border-radius:20px; outline:none;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:10px; color:var(--text);
+}
+
+/* ─ Cluster ─ */
+.cluster-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px; padding:1.25rem 1.5rem 2.5rem; overflow-y:auto; flex:1; }
+.cluster-card { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--r); overflow:hidden; cursor:pointer; transition:box-shadow .15s; }
+.cluster-card:hover { box-shadow:0 2px 12px rgba(0,0,0,.09); }
+.cluster-hd { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:0.5px solid var(--border); background:var(--bg3); }
+.cluster-tag { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:700; color:var(--accent); }
+.cluster-n { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); margin-left:auto; }
+.cluster-item { padding:10px 14px; font-size:13px; color:var(--text2); line-height:1.7; border-bottom:0.5px solid var(--border); overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; transition:background .1s, color .1s; }
+.cluster-item:last-child { border-bottom:none; }
+.cluster-item:hover { background:var(--accent-l); color:var(--text); }
+
+/* ══════════════════════════════
+   NOTES TAB
+   ══════════════════════════════ */
+.notes-layout { display:flex; flex:1; overflow:hidden; }
+
+/* ① ノート一覧 */
+.notes-list { width:175px; flex-shrink:0; border-right:0.5px solid var(--border); overflow-y:auto; background:var(--bg); }
+.notes-list-hd { display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-bottom:0.5px solid var(--border); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); position:sticky; top:0; background:var(--bg); z-index:1; }
+.new-note-btn { padding:3px 9px; background:var(--accent-l); border:0.5px solid var(--accent-d); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--accent); cursor:pointer; }
+.new-note-btn:hover { background:var(--accent); color:#fff; }
+.note-li { padding:9px 12px; cursor:pointer; border-bottom:0.5px solid var(--border); background:var(--bg); }
+.note-li:hover { background:var(--surface); }
+.note-li.active { background:var(--accent-l); }
+.note-li-title { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.note-li-meta { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); margin-top:1px; }
+
+/* ② ソースパネル */
+.source-panel { width:255px; flex-shrink:0; border-right:0.5px solid var(--border); display:flex; flex-direction:column; background:var(--bg3); }
+.source-panel-hd { padding:8px 10px; border-bottom:0.5px solid var(--border); background:var(--bg3); flex-shrink:0; }
+.source-search { width:100%; padding:5px 10px; background:var(--bg3); border:0.5px solid var(--border); border-radius:20px; font-size:11px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; color:var(--text); outline:none; }
+.source-search::placeholder { color:var(--text3); }
+.source-tabs-row { display:flex; align-items:center; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.source-tab { flex:1; padding:6px 0; text-align:center; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; }
+.source-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+/* 一括挿入ボタン */
+.bulk-insert-btn {
+  margin:0 8px 0 0; padding:3px 8px;
+  background:var(--teal-l); border:0.5px solid var(--teal);
+  border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:10px; color:var(--teal); cursor:pointer; white-space:nowrap;
+  transition:all .1s;
+}
+.bulk-insert-btn:hover { background:var(--teal); color:#fff; }
+/* インデントガイド：列ごとに薄い帯で色分け */
+.source-feed {
+  flex:1; overflow-y:auto; position:relative;
+  padding:6px 8px 12px;
+  background-image: linear-gradient(
+    to right,
+    transparent                    0px,
+    transparent                   30px,
+    rgba(122,92,30,.055)          30px,
+    rgba(122,92,30,.055)          52px,
+    rgba(122,92,30,.10)           52px
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+/* ── アウトライナーカード ── */
+.outline-item { position:relative; margin-bottom:4px; }
+.outline-item[data-level="0"] { margin-left:0; }
+.outline-item[data-level="1"] { margin-left:var(--indent); }
+.outline-item[data-level="2"] { margin-left:calc(var(--indent)*2); }
+
+/* インデント度合いを背景色で表現（線なし） */
+/* インデントレベルは背景縦線で表現（カード側の装飾なし） */
+
+.src-card { background:var(--bg3); border:0.5px solid var(--border); border-radius:var(--rsm); transition:border-color .1s; }
+.src-card:hover { border-color:var(--border2); }
+.src-card.linked { border-color:var(--accent-m); background:var(--accent-l); }
+.src-card.drag-over-above { border-top:2px solid var(--teal); }
+.src-card.drag-over-below { border-bottom:2px solid var(--teal); }
+.src-card.dragging { opacity:.35; }
+.src-card-body { display:flex; gap:4px; padding:7px 7px 0; }
+.drag-grip { color:var(--text3); font-size:12px; flex-shrink:0; cursor:grab; line-height:1.6; user-select:none; padding-top:1px; }
+.drag-grip:active { cursor:grabbing; }
+.src-text { flex:1; font-size:12.5px; color:var(--text2); line-height:1.65; white-space:pre-wrap; word-break:break-word; max-height:80px; overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:4; }
+.src-card.linked .src-text { color:var(--text); }
+.level-btns { display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+.lv-btn { width:16px; height:16px; display:flex; align-items:center; justify-content:center; background:none; border:0.5px solid var(--border); border-radius:3px; font-size:8px; color:var(--text3); cursor:pointer; line-height:1; }
+.lv-btn:hover { background:var(--surface); color:var(--text); }
+.lv-btn:disabled { opacity:.2; cursor:default; }
+.src-card-foot { display:flex; align-items:center; padding:4px 7px 5px; gap:3px; }
+.src-time-mini { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--text3); flex:1; opacity:.7; }
+.icon-btn { width:22px; height:22px; display:flex; align-items:center; justify-content:center; background:none; border:0.5px solid transparent; border-radius:4px; font-size:11px; color:var(--text3); cursor:pointer; transition:all .1s; flex-shrink:0; }
+.icon-btn:hover { border-color:var(--border2); background:var(--surface); color:var(--text); }
+.icon-btn.insert:hover { background:var(--teal-l); border-color:var(--teal); color:var(--teal); }
+.icon-btn.unlink:hover { background:var(--red-l); border-color:var(--red); color:var(--red); }
+.icon-btn.link-add:hover { background:var(--accent-l); border-color:var(--accent-d); color:var(--accent); }
+.add-banner { padding:5px 8px; margin-bottom:6px; background:var(--teal-l); border:0.5px dashed var(--teal); border-radius:var(--rsm); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--teal); text-align:center; }
+
+/* ③ エディター */
+.editor-pane { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; background:var(--bg3); }
+.editor-toolbar { display:flex; align-items:center; gap:6px; padding:8px 14px; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.editor-title-in { flex:1; background:transparent; border:none; outline:none; font-size:15px; font-weight:700; font-family:inherit; color:var(--text); }
+.editor-title-in::placeholder { color:var(--text3); }
+.et-sep { width:0.5px; height:16px; background:var(--border); }
+.et-btn { padding:4px 10px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; border:0.5px solid var(--border); border-radius:var(--rsm); background:var(--bg3); color:var(--text2); cursor:pointer; }
+.et-btn:hover { color:var(--text); border-color:var(--border2); }
+.et-btn.primary { background:var(--teal-l); border-color:var(--teal); color:var(--teal); }
+.et-btn.primary:hover { background:var(--teal); color:#fff; }
+.et-btn.danger:hover { background:var(--red-l); border-color:var(--red); color:var(--red); }
+.editor-split { flex:1; display:flex; overflow:hidden; }
+.editor-main { flex:1; display:flex; flex-direction:column; overflow:hidden; border-right:0.5px solid var(--border); min-width:0; background:var(--bg2); }
+
+/* ── エディター2列レイアウト（案B） ── */
+.editor-split { flex:1; display:flex; overflow:hidden; }
+
+/* 左：本文ペイン */
+.editor-main { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; background:var(--bg2); }
+.para-editor { flex:1; overflow-y:auto; padding:.75rem 0 3rem 0; background:var(--bg2); }
+
+/* 段落行：本文のみ、高さは文章だけで決まる */
+.para-row { position:relative; }
+.para-input {
+  display:block; width:100%;
+  padding:3px 12px 3px 16px;
+  background:transparent; border:none; outline:none;
+  font-family:inherit; font-size:14px; color:var(--text);
+  line-height:1.9; resize:none; overflow:hidden;
+  transition:background .15s; caret-color:var(--accent);
+}
+.para-input:focus { background:rgba(200,150,10,.09); }
+.para-input.anchor-highlight { background:rgba(200,150,10,.18); transition:background .1s; }
+.para-input.sticky-linked { background:rgba(200,150,10,.09); }
+
+/* 段落ホバー時の付箋追加ボタン */
+.para-add-sticky {
+  display:none; position:absolute; right:8px; top:4px;
+  padding:2px 8px;
+  background:none; border:0.5px dashed var(--border2);
+  border-radius:20px; cursor:pointer;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:10px; color:var(--text3); transition:all .1s;
+}
+.para-row:hover .para-add-sticky { display:block; }
+.para-add-sticky:hover { border-color:var(--sticky-b); color:var(--accent-d); }
+
+/* 段落追加ボタン */
+.para-add-btn {
+  display:flex; align-items:center; justify-content:center;
+  width:100%; padding:4px 0;
+  background:none; border:none; cursor:pointer;
+  color:var(--text3); font-size:11px;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  opacity:0; transition:opacity .2s;
+}
+.para-editor:hover .para-add-btn { opacity:.5; }
+.para-add-btn:hover { opacity:1 !important; }
+
+/* 右：付箋ペイン（独立スクロール）*/
+.sticky-pane-b {
+  width:210px; flex-shrink:0;
+  display:flex; flex-direction:column;
+  border-left:0.5px solid var(--border);
+  background:var(--surface);
+  overflow:hidden;
+}
+.sticky-pane-b-hd {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:7px 10px;
+  border-bottom:0.5px solid var(--border);
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:10px; color:var(--text3);
+  flex-shrink:0; background:var(--surface);
+}
+.sticky-feed-b { flex:1; overflow-y:auto; position:relative; }
+
+/* 付箋カード */
+.sticky-card-b {
+  position:absolute; left:8px; right:8px;
+  background:var(--sticky); border:0.5px solid var(--sticky-b);
+  border-radius:var(--rsm);
+  transition:border-color .15s;
+}
+.sticky-card-b:hover { border-color:var(--accent-d); }
+.sticky-card-b.color-green { background:var(--sticky2); border-color:var(--sticky2-b); }
+.sticky-card-b.is-active { outline:2px solid var(--accent-m); outline-offset:1px; background:var(--accent-l); }
+
+/* 段落ラベル */
+.sticky-para-label { padding:4px 8px 2px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--text3); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-bottom:0.5px solid rgba(0,0,0,.06); cursor:pointer; transition:background .1s; }
+.sticky-para-label:hover { background:rgba(0,0,0,.04); }
+.sticky-card-b.color-green .sticky-para-label { border-bottom-color:rgba(0,0,0,.06); }
+.sticky-para-label.linked { color:var(--accent-d); }
+
+/* 段落ピッカー */
+.anchor-picker-popup {
+  position:fixed; z-index:300;
+  background:var(--bg2); border:0.5px solid var(--border2);
+  border-radius:var(--r); padding:6px;
+  box-shadow:0 4px 20px rgba(0,0,0,.14);
+  width:230px; max-height:260px; overflow-y:auto;
+}
+.ap-pop-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); padding:2px 4px 6px; border-bottom:0.5px solid var(--border); margin-bottom:4px; }
+.ap-pop-item { padding:5px 8px; font-size:11px; color:var(--text2); border-radius:var(--rsm); cursor:pointer; line-height:1.5; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.ap-pop-item:hover { background:var(--accent-l); color:var(--accent-d); }
+.ap-pop-item.none-item { color:var(--text3); font-style:italic; }
+.ap-pop-item.none-item:hover { background:var(--red-l); color:var(--red); }
+
+.sticky-card-b-hd {
+  display:flex; align-items:center; gap:3px; padding:3px 6px 2px;
+}
+.sticky-color-dot {
+  width:8px; height:8px; border-radius:50%; flex-shrink:0;
+  cursor:pointer; border:none;
+}
+.sticky-card-b:not(.color-green) .sticky-color-dot { background:var(--sticky-b); }
+.sticky-card-b.color-green .sticky-color-dot { background:var(--sticky2-b); }
+.sticky-del-b {
+  width:14px; height:14px; display:flex; align-items:center; justify-content:center;
+  background:none; border:none; font-size:9px; color:var(--text3);
+  cursor:pointer; border-radius:3px; margin-left:auto;
+}
+.sticky-del-b:hover { background:var(--red-l); color:var(--red); }
+.sticky-ta-b {
+  width:100%; padding:2px 8px 7px;
+  background:transparent; border:none; outline:none;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:11px; color:var(--text2); line-height:1.6;
+  resize:none; min-height:42px; max-height:200px;
+}
+.sticky-ta-b::placeholder { color:rgba(90,84,70,.35); }
+
+/* アンカーなし区切り（絶対配置） */
+.sticky-unanchored-sep {
+  position:absolute; left:8px; right:8px;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:9px; color:var(--text3);
+  padding:6px 4px 4px;
+  border-top:0.5px dashed var(--border2);
+}
+
+.editor-hint { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); padding:4px 14px 5px; border-top:0.5px solid var(--border); flex-shrink:0; background:var(--bg2); }
+
+/* ── パネル折りたたみ ── */
+.panel-toggle-btn {
+  width:20px; height:20px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:none; border:none; cursor:pointer;
+  font-size:11px; color:var(--text3); border-radius:3px;
+  transition:all .1s;
+}
+.panel-toggle-btn:hover { background:var(--surface); color:var(--text); }
+
+/* collapsed: ノートリスト */
+.notes-list.collapsed { width:28px; min-width:28px; overflow:hidden; }
+.notes-list.collapsed .notes-list-hd { padding:9px 4px; justify-content:center; }
+.notes-list.collapsed .new-note-btn,
+.notes-list.collapsed #notesList { display:none; }
+.notes-list.collapsed .notes-list-hd > span { display:none; }
+
+/* collapsed: ソースパネル */
+.source-panel.collapsed { width:28px; min-width:28px; overflow:hidden; }
+.source-panel.collapsed .source-panel-hd,
+.source-panel.collapsed .source-tabs-row,
+.source-panel.collapsed #sourceFeed { display:none; }
+.source-panel.collapsed .source-panel-collapsed-strip {
+  display:flex; flex-direction:column; align-items:center;
+  padding-top:10px; gap:6px;
+}
+.source-panel:not(.collapsed) .source-panel-collapsed-strip { display:none; }
+
+/* ── エディター統計バー ── */
+.editor-stats-bar {
+  display:flex; align-items:center; gap:12px;
+  padding:5px 14px;
+  border-bottom:0.5px solid var(--border);
+  background:var(--bg3); flex-shrink:0;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:11px; color:var(--text3);
+}
+.stat-pill { display:flex; align-items:center; gap:4px; }
+.stat-pill-val { color:var(--text2); font-variant-numeric:tabular-nums; }
+.stat-line-in {
+  width:44px; padding:1px 5px;
+  background:var(--bg2); border:0.5px solid var(--border);
+  border-radius:4px; font-size:11px; font-family:inherit;
+  color:var(--text2); text-align:right; outline:none;
+}
+.stat-line-in:focus { border-color:var(--border2); }
+
+/* empty */
+.note-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; gap:8px; }
+.empty-state { text-align:center; padding:2rem .5rem; font-family:'Hiragino Kaku Gothic ProN',sans-serif; color:var(--text3); font-size:12px; line-height:1.7; }
+.empty-icon { font-size:22px; margin-bottom:6px; }
+
+/* Modal */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:100; }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--bg2); border:0.5px solid var(--border2); border-radius:var(--r); width:400px; max-width:95vw; padding:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,.12); }
+.modal-title { font-size:15px; font-weight:700; margin-bottom:1rem; }
+.modal-label { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text2); margin-bottom:5px; }
+.modal-in { width:100%; padding:8px 10px; background:var(--bg3); border:0.5px solid var(--border); border-radius:var(--rsm); font-family:inherit; font-size:14px; color:var(--text); outline:none; margin-bottom:1rem; }
+.modal-footer { display:flex; gap:8px; justify-content:flex-end; }
+.modal-btn { padding:6px 16px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:600; border-radius:var(--rsm); border:none; cursor:pointer; }
+.modal-btn.cancel { background:var(--surface); color:var(--text2); }
+.modal-btn.ok { background:var(--teal); color:#fff; }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-thumb { background:var(--surface2); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="app-name">ThinkNotes</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-timeline" onclick="switchTab('timeline')">タイムライン</button>
+    <button class="nav-tab" id="tab-tags"    onclick="switchTab('tags')">タグ</button>
+    <button class="nav-tab" id="tab-notes"   onclick="switchTab('notes')">ノート</button>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-in" id="searchIn" placeholder="検索…" oninput="onSearch(this.value)">
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar" id="sidebar">
+    <div class="sb-section">
+      <div class="sb-head">フィルター</div>
+      <div class="sb-item active" id="filter-all"     onclick="setFilter('all')"><span>すべて</span><span class="sb-count" id="cnt-all">0</span></div>
+      <div class="sb-item"        id="filter-starred" onclick="setFilter('starred')"><span>⭐ スター</span><span class="sb-count" id="cnt-starred">0</span></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-head">タグ</div>
+      <div id="sbTagList"></div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="compose-wrap" id="composeArea">
+      <div class="compose-inner">
+        <textarea class="compose-ta" id="composeTA" placeholder="思考の断片を書き流す…  #タグ は後からでも追加できます" onkeydown="onComposeKey(event)"></textarea>
+        <div class="compose-footer">
+          <div class="compose-hint">Ctrl+Enter で投稿　<span>#タグ</span> は投稿後でも追加・削除できます</div>
+          <button class="compose-btn" onclick="submitPost()">投稿</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-ctrl" id="viewCtrl">
+      <button class="view-btn active" id="vb-timeline" onclick="setView('timeline')">時系列</button>
+      <button class="view-btn"        id="vb-cluster"  onclick="setView('cluster')">タグ別</button>
+      <div class="sel-ctrl" id="selCtrl" style="display:none">
+        <span class="sel-label" id="selLabel">0件選択中</span>
+        <button class="sel-action" onclick="openNoteModal()">ノートにまとめる</button>
+        <button class="sel-action" style="background:var(--accent-l);border-color:var(--accent-d);color:var(--accent)" onclick="clearSel()">解除</button>
+      </div>
+    </div>
+
+    <div class="feed" id="feed"></div>
+    <div class="cluster-grid" id="clusterGrid" style="display:none"></div>
+
+    <!-- NOTES TAB -->
+    <div class="notes-layout" id="notesLayout" style="display:none">
+
+      <div class="notes-list" id="notesListPanel">
+        <div class="notes-list-hd">
+          <span>ノート</span>
+          <button class="new-note-btn" onclick="createBlankNote()">＋ 新規</button>
+          <button class="panel-toggle-btn" onclick="togglePanel('notesList')" title="折りたたむ">◀</button>
+        </div>
+        <div id="notesList"></div>
+      </div>
+
+      <div class="source-panel" id="sourcePanelEl">
+        <div class="source-panel-collapsed-strip">
+          <button class="panel-toggle-btn" onclick="togglePanel('sourcePanel')" title="開く" style="transform:rotate(180deg)">◀</button>
+        </div>
+        <div class="source-panel-hd">
+          <input class="source-search" id="srcSearch" placeholder="メモを検索…" oninput="renderSourceFeed()">
+          <button class="panel-toggle-btn" onclick="togglePanel('sourcePanel')" title="折りたたむ" style="margin-left:4px">▶</button>
+        </div>
+        <div class="source-tabs-row">
+          <button class="source-tab active" id="stab-linked" onclick="setSourceTab('linked')">このノート</button>
+          <button class="source-tab"        id="stab-all"    onclick="setSourceTab('all')">すべて</button>
+          <button class="bulk-insert-btn" id="bulkInsertBtn" onclick="bulkInsert()" title="リンクされているメモを全件挿入">全件挿入</button>
+        </div>
+        <div class="source-feed" id="sourceFeed"></div>
+      </div>
+
+      <div class="editor-pane">
+        <div class="note-empty" id="editorEmpty">
+          <div class="empty-icon">✦</div>
+          <div>ノートを選択するか<br>「＋ 新規」で作成</div>
+        </div>
+        <div id="editorActive" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+          <div class="editor-toolbar">
+            <input class="editor-title-in" id="editorTitle" placeholder="ノートのタイトル" oninput="saveNoteTitle()">
+            <div class="et-sep"></div>
+            <button class="et-btn primary" onclick="exportObsidian()">Obsidian MD</button>
+            <button class="et-btn" onclick="exportPlain()">テキスト</button>
+            <button class="et-btn danger" onclick="deleteCurrentNote()">削除</button>
+          </div>
+          <div class="editor-stats-bar" id="editorStatsBar">
+            <div class="stat-pill"><span>文字数</span><span class="stat-pill-val" id="statChars">0</span></div>
+            <div class="stat-pill"><span>段落数</span><span class="stat-pill-val" id="statParas">0</span></div>
+            <div class="stat-pill">
+              <span>1行</span>
+              <input class="stat-line-in" id="lineWidthIn" type="number" value="40" min="10" max="200" step="5" title="1行の目安文字数">
+              <span>字</span>
+            </div>
+            <div class="stat-pill"><span>≈</span><span class="stat-pill-val" id="statLines">0</span><span>行</span></div>
+          </div>
+          <div class="editor-split">
+            <div class="editor-main">
+              <div class="para-editor" id="paraEditor"></div>
+              <div class="editor-hint">段落にカーソルを当てると「＋ 付箋」が出ます　← →：階層変更　↓：引用挿入</div>
+            </div>
+            <!-- 右：付箋ペイン（独立スクロール） -->
+            <div class="sticky-pane-b" id="stickyPaneB">
+              <div class="sticky-pane-b-hd">
+                <span>付箋メモ</span>
+                <button class="new-note-btn" style="font-size:10px;padding:2px 7px" onclick="addStickyUnanchored()">＋</button>
+              </div>
+              <div class="sticky-feed-b" id="stickyFeedB"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- anchor-picker removed (inline sticky system) -->
+<div class="anchor-picker-popup" id="anchorPickerPopup" style="display:none"></div>
+
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <div class="modal-title">ノートを作成</div>
+    <div class="modal-label">タイトル</div>
+    <input class="modal-in" id="noteModalTitle" placeholder="ノートのタイトル" onkeydown="if(event.key==='Enter')createNote()">
+    <div class="modal-footer">
+      <button class="modal-btn cancel" onclick="closeNoteModal()">キャンセル</button>
+      <button class="modal-btn ok"     onclick="createNote()">作成</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────
+const KP='tn_posts_v6', KN='tn_notes_v6';
+let posts=[], notes=[];
+let currentTab='timeline', currentView='timeline';
+let currentFilter='all', currentTag=null, searchQuery='';
+let selectedIds=new Set();
+let currentNoteId=null, sourceTab='linked';
+let saveTimer=null;
+const MAX_LEVEL=2;
+let dragIdx=null;
+let pendingStickyId=null; // 付箋（未使用・後方互換）
+let editingPostId=null;
+let editingTagPostId=null;
+const panelState={notesList:true,sourcePanel:true};
+
+function togglePanel(which){
+  panelState[which]=!panelState[which];
+  if(which==='notesList'){
+    document.getElementById('notesListPanel').classList.toggle('collapsed',!panelState.notesList);
+    const btn=document.querySelector('#notesListPanel .panel-toggle-btn');
+    if(btn)btn.textContent=panelState.notesList?'◀':'▶';
+  } else {
+    document.getElementById('sourcePanelEl').classList.toggle('collapsed',!panelState.sourcePanel);
+  }
+}
+
+// ─── Persist ─────────────────────────────────────────────
+function load(){
+  try{posts=JSON.parse(localStorage.getItem(KP)||'[]');}catch(e){posts=[];}
+  try{notes=JSON.parse(localStorage.getItem(KN)||'[]');}catch(e){notes=[];}
+  notes.forEach(n=>{
+    if(!n.items)n.items=(n.postIds||[]).map(id=>typeof id==='string'?{id,level:0}:id);
+    if(!n.stickies)n.stickies=[];
+    if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
+    delete n.postIds;
+  });
+  if(!posts.length)posts=DEMO_POSTS;
+  if(!notes.length)notes=DEMO_NOTES;
+}
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    localStorage.setItem(KP,JSON.stringify(posts));
+    localStorage.setItem(KN,JSON.stringify(notes));
+  },400);
+}
+
+// ─── Helpers ─────────────────────────────────────────────
+function extractTags(t){return[...new Set((t.match(/#[^\s#、。！？,.!?]+/g)||[]).map(x=>x.slice(1)))];}
+function allTagsMap(){const m={};posts.forEach(p=>extractTags(p.content).forEach(t=>{m[t]=(m[t]||0)+1;}));return m;}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function pad(n){return String(n).padStart(2,'0');}
+function fmtDate(ts){const d=new Date(ts);return`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;}
+function fmtDateISO(ts){return new Date(ts).toISOString().slice(0,10);}
+function fmtDt(ts){const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();}
+// クリーンテキスト（引用符・タグ除去）
+function cleanText(content){
+  return content
+    .split('\n')
+    .map(l=>l.replace(/^│\s?/,''))          // 引用記号除去
+    .join('\n')
+    .replace(/#[^\s#、。！？,.!?]+/g,'')     // タグ除去
+    .replace(/[ \t]+\n/g,'\n')
+    .trim();
+}
+
+// ─── Tab / View ───────────────────────────────────────────
+function switchTab(tab){
+  currentTab=tab;
+  ['timeline','tags','notes'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===tab));
+  const isN=tab==='notes';
+  document.getElementById('composeArea').style.display=isN?'none':'';
+  document.getElementById('viewCtrl').style.display=isN?'none':'';
+  document.getElementById('sidebar').style.display=isN?'none':'';
+  document.getElementById('feed').style.display='none';
+  document.getElementById('clusterGrid').style.display='none';
+  document.getElementById('notesLayout').style.display='none';
+  if(tab==='timeline'){setView(currentView);renderSidebar();}
+  else if(tab==='tags'){setView('cluster');}
+  else{document.getElementById('notesLayout').style.display='flex';renderNotesTab();}
+}
+function setView(v){
+  currentView=v;
+  document.getElementById('vb-timeline').classList.toggle('active',v==='timeline');
+  document.getElementById('vb-cluster').classList.toggle('active',v==='cluster');
+  document.getElementById('feed').style.display=v==='timeline'?'block':'none';
+  document.getElementById('clusterGrid').style.display=v==='cluster'?'grid':'none';
+  if(v==='timeline')renderFeed();else renderCluster();
+}
+function setFilter(f,tag){
+  currentFilter=f;currentTag=tag||null;
+  document.querySelectorAll('.sb-item').forEach(el=>el.classList.remove('active'));
+  if(!tag)document.getElementById('filter-'+f)?.classList.add('active');
+  if(tag)document.getElementById('sbtag-'+tag)?.classList.add('active');
+  renderFeed();
+}
+function onSearch(q){searchQuery=q;if(currentView==='timeline')renderFeed();else renderCluster();}
+
+// ─── Sidebar ─────────────────────────────────────────────
+function renderSidebar(){
+  const tags=allTagsMap();
+  document.getElementById('cnt-all').textContent=posts.length;
+  document.getElementById('cnt-starred').textContent=posts.filter(p=>p.starred).length;
+  document.getElementById('sbTagList').innerHTML=Object.entries(tags).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`
+    <div class="sb-item" id="sbtag-${t}" onclick="setFilter('tag','${t}')">
+      <div class="sb-tag-dot"></div><span>#${t}</span><span class="sb-count">${n}</span>
+    </div>`).join('');
+}
+
+// ─── Feed ────────────────────────────────────────────────
+function filteredPosts(){
+  let r=[...posts];
+  if(searchQuery){const q=searchQuery.toLowerCase();r=r.filter(p=>p.content.toLowerCase().includes(q));}
+  if(currentFilter==='starred')r=r.filter(p=>p.starred);
+  if(currentTag)r=r.filter(p=>extractTags(p.content).includes(currentTag));
+  return r.sort((a,b)=>b.createdAt-a.createdAt);
+}
+function renderFeed(){
+  const fp=filteredPosts();
+  const feed=document.getElementById('feed');
+  if(!fp.length){feed.innerHTML=`<div class="empty-state"><div class="empty-icon">✦</div>投稿がありません</div>`;return;}
+  feed.innerHTML=fp.map(p=>renderPost(p)).join('');
+  updateSelCtrl();
+}
+function renderPost(p){
+  const tags=extractTags(p.content);
+  const isEditing=editingPostId===p.id;
+  const displayText=p.content.replace(/#[^\s#、。！？,.!?]+/g,'').replace(/\n{3,}/g,'\n\n').trimEnd();
+  const hi=displayText.replace(/(https?:\/\/\S+)/g,'<span style="color:var(--teal)">$1</span>');
+  const sel=selectedIds.has(p.id);
+  const tagPills=tags.map(t=>`
+    <span class="tag-pill" onclick="setFilter('tag','${esc(t)}')">
+      #${esc(t)}
+      <button class="tag-pill-x" onclick="event.stopPropagation();removeTag('${p.id}','${esc(t)}')" title="タグを削除">✕</button>
+    </span>`).join('');
+  const isEditingTag=editingTagPostId===p.id;
+
+  const editSection=isEditing?`
+    <div class="post-edit-wrap">
+      <textarea class="post-edit-ta" id="edit-ta-${p.id}">${esc(p.content)}</textarea>
+      <div class="post-edit-actions">
+        <button class="post-edit-btn save" onclick="savePostEdit('${p.id}')">保存</button>
+        <button class="post-edit-btn cancel" onclick="cancelPostEdit()">キャンセル</button>
+      </div>
+    </div>`:'';
+
+  return`<div class="post ${sel?'selected':''}" id="post-${p.id}">
+    <div class="post-row1">
+      <div class="post-sel"><div class="post-sel-box ${sel?'checked':''}" onclick="toggleSel('${p.id}')"></div></div>
+      <div class="post-body">
+        ${isEditing?'':`<div class="post-text">${hi||'（空）'}</div>`}
+        <div class="post-meta">
+          <span class="post-time">${fmtDt(p.createdAt)}</span>
+          <div class="post-actions">
+            <button class="pa" title="編集" onclick="startPostEdit('${p.id}')">✎</button>
+            <button class="pa star ${p.starred?'on':''}" onclick="toggleStar('${p.id}')">★</button>
+            <button class="pa del" onclick="deletePost('${p.id}')">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${editSection}
+    <div class="post-tags-row">
+      ${tagPills}
+      ${isEditingTag
+        ?`<span class="tag-input-wrap">
+            <input class="tag-input" id="taginput-${p.id}" placeholder="タグ名" maxlength="20"
+              onkeydown="onTagInputKey(event,'${p.id}')" onblur="cancelTagEdit('${p.id}')">
+          </span>`
+        :`<button class="tag-add-btn" onclick="startTagEdit('${p.id}')">＋ タグ</button>`
+      }
+    </div>
+  </div>`;
+}
+function startPostEdit(pid){
+  editingPostId=pid;editingTagPostId=null;renderFeed();
+  setTimeout(()=>{
+    const ta=document.getElementById('edit-ta-'+pid);
+    if(!ta)return;
+    ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
+    ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
+  },30);
+}
+function savePostEdit(pid){
+  const ta=document.getElementById('edit-ta-'+pid);if(!ta)return;
+  const p=posts.find(x=>x.id===pid);if(!p)return;
+  p.content=ta.value;
+  editingPostId=null;save();renderFeed();renderSidebar();
+}
+function cancelPostEdit(){
+  editingPostId=null;renderFeed();
+}
+function startTagEdit(pid){
+  editingTagPostId=pid;renderFeed();
+  setTimeout(()=>{const el=document.getElementById('taginput-'+pid);if(el)el.focus();},30);
+}
+function cancelTagEdit(pid){
+  if(editingTagPostId===pid){editingTagPostId=null;renderFeed();}
+}
+function onTagInputKey(e,pid){
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    const val=e.target.value.trim().replace(/^#/,'').replace(/\s+/g,'');
+    if(val)addTag(pid,val);
+    editingTagPostId=null;renderFeed();renderSidebar();
+  }
+  if(e.key==='Escape'){editingTagPostId=null;renderFeed();}
+}
+function addTag(pid,tag){
+  const p=posts.find(x=>x.id===pid);if(!p)return;
+  if(extractTags(p.content).includes(tag))return;
+  p.content=(p.content.trimEnd()+'\n\n#'+tag).replace(/\n{3,}/g,'\n\n');
+  save();
+}
+function removeTag(pid,tag){
+  const p=posts.find(x=>x.id===pid);if(!p)return;
+  p.content=p.content.replace(new RegExp('#'+tag+'(?=[\\s#、。！？,.!?]|$)','g'),'').replace(/\n{3,}/g,'\n\n').trimEnd();
+  save();renderFeed();renderSidebar();
+}
+
+// ─── Cluster ─────────────────────────────────────────────
+function goToTag(tag){
+  currentTag=tag; currentFilter='all';
+  switchTab('timeline');
+  setTimeout(()=>{
+    document.querySelectorAll('.sb-item').forEach(el=>el.classList.remove('active'));
+    document.getElementById('sbtag-'+tag)?.classList.add('active');
+  },60);
+}
+function renderCluster(){
+  const tags=allTagsMap();const grid=document.getElementById('clusterGrid');
+  if(!Object.keys(tags).length){grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">✦</div>タグがありません</div>`;return;}
+  grid.innerHTML=Object.entries(tags).sort((a,b)=>b[1]-a[1]).map(([tag,n])=>{
+    const items=posts.filter(p=>extractTags(p.content).includes(tag)).sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
+    return`<div class="cluster-card" onclick="goToTag('${esc(tag)}')">
+      <div class="cluster-hd"><span class="cluster-tag">#${esc(tag)}</span><span class="cluster-n">${n}件 →</span></div>
+      <div>${items.map(p=>`<div class="cluster-item">${esc(cleanText(p.content))}</div>`).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Post CRUD ───────────────────────────────────────────
+function submitPost(){
+  const ta=document.getElementById('composeTA');const text=ta.value.trim();if(!text)return;
+  posts.push({id:uid(),content:text,createdAt:Date.now(),starred:false});
+  ta.value='';ta.style.height='';save();
+  if(currentView==='timeline')renderFeed();else renderCluster();renderSidebar();
+}
+function deletePost(id){if(!confirm('削除しますか？'))return;posts=posts.filter(p=>p.id!==id);selectedIds.delete(id);save();renderFeed();renderSidebar();}
+function toggleStar(id){const p=posts.find(x=>x.id===id);if(p){p.starred=!p.starred;save();renderFeed();renderSidebar();}}
+function toggleSel(id){if(selectedIds.has(id))selectedIds.delete(id);else selectedIds.add(id);renderFeed();}
+function clearSel(){selectedIds.clear();renderFeed();}
+function updateSelCtrl(){
+  const n=selectedIds.size;
+  document.getElementById('selCtrl').style.display=n>0?'flex':'none';
+  document.getElementById('selLabel').textContent=n+'件選択中';
+}
+
+// ─── Notes ───────────────────────────────────────────────
+function renderNotesTab(){renderNotesList();if(currentNoteId&&notes.find(x=>x.id===currentNoteId))openNote(currentNoteId);else showEditorEmpty();renderSourceFeed();}
+function renderNotesList(){
+  const list=document.getElementById('notesList');
+  if(!notes.length){list.innerHTML=`<div class="empty-state">ノートなし</div>`;return;}
+  list.innerHTML=notes.sort((a,b)=>b.updatedAt-a.updatedAt).map(n=>`
+    <div class="note-li ${n.id===currentNoteId?'active':''}" onclick="openNote('${n.id}')">
+      <div class="note-li-title">${esc(n.title||'無題')}</div>
+      <div class="note-li-meta">${n.items.length}件 · ${fmtDate(n.updatedAt)}</div>
+    </div>`).join('');
+}
+function openNote(id){
+  currentNoteId=id;const n=notes.find(x=>x.id===id);if(!n)return;
+  renderNotesList();
+  document.getElementById('editorEmpty').style.display='none';
+  const ea=document.getElementById('editorActive');ea.style.display='flex';
+  document.getElementById('editorTitle').value=n.title||'';
+  if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
+  renderParaEditor();renderSourceFeed();
+  setupScrollSync();
+  document.getElementById('bulkInsertBtn').style.display=sourceTab==='linked'?'':'none';
+}
+function showEditorEmpty(){
+  document.getElementById('editorEmpty').style.display='flex';
+  document.getElementById('editorActive').style.display='none';
+  renderSourceFeed();
+}
+function createBlankNote(){
+  const n={id:uid(),title:'無題のノート',body:'',paragraphs:[],items:[],stickies:[],createdAt:Date.now(),updatedAt:Date.now()};
+  notes.push(n);currentNoteId=n.id;save();renderNotesList();openNote(n.id);
+  setTimeout(()=>document.getElementById('editorTitle').select(),50);
+}
+function saveNoteTitle(){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  n.title=document.getElementById('editorTitle').value;n.updatedAt=Date.now();save();renderNotesList();
+}
+function deleteCurrentNote(){
+  if(!currentNoteId||!confirm('削除しますか？'))return;
+  notes=notes.filter(x=>x.id!==currentNoteId);currentNoteId=null;save();renderNotesList();showEditorEmpty();
+}
+function getNoteBody(){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return'';
+  return(n.paragraphs||[]).join('\n');
+}
+
+// ─── 段落ブロックエディター（案B：本文独立・付箋ペイン分離） ─────
+function renderParaEditor(){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  if(!n.paragraphs)n.paragraphs=[];
+  const editor=document.getElementById('paraEditor');
+  editor.innerHTML='';
+
+  const paras=n.paragraphs.length?n.paragraphs:[''];
+  paras.forEach((para,i)=>{
+    const row=document.createElement('div');
+    row.className='para-row';
+    row.dataset.idx=i;
+
+    const ta=document.createElement('textarea');
+    ta.className='para-input';
+    ta.value=para;
+    ta.rows=1;
+    ta.placeholder=i===0?'書き始める…':'';
+    ta.dataset.idx=i;
+    setTimeout(()=>autoH(ta),0);
+    ta.addEventListener('input',()=>{
+      autoH(ta);
+      n.paragraphs[i]=ta.value;
+      n.updatedAt=Date.now();save();
+      updateEditorStats();
+    });
+    ta.addEventListener('keydown',e=>onParaKey(e,i));
+    ta.addEventListener('focus',()=>highlightStickiesForPara(n.paragraphs[i]));
+
+    const addSBtn=document.createElement('button');
+    addSBtn.className='para-add-sticky';
+    addSBtn.textContent='＋ 付箋';
+    addSBtn.onclick=()=>addStickyToParaIdx(i, ta.value);
+
+    row.appendChild(ta);
+    row.appendChild(addSBtn);
+    editor.appendChild(row);
+  });
+
+  const addBtn=document.createElement('button');
+  addBtn.className='para-add-btn';
+  addBtn.textContent='＋ 段落を追加';
+  addBtn.onclick=()=>addPara();
+  editor.appendChild(addBtn);
+
+  setTimeout(()=>{
+    editor.querySelectorAll('.para-input').forEach(autoH);
+    updateEditorStats();
+    renderStickyPaneB();
+  },0);
+}
+
+// ─── 付箋ペインB（絶対配置＋段落Y位置合わせ＋スクロール同期） ───
+let _syncScrolling=false;
+
+function setupScrollSync(){
+  const pe=document.getElementById('paraEditor');
+  const sf=document.getElementById('stickyFeedB');
+  if(!pe||!sf)return;
+  pe.addEventListener('scroll',()=>{
+    if(_syncScrolling)return;
+    _syncScrolling=true;
+    sf.scrollTop=pe.scrollTop;
+    requestAnimationFrame(()=>{_syncScrolling=false;});
+  });
+  sf.addEventListener('scroll',()=>{
+    if(_syncScrolling)return;
+    _syncScrolling=true;
+    pe.scrollTop=sf.scrollTop;
+    requestAnimationFrame(()=>{_syncScrolling=false;});
+  });
+}
+
+function renderStickyPaneB(){
+  const feed=document.getElementById('stickyFeedB');if(!feed)return;
+  const editor=document.getElementById('paraEditor');
+  const n=notes.find(x=>x.id===currentNoteId);
+
+  feed.innerHTML='';
+
+  if(!n||!(n.stickies||[]).length){
+    feed.style.minHeight='';
+    feed.innerHTML=`<div style="padding:1.5rem .5rem;font-size:11px;color:var(--text3);text-align:center;font-family:'Hiragino Kaku Gothic ProN',sans-serif">「＋」または段落の「＋ 付箋」で追加</div>`;
+    return;
+  }
+
+  // 段落テキスト → offsetTop マップ
+  const paraTopMap={};
+  const paraOrder={};
+  (n.paragraphs||[]).forEach((p,i)=>{if(p.trim()){paraOrder[p]=i;}});
+  if(editor){
+    editor.querySelectorAll('.para-input').forEach(ta=>{
+      if(ta.value.trim())paraTopMap[ta.value]=ta.offsetTop;
+    });
+  }
+
+  // anchored（段落Y順）/ unanchored
+  const anchored=(n.stickies||[]).filter(s=>s.anchor&&paraTopMap[s.anchor]!=null);
+  const unanchored=(n.stickies||[]).filter(s=>!s.anchor||paraTopMap[s.anchor]==null);
+
+  anchored.sort((a,b)=>{
+    const ia=paraOrder[a.anchor]??99999;
+    const ib=paraOrder[b.anchor]??99999;
+    return ia!==ib?ia-ib:(n.stickies||[]).indexOf(a)-(n.stickies||[]).indexOf(b);
+  });
+
+  const GAP=6;
+  let nextTop=8;
+
+  // 付箋を配置
+  anchored.forEach(s=>{
+    const idealTop=paraTopMap[s.anchor]??0;
+    const top=Math.max(nextTop,idealTop);
+    const card=buildStickyCardB(s);
+    card.style.top=top+'px';
+    feed.appendChild(card);
+    nextTop=top+card.offsetHeight+GAP;
+  });
+
+  // アンカーなし
+  if(unanchored.length){
+    const sep=document.createElement('div');
+    sep.className='sticky-unanchored-sep';
+    sep.style.top=nextTop+'px';
+    sep.textContent='段落未指定';
+    feed.appendChild(sep);
+    nextTop+=sep.offsetHeight+4;
+
+    unanchored.forEach(s=>{
+      const card=buildStickyCardB(s);
+      card.style.top=nextTop+'px';
+      feed.appendChild(card);
+      nextTop+=card.offsetHeight+GAP;
+    });
+  }
+
+  // feed の高さを para-editor の高さに合わせる（スクロール同期のため）
+  const editorH=editor?editor.scrollHeight:0;
+  feed.style.minHeight=Math.max(editorH,nextTop+24)+'px';
+}
+
+function buildStickyCardB(s){
+  const card=document.createElement('div');
+  card.className='sticky-card-b'+(s.color==='green'?' color-green':'');
+  card.id='scb-'+s.id;
+
+  // 段落ラベル（クリックで紐付け変更）
+  const lbl=document.createElement('div');
+  lbl.className='sticky-para-label'+(s.anchor?' linked':'');
+  lbl.title=s.anchor?s.anchor:'段落に紐付ける';
+  lbl.textContent=s.anchor?'¶ '+truncate(s.anchor,28):'＋ 段落に紐付ける';
+  lbl.onclick=(e)=>{e.stopPropagation();openAnchorPicker(s.id,lbl);};
+  card.appendChild(lbl);
+
+  // ヘッダー（色・削除）
+  const hd=document.createElement('div');
+  hd.className='sticky-card-b-hd';
+  const colorDot=document.createElement('button');
+  colorDot.className='sticky-color-dot';
+  colorDot.title='色を切り替え';
+  colorDot.onclick=()=>toggleStickyColorB(s.id);
+  const delBtn=document.createElement('button');
+  delBtn.className='sticky-del-b';
+  delBtn.textContent='✕';
+  delBtn.onclick=()=>deleteStickyB(s.id);
+  hd.appendChild(colorDot);hd.appendChild(delBtn);
+  card.appendChild(hd);
+
+  // テキストエリア
+  const ta=document.createElement('textarea');
+  ta.className='sticky-ta-b';
+  ta.placeholder='メモ・疑問・TODO…';
+  ta.value=s.text||'';
+  setTimeout(()=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';},0);
+  ta.addEventListener('input',e=>{
+    const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+    const st=n.stickies.find(x=>x.id===s.id);if(!st)return;
+    st.text=e.target.value;n.updatedAt=Date.now();save();
+    e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';
+  });
+  ta.addEventListener('focus',()=>{
+    // 紐付き段落をハイライト
+    document.querySelectorAll('.para-input').forEach(el=>el.classList.remove('sticky-linked'));
+    if(s.anchor){
+      for(const el of document.querySelectorAll('.para-input')){
+        if(el.value===s.anchor){el.classList.add('sticky-linked');break;}
+      }
+      highlightStickiesForPara(s.anchor);
+    }
+  });
+  ta.addEventListener('blur',()=>{
+    document.querySelectorAll('.para-input').forEach(el=>el.classList.remove('sticky-linked'));
+    document.querySelectorAll('.sticky-card-b').forEach(el=>el.classList.remove('is-active'));
+  });
+  card.appendChild(ta);
+  return card;
+}
+
+function addStickyToParaIdx(idx, liveVal){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  // liveVal が渡された場合はそちらを優先（textarea の最新値）
+  const para=(liveVal!==undefined?liveVal:(n.paragraphs[idx]||'')).trim();
+  // データも更新しておく
+  if(liveVal!==undefined&&n.paragraphs[idx]!==undefined)n.paragraphs[idx]=liveVal;
+  const s={id:uid(),text:'',anchor:para||null,color:'yellow',createdAt:Date.now()};
+  n.stickies.push(s);n.updatedAt=Date.now();save();
+  renderStickyPaneB();
+  setTimeout(()=>{
+    const card=document.getElementById('scb-'+s.id);
+    if(card){card.querySelector('textarea')?.focus();card.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  },50);
+}
+
+function addStickyUnanchored(){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  const s={id:uid(),text:'',anchor:null,color:'yellow',createdAt:Date.now()};
+  n.stickies.push(s);n.updatedAt=Date.now();save();
+  renderStickyPaneB();
+  setTimeout(()=>{document.getElementById('scb-'+s.id)?.querySelector('textarea')?.focus();},50);
+}
+
+function toggleStickyColorB(sid){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  const s=n.stickies.find(x=>x.id===sid);if(!s)return;
+  s.color=s.color==='green'?'yellow':'green';n.updatedAt=Date.now();save();
+  renderStickyPaneB();
+}
+
+function deleteStickyB(sid){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  n.stickies=n.stickies.filter(x=>x.id!==sid);n.updatedAt=Date.now();save();
+  renderStickyPaneB();
+}
+
+function highlightStickiesForPara(anchor){
+  document.querySelectorAll('.sticky-card-b').forEach(el=>el.classList.remove('is-active'));
+  if(!anchor)return;
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  (n.stickies||[]).forEach(s=>{
+    if(s.anchor===anchor){
+      const el=document.getElementById('scb-'+s.id);
+      if(el){el.classList.add('is-active');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
+    }
+  });
+}
+
+// ─── 段落ピッカー ─────────────────────────────────────────
+let _pickerStickyId=null;
+function openAnchorPicker(sid,labelEl){
+  _pickerStickyId=sid;
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  const paras=(n.paragraphs||[]).filter(p=>p.trim().length>0);
+  const popup=document.getElementById('anchorPickerPopup');
+  popup.innerHTML=`<div class="ap-pop-title">紐付ける段落を選択</div>`;
+  // 紐付け解除
+  const none=document.createElement('div');
+  none.className='ap-pop-item none-item';
+  none.textContent='（紐付けを外す）';
+  none.onclick=()=>setAnchorForSticky(sid,null);
+  popup.appendChild(none);
+  // 段落リスト
+  paras.forEach(p=>{
+    const item=document.createElement('div');
+    item.className='ap-pop-item';
+    item.textContent=truncate(p,50);
+    item.title=p;
+    item.onclick=()=>setAnchorForSticky(sid,p);
+    popup.appendChild(item);
+  });
+  if(!paras.length){
+    const empty=document.createElement('div');
+    empty.className='ap-pop-item none-item';
+    empty.textContent='段落を書いてから選択してください';
+    popup.appendChild(empty);
+  }
+  // 位置調整
+  const rect=labelEl.getBoundingClientRect();
+  popup.style.display='block';
+  const pw=230;
+  let left=rect.left;
+  if(left+pw>window.innerWidth-8)left=window.innerWidth-pw-8;
+  popup.style.left=left+'px';
+  popup.style.top=(rect.bottom+4)+'px';
+}
+function setAnchorForSticky(sid,para){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  const s=n.stickies.find(x=>x.id===sid);if(!s)return;
+  s.anchor=para||null;
+  n.updatedAt=Date.now();save();
+  closeAnchorPicker();
+  renderStickyPaneB();
+}
+function closeAnchorPicker(){
+  const p=document.getElementById('anchorPickerPopup');
+  if(p)p.style.display='none';
+  _pickerStickyId=null;
+}
+document.addEventListener('click',e=>{
+  const popup=document.getElementById('anchorPickerPopup');
+  if(popup&&popup.style.display!=='none'&&!popup.contains(e.target)&&!e.target.classList.contains('sticky-para-label')){
+    closeAnchorPicker();
+  }
+});
+
+function scrollToAnchor(anchor){
+  if(!anchor)return;
+  const inputs=document.querySelectorAll('.para-input');
+  document.querySelectorAll('.para-input').forEach(ta=>ta.classList.remove('anchor-highlight'));
+  for(const ta of inputs){
+    if(ta.value===anchor){
+      ta.scrollIntoView({behavior:'smooth',block:'center'});
+      ta.focus();
+      ta.classList.add('anchor-highlight');
+      setTimeout(()=>ta.classList.remove('anchor-highlight'),1800);
+      break;
+    }
+  }
+}
+
+function autoH(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}
+
+function onParaKey(e,i){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n||!n.paragraphs)return;
+  if(e.key==='Enter'&&!e.shiftKey){
+    e.preventDefault();addPara(i+1);
+  }
+  if(e.key==='Backspace'&&e.target.value===''&&n.paragraphs.length>1){
+    e.preventDefault();removePara(i);
+  }
+  if(e.key==='Tab'){
+    e.preventDefault();
+    // Tab = indent inside paragraph (2 spaces)
+    const t=e.target,s=t.selectionStart;
+    t.value=t.value.slice(0,s)+'  '+t.value.slice(s);
+    t.selectionStart=t.selectionEnd=s+2;
+    n.paragraphs[i]=t.value;save();
+  }
+}
+
+function addPara(afterIdx){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  if(!n.paragraphs)n.paragraphs=[];
+  const insertAt=afterIdx!=null?afterIdx:n.paragraphs.length;
+  n.paragraphs.splice(insertAt,0,'');
+  n.body=n.paragraphs.join('\n');n.updatedAt=Date.now();save();
+  renderParaEditor();
+  // focus new para
+  setTimeout(()=>{
+    const blocks=document.getElementById('paraEditor').querySelectorAll('.para-input');
+    if(blocks[insertAt])blocks[insertAt].focus();
+  },30);
+}
+
+function removePara(i){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  n.paragraphs.splice(i,1);
+  if(!n.paragraphs.length)n.paragraphs=[''];
+  n.body=n.paragraphs.join('\n');n.updatedAt=Date.now();save();
+  renderParaEditor();
+  setTimeout(()=>{
+    const blocks=document.getElementById('paraEditor').querySelectorAll('.para-input');
+    const focusIdx=Math.max(0,i-1);
+    if(blocks[focusIdx]){blocks[focusIdx].focus();const l=blocks[focusIdx].value.length;blocks[focusIdx].setSelectionRange(l,l);}
+  },30);
+}
+
+function highlightActivePara(i){
+  // アクティブ段落のテキストに対応する付箋をハイライト
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  const para=n.paragraphs[i]||'';
+  document.querySelectorAll('.sticky-card').forEach(el=>el.classList.remove('active-para'));
+  (n.stickies||[]).forEach(s=>{
+    if(s.anchor&&para.length>5&&s.anchor===para){
+      const el=document.getElementById('sticky-'+s.id);
+      if(el){el.classList.add('active-para');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
+    }
+  });
+}
+
+function highlightStickiesByAnchor(anchor){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  document.querySelectorAll('.sticky-card').forEach(el=>el.classList.remove('active-para'));
+  (n.stickies||[]).forEach(s=>{
+    if(s.anchor===anchor){
+      const el=document.getElementById('sticky-'+s.id);
+      if(el){el.classList.add('active-para');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
+    }
+  });
+}
+
+// ─── Source tab ──────────────────────────────────────────
+function setSourceTab(t){
+  sourceTab=t;
+  document.getElementById('stab-linked').classList.toggle('active',t==='linked');
+  document.getElementById('stab-all').classList.toggle('active',t==='all');
+  document.getElementById('bulkInsertBtn').style.display=t==='linked'?'':'none';
+  renderSourceFeed();
+}
+function renderSourceFeed(){
+  const feed=document.getElementById('sourceFeed');
+  if(!currentNoteId){feed.innerHTML=`<div class="empty-state">ノートを選択してください</div>`;return;}
+  const n=notes.find(x=>x.id===currentNoteId);if(!n){feed.innerHTML='';return;}
+  const q=(document.getElementById('srcSearch')?.value||'').toLowerCase();
+  if(sourceTab==='linked'){
+    let items=n.items;if(q)items=items.filter(it=>{const p=posts.find(x=>x.id===it.id);return p&&p.content.toLowerCase().includes(q);});
+    if(!items.length){feed.innerHTML=`<div class="empty-state"><div class="empty-icon">✦</div>メモが追加されていません<br><small>「すべて」タブから追加</small></div>`;return;}
+    feed.innerHTML=items.map((it,i)=>buildLinkedCard(it,i,items)).join('');
+    // last-in-group: mark last item of each consecutive level group
+    const itemEls=feed.querySelectorAll('.outline-item');
+    itemEls.forEach((el,i)=>{
+      const lvl=parseInt(el.dataset.level||0);
+      if(lvl===0)return;
+      const next=itemEls[i+1];
+      const nextLvl=next?parseInt(next.dataset.level||0):0;
+      if(nextLvl<lvl)el.classList.add('last-in-group');
+    });
+  } else {
+    let pool=[...posts].sort((a,b)=>b.createdAt-a.createdAt);if(q)pool=pool.filter(p=>p.content.toLowerCase().includes(q));
+    if(!pool.length){feed.innerHTML=`<div class="empty-state"><div class="empty-icon">✦</div>メモがありません</div>`;return;}
+    const linkedIds=new Set(n.items.map(it=>it.id));
+    feed.innerHTML=`<div class="add-banner">「＋」でこのノートにリンク</div>`+pool.map(p=>buildAllCard(p,linkedIds.has(p.id))).join('');
+  }
+}
+
+function buildLinkedCard(it,idx,items){
+  const p=posts.find(x=>x.id===it.id);
+  const lvl=it.level||0;
+  const preview=p?esc(cleanText(p.content).slice(0,120)):esc('（削除済み）');
+  return`<div class="outline-item" data-level="${lvl}" id="oi-${idx}">
+    <div class="src-card linked" id="sc-${idx}"
+      draggable="true"
+      ondragstart="onDragStart(event,${idx})" ondragend="onDragEnd()"
+      ondragover="onDragOver(event,${idx})" ondragleave="onDragLeave(${idx})" ondrop="onDrop(event,${idx})">
+      <div class="src-card-body">
+        <span class="drag-grip">⠿</span>
+        <div class="src-text">${preview}</div>
+        <div class="level-btns">
+          <button class="lv-btn" onclick="indentItem(${idx})" ${lvl<MAX_LEVEL?'':' disabled'}>→</button>
+          <button class="lv-btn" onclick="outdentItem(${idx})" ${lvl>0?'':' disabled'}>←</button>
+        </div>
+      </div>
+      <div class="src-card-foot">
+        <span class="src-time-mini">${p?fmtDt(p.createdAt):''}</span>
+        ${p?`<button class="icon-btn insert" title="挿入" onclick="insertPost('${p.id}')">↓</button>`:''}
+        <button class="icon-btn unlink" title="外す" onclick="unlinkItem(${idx})">✕</button>
+      </div>
+    </div>
+  </div>`;
+}
+function buildAllCard(p,linked){
+  return`<div class="outline-item" data-level="0">
+    <div class="src-card ${linked?'linked':''}">
+      <div class="src-card-body"><div class="src-text">${esc(cleanText(p.content).slice(0,120))}</div></div>
+      <div class="src-card-foot">
+        <span class="src-time-mini">${fmtDt(p.createdAt)}</span>
+        <button class="icon-btn insert" title="挿入" onclick="insertPost('${p.id}')">↓</button>
+        ${linked
+          ?`<button class="icon-btn unlink" title="外す" onclick="unlinkById('${p.id}')">✕</button>`
+          :`<button class="icon-btn link-add" title="追加" onclick="linkPost('${p.id}')">＋</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── Level ops ───────────────────────────────────────────
+function indentItem(idx){const n=notes.find(x=>x.id===currentNoteId);if(!n||n.items[idx].level>=MAX_LEVEL)return;n.items[idx].level++;n.updatedAt=Date.now();save();renderSourceFeed();}
+function outdentItem(idx){const n=notes.find(x=>x.id===currentNoteId);if(!n||n.items[idx].level<=0)return;n.items[idx].level--;n.updatedAt=Date.now();save();renderSourceFeed();}
+
+// ─── Link/unlink/insert ──────────────────────────────────
+function linkPost(pid){const n=notes.find(x=>x.id===currentNoteId);if(!n||n.items.find(it=>it.id===pid))return;n.items.push({id:pid,level:0});n.updatedAt=Date.now();save();renderSourceFeed();renderNotesList();}
+function unlinkItem(idx){const n=notes.find(x=>x.id===currentNoteId);if(!n)return;n.items.splice(idx,1);n.updatedAt=Date.now();save();renderSourceFeed();renderNotesList();}
+function unlinkById(pid){const n=notes.find(x=>x.id===currentNoteId);if(!n)return;n.items=n.items.filter(it=>it.id!==pid);n.updatedAt=Date.now();save();renderSourceFeed();renderNotesList();}
+
+function insertPost(pid){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  const p=posts.find(x=>x.id===pid);if(!p)return;
+  if(!n.items.find(it=>it.id===pid))n.items.push({id:pid,level:0});
+  const clean=cleanText(p.content);
+  if(!n.paragraphs)n.paragraphs=[];
+  n.paragraphs.push(clean);
+  n.body=n.paragraphs.join('\n');n.updatedAt=Date.now();save();
+  renderParaEditor();renderSourceFeed();renderNotesList();renderStickyPaneB();
+  setTimeout(()=>{
+    const rows=document.getElementById('paraEditor').querySelectorAll('.para-input');
+    const last=rows[rows.length-1];if(last)last.scrollIntoView({behavior:'smooth',block:'center'});
+  },60);
+}
+
+function bulkInsert(){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n||!n.items.length)return;
+  if(!n.paragraphs)n.paragraphs=[];
+  n.items.forEach(it=>{
+    const p=posts.find(x=>x.id===it.id);if(!p)return;
+    const clean=cleanText(p.content);
+    if(clean)n.paragraphs.push(clean);
+  });
+  n.body=n.paragraphs.join('\n');n.updatedAt=Date.now();save();
+  renderParaEditor();
+}
+
+// ─── Drag ────────────────────────────────────────────────
+function onDragStart(e,idx){dragIdx=idx;e.dataTransfer.effectAllowed='move';setTimeout(()=>document.getElementById('sc-'+idx)?.classList.add('dragging'),0);}
+function onDragEnd(){document.querySelectorAll('.src-card').forEach(c=>c.classList.remove('dragging','drag-over-above','drag-over-below'));dragIdx=null;}
+function onDragOver(e,idx){
+  e.preventDefault();if(dragIdx===null||dragIdx===idx)return;
+  document.querySelectorAll('.src-card').forEach(c=>c.classList.remove('drag-over-above','drag-over-below'));
+  const card=document.getElementById('sc-'+idx);if(!card)return;
+  const rect=card.getBoundingClientRect();
+  card.classList.add(e.clientY<rect.top+rect.height/2?'drag-over-above':'drag-over-below');
+}
+function onDragLeave(idx){document.getElementById('sc-'+idx)?.classList.remove('drag-over-above','drag-over-below');}
+function onDrop(e,idx){
+  e.preventDefault();const card=document.getElementById('sc-'+idx);if(!card||dragIdx===null||dragIdx===idx)return;
+  const above=card.classList.contains('drag-over-above');card.classList.remove('drag-over-above','drag-over-below');
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  const moved=n.items.splice(dragIdx,1)[0];let t=idx;if(dragIdx<idx)t--;
+  n.items.splice(Math.max(0,Math.min(above?t:t+1,n.items.length)),0,moved);
+  n.updatedAt=Date.now();save();renderSourceFeed();renderNotesList();
+}
+
+function updateEditorStats(){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  const paras=(n.paragraphs||[]).filter(l=>l.trim());
+  const allText=paras.join('');
+  const chars=allText.replace(/\s/g,'').length;
+  const lineW=parseInt(document.getElementById('lineWidthIn')?.value||40)||40;
+  let lineCount=0;
+  paras.forEach(p=>{lineCount+=Math.max(1,Math.ceil(p.replace(/\s/g,'').length/lineW));});
+  document.getElementById('statChars').textContent=chars.toLocaleString();
+  document.getElementById('statParas').textContent=paras.length;
+  document.getElementById('statLines').textContent=lineCount;
+}
+// line width change triggers recalc
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('lineWidthIn')?.addEventListener('input',updateEditorStats);
+});
+function openNoteModal(){if(!selectedIds.size)return;document.getElementById('noteModalTitle').value='';document.getElementById('noteModal').classList.add('open');setTimeout(()=>document.getElementById('noteModalTitle').focus(),50);}
+function closeNoteModal(){document.getElementById('noteModal').classList.remove('open');}
+function createNote(){
+  const title=document.getElementById('noteModalTitle').value.trim()||'無題のノート';
+  const n={id:uid(),title,body:'',paragraphs:[],items:[...selectedIds].map(id=>({id,level:0})),stickies:[],createdAt:Date.now(),updatedAt:Date.now()};
+  notes.push(n);selectedIds.clear();save();closeNoteModal();renderFeed();currentNoteId=n.id;switchTab('notes');
+}
+
+// ─── Export ──────────────────────────────────────────────
+function exportObsidian(){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  const srcPosts=n.items.map(it=>posts.find(p=>p.id===it.id)).filter(Boolean);
+  const tags=[...new Set(srcPosts.flatMap(p=>extractTags(p.content)))];
+  let md=`---\ntags: [${tags.join(', ')}]\ncreated: ${fmtDateISO(n.createdAt)}\nupdated: ${fmtDateISO(n.updatedAt)}\n---\n\n# ${n.title||'無題'}\n\n`;
+  (n.paragraphs||[]).forEach(para=>{
+    if(!para.trim())return;
+    md+=para+'\n\n';
+    // その段落に紐付く付箋を続けて出力
+    (n.stickies||[]).filter(s=>s.anchor===para&&s.text).forEach(s=>{
+      md+=`> **付箋 [${s.color==='green'?'🟢':'🟡'}]** ${s.text}\n\n`;
+    });
+  });
+  if(n.items.length){
+    md+=`---\n\n## 元メモ\n\n`;
+    n.items.forEach(it=>{const p=posts.find(x=>x.id===it.id);if(!p)return;const ind='  '.repeat(it.level||0);md+=`${ind}- ${cleanText(p.content).replace(/\n/g,' ')}\n`;});
+  }
+  dl(new Blob([md],{type:'text/markdown;charset=utf-8'}),(n.title||'note')+'.md');
+}
+function exportPlain(){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  let t=`【${n.title||'無題'}】\n更新：${fmtDate(n.updatedAt)}\n\n`;
+  (n.paragraphs||[]).forEach(para=>{if(para.trim())t+=para+'\n\n';});
+  if(n.stickies?.some(s=>s.text)){t+=`---\n付箋メモ：\n\n`;n.stickies.forEach(s=>{if(s.text)t+=`[${s.anchor||'段落未指定'}]\n${s.text}\n\n`;});}
+  dl(new Blob([t],{type:'text/plain;charset=utf-8'}),(n.title||'note')+'.txt');
+}
+
+// ─── Key handlers ────────────────────────────────────────
+function onComposeKey(e){
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();submitPost();return;}
+  setTimeout(()=>{const t=e.target;t.style.height='auto';t.style.height=Math.min(180,t.scrollHeight)+'px';},0);
+}
+function truncate(s,len){if(!s)return'';return s.length<=len?s:s.slice(0,len)+'…';}
+
+// ─── Demo data ───────────────────────────────────────────
+const DEMO_POSTS=[
+  {id:'d1',createdAt:Date.now()-1000*60*5,starred:true,content:'体験をデザインするということは、他者の認知に意図的に介入することだ。教師がやっていることの本質はそこにある。\n\n#新書 #体験設計'},
+  {id:'d2',createdAt:Date.now()-1000*60*30,starred:false,content:'インフォメーションギャップが機能するのは「知りたい」という欲求が先にあるから。情報の非対称性だけでは不十分で、そこに「伝えたい」動機が必要。\n\n#SLA #言語活動 #授業設計'},
+  {id:'d3',createdAt:Date.now()-1000*60*120,starred:false,content:'Ellis 2003のTask-Based Language Teachingを再読。「タスク」の定義が研究者によってこれほど違うのは、そもそも「コミュニケーション」の定義が揺れているから。\n\n#SLA #論文 #Ellis'},
+  {id:'d4',createdAt:Date.now()-1000*3600*6,starred:false,content:'ゲームデザインの「制約が創造性を生む」という原理は、英語ライティング指導にも使える。字数制限・語彙制限・文型指定…制約のデザインが活動のデザインになる。\n\n#新書 #ゲームデザイン #ライティング'},
+  {id:'d5',createdAt:Date.now()-1000*3600*24,starred:true,content:'名詞句の習得順序についての仮説：限定詞（冠詞・指示詞）と数の一致は異なる認知プロセスを経る。だとすると指導法も分けるべきかもしれない。\n\n#博士論文 #NP習得 #SLA'},
+  {id:'d6',createdAt:Date.now()-1000*3600*30,starred:false,content:'「言語活動」という言葉の解釈の幅が広すぎる。音読も会話もロールプレイも全部「言語活動」と呼ばれる。この曖昧さ自体を研究対象にできる。'},
+  {id:'d7',createdAt:Date.now()-1000*3600*48,starred:false,content:'体験設計の核心は「必然性」にある。なぜその活動をしなければならないか、という動機が内側から生まれる瞬間をどう設計するか。\n\n#新書 #体験設計 #授業設計'},
+];
+const DEMO_NOTES=[
+  {id:'n1',title:'新書 第１章 メモ整理',
+    paragraphs:[
+      '「体験をデザインする」という本書のコンセプトを最初に打ち出す章。教師＝デザイナーという視点を確立するのがここでの目標。',
+      '活動と体験の違いを明確にすること、読者が「自分事」として読める入口を作ることが鍵になる。',
+      '体験をデザインするということは、他者の認知に意図的に介入することだ。教師がやっていることの本質はそこにある。',
+      '体験設計の核心は「必然性」にある。なぜその活動をしなければならないか、という動機が内側から生まれる瞬間をどう設計するか。',
+    ],
+    items:[{id:'d1',level:0},{id:'d7',level:1},{id:'d2',level:1},{id:'d4',level:0}],
+    stickies:[
+      {id:'s1',text:'冒頭フレーズの候補。もっとシャープにできないか？「介入」という言葉が強すぎる気がする。',anchor:'体験をデザインするということは、他者の認知に意図的に介入することだ。教師がやっていることの本質はそこにある。',color:'yellow',createdAt:Date.now()-1000*60*30},
+      {id:'s2',text:'「自分事」は使わない。「自分のこととして読める」くらいの表現に変える。',anchor:'活動と体験の違いを明確にすること、読者が「自分事」として読める入口を作ることが鍵になる。',color:'green',createdAt:Date.now()-1000*60*10},
+    ],
+    createdAt:Date.now()-1000*3600*2,updatedAt:Date.now()-1000*60*20},
+];
+
+load();renderSidebar();renderFeed();
+</script>
+</body>
+</html>
