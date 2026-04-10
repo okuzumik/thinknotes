@@ -544,6 +544,9 @@ body {
       onkeydown="if(event.key==='Enter')sendMagicLink()">
     <button class="login-btn" id="loginBtn" onclick="sendMagicLink()">ログインリンクを送る</button>
     <div class="login-msg" id="loginMsg"></div>
+    <div style="margin-top:8px;text-align:center;">
+      <button onclick="retrySession()" style="background:none;border:none;cursor:pointer;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);text-decoration:underline;">リンクをクリック済みの場合はここをタップ</button>
+    </div>
   </div>
 </div>
 
@@ -739,39 +742,47 @@ const sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 let currentUser=null;
 
 async function initAuth(){
-  // URLにマジックリンクのトークンが含まれている場合は
-  // オーバーレイを出さずに処理完了を待つ
+  // URLにトークンまたはコードが含まれているか確認
   const hasToken=location.hash.includes('access_token')||
-                 location.search.includes('access_token')||
-                 location.hash.includes('type=magiclink')||
-                 location.hash.includes('type=recovery');
+                 location.search.includes('code=')||
+                 location.search.includes('access_token');
 
-  if(!hasToken){
-    // トークンなし → セッション確認
-    const {data:{session}}=await sb.auth.getSession();
-    if(session){
-      currentUser=session.user;
-      showApp();
-      await loadFromSupabase();
-    } else {
-      showLogin();
-    }
-  }
-  // トークンあり or セッションなし → onAuthStateChange で処理
+  // ① まずリスナーを登録（getSessionより先）
   sb.auth.onAuthStateChange(async(event,session)=>{
-    if(event==='SIGNED_IN'&&session){
-      // URLのハッシュを綺麗にする
-      if(location.hash.includes('access_token')){
+    if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session){
+      // URLを綺麗にする
+      if(location.hash.includes('access_token')||location.search.includes('code=')){
         history.replaceState(null,'',location.pathname);
       }
-      currentUser=session.user;
-      showApp();
-      await loadFromSupabase();
+      if(!currentUser){
+        currentUser=session.user;
+        showApp();
+        await loadFromSupabase();
+      }
     } else if(event==='SIGNED_OUT'){
       currentUser=null;
+      posts=[];notes=[];outlines=[];
       showLogin();
     }
   });
+
+  // ② トークンありの場合は少し待ってからgetSession
+  // （Supabaseがhashを処理する時間を与える）
+  if(hasToken){
+    await new Promise(r=>setTimeout(r,500));
+  }
+
+  // ③ 既存セッション確認
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    currentUser=session.user;
+    showApp();
+    await loadFromSupabase();
+  } else if(!hasToken){
+    // トークンなし・セッションなし → ログイン画面
+    showLogin();
+  }
+  // hasTokenの場合はonAuthStateChangeが処理する
 }
 function showLogin(){
   document.getElementById('loginOverlay').style.display='flex';
@@ -793,6 +804,19 @@ async function sendMagicLink(){
   btn.disabled=false;btn.textContent='ログインリンクを送る';
   if(error){msg.textContent='エラー: '+error.message;msg.className='login-msg err';}
   else{msg.textContent=`✓ ${email} にログインリンクを送りました。メールを確認してください。`;msg.className='login-msg ok';}
+}
+async function retrySession(){
+  const msg=document.getElementById('loginMsg');
+  msg.textContent='確認中…';msg.className='login-msg';
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    currentUser=session.user;
+    showApp();
+    await loadFromSupabase();
+  } else {
+    msg.textContent='セッションが見つかりません。もう一度リンクを送ってください。';
+    msg.className='login-msg err';
+  }
 }
 async function signOut(){
   await sb.auth.signOut();
