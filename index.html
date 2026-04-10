@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ThinkNotes</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -379,11 +380,160 @@ body {
 .modal-btn.cancel { background:var(--surface); color:var(--text2); }
 .modal-btn.ok { background:var(--teal); color:#fff; }
 
-::-webkit-scrollbar { width:4px; }
-::-webkit-scrollbar-thumb { background:var(--surface2); border-radius:2px; }
+/* ─ Thread replies ─ */
+.thread-wrap { padding-left:27px; }
+.thread-line-area { display:flex; gap:0; }
+.thread-line { width:2px; background:var(--border2); border-radius:1px; flex-shrink:0; margin:0 11px 0 5px; }
+.thread-replies { flex:1; min-width:0; }
+.reply-post { padding:8px 0; border-bottom:0.5px solid var(--border); }
+.reply-post:last-child { border-bottom:none; }
+.reply-text { font-size:13.5px; line-height:1.8; white-space:pre-wrap; word-break:break-word; color:var(--text); }
+.reply-meta { display:flex; align-items:center; gap:6px; margin-top:4px; }
+.reply-time { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); }
+.reply-del { background:none; border:none; cursor:pointer; font-size:10px; color:var(--text3); padding:2px 4px; border-radius:3px; opacity:0; }
+.reply-post:hover .reply-del { opacity:1; }
+.reply-del:hover { color:var(--red); }
+/* 返信入力欄 */
+.reply-compose { margin-top:4px; padding-left:27px; }
+.reply-ta {
+  width:100%; padding:7px 10px;
+  background:var(--bg3); border:0.5px solid var(--border2);
+  border-radius:var(--rsm); font-family:inherit; font-size:13.5px;
+  color:var(--text); line-height:1.75; resize:none; outline:none;
+  min-height:60px; max-height:160px;
+}
+.reply-ta:focus { border-color:var(--accent-m); background:var(--bg2); }
+.reply-ta::placeholder { color:var(--text3); }
+.reply-compose-foot { display:flex; gap:6px; justify-content:flex-end; margin-top:6px; }
+.reply-btn { padding:4px 14px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; cursor:pointer; }
+.reply-btn:hover { background:var(--accent-d); }
+.reply-cancel { padding:4px 10px; background:var(--surface); color:var(--text2); border:none; border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; cursor:pointer; }
+/* スレッドバッジ */
+.thread-badge { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); margin-left:6px; }
+
+@media (max-width:640px) {
+  .thread-line { margin:0 8px 0 4px; }
+  .reply-text { font-size:15px; }
+}
+@media (max-width: 640px) {
+  body { font-size:16px; }
+
+  /* トップバー：アプリ名 ＋ フェーズボタンのみ */
+  .topbar { padding:0 .75rem; height:52px; }
+  .app-name { font-size:14px; margin-right:.75rem; }
+  .phase-step { padding:5px 10px; font-size:12px; gap:5px; }
+  .phase-step .phase-num { width:16px; height:16px; font-size:9px; }
+  .phase-arrow { margin:0 2px; }
+  .topbar-right { display:none; } /* 検索はモバイルでは非表示 */
+
+  /* サイドバー非表示 */
+  .tag-sidebar { display:none !important; }
+
+  /* Phase 2,3 はモバイルでは警告表示 */
+  #phase2.active .outline-builder,
+  #phase3.active .note-editor-wrap { display:none; }
+  .mobile-phase-msg { display:flex !important; }
+
+  /* フィード */
+  .feed { padding:.5rem .75rem 5rem; }
+
+  /* 投稿 */
+  .post { padding:13px 0; }
+  .post-actions { opacity:1 !important; } /* 常時表示（ホバーなし） */
+  .pa { width:32px; height:32px; font-size:14px; }
+
+  /* コンポーズ */
+  .compose-wrap { padding:.75rem .75rem .6rem; }
+  .compose-ta { font-size:16px; min-height:72px; }
+  .compose-hint { display:none; }
+  .compose-btn { padding:7px 20px; font-size:14px; }
+  .compose-footer { padding:7px 10px; }
+
+  /* 選択バー */
+  .sel-bar { padding:8px .75rem; }
+  .sel-label { font-size:13px; }
+  .sel-action { padding:6px 14px; font-size:13px; }
+
+  /* タグ */
+  .post-tags-row { padding-left:0; margin-top:8px; gap:6px; }
+  .tag-pill { padding:3px 10px 3px 11px; font-size:11px; }
+  .tag-add-btn { padding:3px 10px; font-size:11px; }
+
+  /* 検索 → モバイル検索バー */
+  .mobile-search-bar { display:flex !important; }
+
+  /* 編集 */
+  .post-edit-ta { font-size:16px; }
+  .post-edit-btn { padding:8px 16px; font-size:13px; }
+}
+
+/* モバイル専用要素（デフォルト非表示） */
+.mobile-phase-msg {
+  display:none;
+  flex-direction:column; align-items:center; justify-content:center;
+  flex:1; gap:12px; padding:2rem 1.5rem; text-align:center;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  color:var(--text3); font-size:13px;
+}
+.mobile-phase-msg .msg-icon { font-size:28px; margin-bottom:4px; }
+.mobile-search-bar {
+  display:none;
+  padding:8px .75rem;
+  border-bottom:0.5px solid var(--border);
+  background:var(--bg3); flex-shrink:0;
+}
+.mobile-search-in {
+  width:100%; padding:8px 14px;
+  background:var(--bg2); border:0.5px solid var(--border);
+  border-radius:20px; font-size:15px; outline:none;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif; color:var(--text);
+}
+.mobile-search-in::placeholder { color:var(--text3); }
+
+/* ═══ LOGIN OVERLAY ═══ */
+.login-overlay {
+  position:fixed; inset:0; z-index:9999;
+  background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+}
+.login-box {
+  background:var(--bg2); border:0.5px solid var(--border2);
+  border-radius:var(--r); padding:2.5rem 2rem;
+  width:360px; max-width:92vw;
+  box-shadow:0 8px 32px rgba(0,0,0,.10);
+  display:flex; flex-direction:column; gap:16px;
+}
+.login-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:20px; font-weight:700; color:var(--accent); }
+.login-sub { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text3); line-height:1.7; margin-top:-6px; }
+.login-input { width:100%; padding:10px 12px; border:0.5px solid var(--border2); border-radius:var(--rsm); font-size:15px; font-family:inherit; color:var(--text); background:var(--bg3); outline:none; }
+.login-input:focus { border-color:var(--accent-m); background:var(--bg2); }
+.login-btn { width:100%; padding:11px; background:var(--accent); color:#fff; border:none; border-radius:var(--rsm); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:14px; font-weight:700; cursor:pointer; }
+.login-btn:hover { background:var(--accent-d); }
+.login-btn:disabled { opacity:.5; cursor:default; }
+.login-msg { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; line-height:1.7; text-align:center; min-height:1em; }
+.login-msg.ok { color:var(--teal); }
+.login-msg.err { color:var(--red); }
+.user-badge { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); display:flex; align-items:center; gap:6px; }
+.logout-btn { padding:2px 8px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); cursor:pointer; }
+.logout-btn:hover { border-color:var(--red); color:var(--red); }
+.sync-dot { width:6px; height:6px; border-radius:50%; background:var(--border2); flex-shrink:0; transition:background .3s; }
+.sync-dot.syncing { background:var(--accent-m); }
+.sync-dot.saved { background:var(--teal); }
 </style>
 </head>
 <body>
+
+<!-- ログインオーバーレイ -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-title">ThinkNotes</div>
+    <div class="login-sub">メールアドレスを入力してください。<br>ログイン用のリンクをお送りします。</div>
+    <input class="login-input" type="email" id="loginEmail" placeholder="メールアドレス"
+      onkeydown="if(event.key==='Enter')sendMagicLink()">
+    <button class="login-btn" id="loginBtn" onclick="sendMagicLink()">ログインリンクを送る</button>
+    <div class="login-msg" id="loginMsg"></div>
+  </div>
+</div>
 
 <!-- ── Topbar ── -->
 <div class="topbar">
@@ -402,6 +552,11 @@ body {
     </button>
   </div>
   <div class="topbar-right">
+    <div class="sync-dot" id="syncDot" title="保存状態"></div>
+    <div class="user-badge" id="userBadge" style="display:none">
+      <span id="userEmail" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <button class="logout-btn" onclick="signOut()">ログアウト</button>
+    </div>
     <div class="search-wrap" id="searchWrap">
       <span class="search-icon">🔍</span>
       <input class="search-in" id="searchIn" placeholder="検索…" oninput="onSearch(this.value)">
@@ -426,6 +581,10 @@ body {
 
   <!-- ═══ PHASE 1 ═══ -->
   <div class="phase-screen active" id="phase1">
+    <!-- モバイル用検索バー -->
+    <div class="mobile-search-bar" id="mobileSearchBar">
+      <input class="mobile-search-in" placeholder="検索…" oninput="onSearch(this.value)">
+    </div>
     <div class="compose-wrap">
       <div class="compose-inner">
         <textarea class="compose-ta" id="composeTA" placeholder="思考の断片を書き流す…" onkeydown="onComposeKey(event)"></textarea>
@@ -446,6 +605,10 @@ body {
 
   <!-- ═══ PHASE 2 ═══ -->
   <div class="phase-screen" id="phase2">
+    <div class="mobile-phase-msg">
+      <div class="msg-icon">🖥️</div>
+      <div>アウトライン機能はPC画面でご利用ください</div>
+    </div>
     <div class="outline-builder">
       <!-- 左：メモ一覧 + 新規投稿 -->
       <div class="all-posts-panel">
@@ -483,6 +646,10 @@ body {
 
   <!-- ═══ PHASE 3 ═══ -->
   <div class="phase-screen" id="phase3">
+    <div class="mobile-phase-msg">
+      <div class="msg-icon">🖥️</div>
+      <div>ノートエディター機能はPC画面でご利用ください</div>
+    </div>
     <div class="note-editor-wrap">
       <!-- ノートリスト -->
       <div class="notes-list" id="notesListPanel">
@@ -553,6 +720,115 @@ body {
 </div>
 
 <script>
+// ─── Supabase ─────────────────────────────────────────────
+const SUPA_URL='https://ojdvyoubvhmtslvxfsxl.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qZHZ5b3VidmhtdHNsdnhmc3hsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDg1ODEsImV4cCI6MjA5MTMyNDU4MX0.ah01RDXey3g0KB_xsj3hkBlyaNHt9YIyCjSluHCzlRI';
+const sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+let currentUser=null;
+
+async function initAuth(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    currentUser=session.user;
+    showApp();
+    await loadFromSupabase();
+  } else {
+    showLogin();
+  }
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if(session&&!currentUser){
+      currentUser=session.user;
+      showApp();
+      await loadFromSupabase();
+    } else if(!session){
+      currentUser=null;showLogin();
+    }
+  });
+}
+function showLogin(){
+  document.getElementById('loginOverlay').style.display='flex';
+  document.getElementById('userBadge').style.display='none';
+}
+function showApp(){
+  document.getElementById('loginOverlay').style.display='none';
+  const ub=document.getElementById('userBadge');
+  ub.style.display='flex';
+  document.getElementById('userEmail').textContent=currentUser.email||'';
+}
+async function sendMagicLink(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const msg=document.getElementById('loginMsg');
+  const btn=document.getElementById('loginBtn');
+  if(!email){msg.textContent='メールアドレスを入力してください';msg.className='login-msg err';return;}
+  btn.disabled=true;btn.textContent='送信中…';
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});
+  btn.disabled=false;btn.textContent='ログインリンクを送る';
+  if(error){msg.textContent='エラー: '+error.message;msg.className='login-msg err';}
+  else{msg.textContent=`✓ ${email} にログインリンクを送りました。メールを確認してください。`;msg.className='login-msg ok';}
+}
+async function signOut(){
+  await sb.auth.signOut();
+  currentUser=null;showLogin();
+}
+
+async function loadFromSupabase(){
+  if(!currentUser)return;
+  setSyncDot('syncing');
+  const {data,error}=await sb.from('thinkdata')
+    .select('data_key,data_value').eq('user_id',currentUser.id);
+  if(error){console.error('load error',error);loadLocal();setSyncDot('');return;}
+  const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
+  posts=map.posts||JSON.parse(localStorage.getItem(KP)||'[]');
+  notes=map.notes||JSON.parse(localStorage.getItem(KN)||'[]');
+  outlines=map.outlines||JSON.parse(localStorage.getItem(KO)||'[]');
+  // migrate
+  notes.forEach(n=>{
+    if(!n.items)n.items=[];if(!n.stickies)n.stickies=[];
+    if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
+  });
+  if(!posts.length)posts=DEMO_POSTS;
+  if(!notes.length)notes=DEMO_NOTES;
+  // cache locally
+  localStorage.setItem(KP,JSON.stringify(posts));
+  localStorage.setItem(KN,JSON.stringify(notes));
+  localStorage.setItem(KO,JSON.stringify(outlines));
+  setSyncDot('saved');
+  renderSidebar();renderFeed();
+}
+
+async function saveToSupabase(){
+  if(!currentUser)return;
+  setSyncDot('syncing');
+  const uid=currentUser.id;
+  const ts=new Date().toISOString();
+  const {error}=await Promise.all([
+    sb.from('thinkdata').upsert({user_id:uid,data_key:'posts',data_value:posts,updated_at:ts},{onConflict:'user_id,data_key'}),
+    sb.from('thinkdata').upsert({user_id:uid,data_key:'notes',data_value:notes,updated_at:ts},{onConflict:'user_id,data_key'}),
+    sb.from('thinkdata').upsert({user_id:uid,data_key:'outlines',data_value:outlines,updated_at:ts},{onConflict:'user_id,data_key'}),
+  ]).then(results=>{return results.find(r=>r.error)||{};});
+  setSyncDot(error?'':'saved');
+  if(error)console.error('save error',error);
+}
+
+function setSyncDot(state){
+  const dot=document.getElementById('syncDot');
+  if(!dot)return;
+  dot.className='sync-dot'+(state?' '+state:'');
+  dot.title=state==='syncing'?'同期中…':state==='saved'?'保存済み':'';
+  if(state==='saved')setTimeout(()=>{if(dot.classList.contains('saved'))dot.className='sync-dot';},2000);
+}
+
+function loadLocal(){
+  try{posts=JSON.parse(localStorage.getItem(KP)||'[]');}catch(e){posts=[];}
+  try{notes=JSON.parse(localStorage.getItem(KN)||'[]');}catch(e){notes=[];}
+  try{outlines=JSON.parse(localStorage.getItem(KO)||'[]');}catch(e){outlines=[];}
+  notes.forEach(n=>{
+    if(!n.items)n.items=[];if(!n.stickies)n.stickies=[];
+    if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
+  });
+  if(!posts.length)posts=DEMO_POSTS;
+  if(!notes.length)notes=DEMO_NOTES;
+}
 // ─── State ────────────────────────────────────────────────
 const KP='tn_posts_v20', KN='tn_notes_v20', KO='tn_outlines_v20';
 let posts=[], notes=[], outlines=[];
@@ -570,29 +846,18 @@ let outDragIdx=null;
 let _syncScrolling=false;
 let _pickerStickyId=null;
 // post edit
-let editingPostId=null, editingTagPostId=null;
+let editingPostId=null, editingTagPostId=null, replyingToId=null;
 
-// ─── Persist ─────────────────────────────────────────────
-function load(){
-  try{posts=JSON.parse(localStorage.getItem(KP)||'[]');}catch(e){posts=[];}
-  try{notes=JSON.parse(localStorage.getItem(KN)||'[]');}catch(e){notes=[];}
-  try{outlines=JSON.parse(localStorage.getItem(KO)||'[]');}catch(e){outlines=[];}
-  notes.forEach(n=>{
-    if(!n.items)n.items=(n.postIds||[]).map(id=>typeof id==='string'?{id,level:0}:id);
-    if(!n.stickies)n.stickies=[];
-    if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
-    delete n.postIds;
-  });
-  if(!posts.length)posts=DEMO_POSTS;
-  if(!notes.length)notes=DEMO_NOTES;
-}
+// ─── Persist (local fallback) ─────────────────────────────
+function load(){loadLocal();}
 function save(){
+  // ローカルに即時保存
+  localStorage.setItem(KP,JSON.stringify(posts));
+  localStorage.setItem(KN,JSON.stringify(notes));
+  localStorage.setItem(KO,JSON.stringify(outlines));
+  // Supabaseにデバウンス保存
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(()=>{
-    localStorage.setItem(KP,JSON.stringify(posts));
-    localStorage.setItem(KN,JSON.stringify(notes));
-    localStorage.setItem(KO,JSON.stringify(outlines));
-  },400);
+  saveTimer=setTimeout(saveToSupabase,1500);
 }
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -662,13 +927,45 @@ function renderFeed(){
 function renderPost(p){
   const tags=extractTags(p.content);
   const isEditing=editingPostId===p.id;
+  const isReplying=replyingToId===p.id;
   const displayText=p.content.replace(/#[^\s#、。！？,.!?]+/g,'').replace(/\n{3,}/g,'\n\n').trimEnd();
   const sel=selectedIds.has(p.id);
+  const replies=p.replies||[];
   const tagPills=tags.map(t=>`
     <span class="tag-pill" onclick="setFilter('tag','${esc(t)}')">#${esc(t)}
       <button class="tag-pill-x" onclick="event.stopPropagation();removeTag('${p.id}','${esc(t)}')">✕</button>
     </span>`).join('');
   const isEditingTag=editingTagPostId===p.id;
+
+  // スレッド部分（返信）
+  const threadHtml=replies.length?`
+    <div class="thread-wrap">
+      <div class="thread-line-area">
+        <div class="thread-line"></div>
+        <div class="thread-replies">
+          ${replies.map((r,ri)=>`
+            <div class="reply-post" id="reply-${p.id}-${ri}">
+              <div class="reply-text">${esc(r.content)}</div>
+              <div class="reply-meta">
+                <span class="reply-time">${fmtDt(r.createdAt)}</span>
+                <button class="reply-del" onclick="deleteReply('${p.id}',${ri})">✕</button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`:'';
+
+  // 返信入力欄
+  const replyComposeHtml=isReplying?`
+    <div class="reply-compose">
+      <textarea class="reply-ta" id="reply-ta-${p.id}" placeholder="返信を入力… (Ctrl+Enter で投稿)"
+        onkeydown="onReplyKey(event,'${p.id}')"></textarea>
+      <div class="reply-compose-foot">
+        <button class="reply-cancel" onclick="cancelReply()">キャンセル</button>
+        <button class="reply-btn" onclick="submitReply('${p.id}')">返信</button>
+      </div>
+    </div>`:'';
+
   return`<div class="post ${sel?'selected':''}" id="post-${p.id}">
     <div class="post-row1">
       <div class="post-sel"><div class="post-sel-box ${sel?'checked':''}" onclick="toggleSel('${p.id}')"></div></div>
@@ -676,7 +973,9 @@ function renderPost(p){
         ${isEditing?'':`<div class="post-text">${displayText||'（空）'}</div>`}
         <div class="post-meta">
           <span class="post-time">${fmtDt(p.createdAt)}</span>
+          ${replies.length?`<span class="thread-badge">↩ ${replies.length}件</span>`:''}
           <div class="post-actions">
+            <button class="pa" title="返信" onclick="startReply('${p.id}')">↩</button>
             <button class="pa" title="編集" onclick="startPostEdit('${p.id}')">✎</button>
             <button class="pa star ${p.starred?'on':''}" onclick="toggleStar('${p.id}')">★</button>
             <button class="pa del" onclick="deletePost('${p.id}')">✕</button>
@@ -696,14 +995,40 @@ function renderPost(p){
         ?`<span class="tag-input-wrap"><input class="tag-input" id="taginput-${p.id}" placeholder="タグ名" maxlength="20" onkeydown="onTagInputKey(event,'${p.id}')" onblur="cancelTagEdit('${p.id}')"></span>`
         :`<button class="tag-add-btn" onclick="startTagEdit('${p.id}')">＋ タグ</button>`}
     </div>
+    ${threadHtml}
+    ${replyComposeHtml}
   </div>`;
 }
 
 // Post CRUD
 function submitPost(){
   const ta=document.getElementById('composeTA');const text=ta.value.trim();if(!text)return;
-  posts.push({id:uid(),content:text,createdAt:Date.now(),starred:false});
+  posts.push({id:uid(),content:text,createdAt:Date.now(),starred:false,replies:[]});
   ta.value='';ta.style.height='';save();renderFeed();renderSidebar();
+}
+
+// ─── Reply (thread) ──────────────────────────────────────
+function startReply(pid){
+  replyingToId=pid;editingPostId=null;editingTagPostId=null;
+  renderFeed();
+  setTimeout(()=>{const ta=document.getElementById('reply-ta-'+pid);if(ta){ta.focus();}},30);
+}
+function cancelReply(){replyingToId=null;renderFeed();}
+function submitReply(pid){
+  const ta=document.getElementById('reply-ta-'+pid);if(!ta)return;
+  const text=ta.value.trim();if(!text)return;
+  const p=posts.find(x=>x.id===pid);if(!p)return;
+  if(!p.replies)p.replies=[];
+  p.replies.push({id:uid(),content:text,createdAt:Date.now()});
+  replyingToId=null;save();renderFeed();
+}
+function deleteReply(pid,idx){
+  const p=posts.find(x=>x.id===pid);if(!p||!p.replies)return;
+  p.replies.splice(idx,1);save();renderFeed();
+}
+function onReplyKey(e,pid){
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();submitReply(pid);}
+  setTimeout(()=>{const t=e.target;t.style.height='auto';t.style.height=Math.min(160,t.scrollHeight)+'px';},0);
 }
 function deletePost(id){if(!confirm('削除しますか？'))return;posts=posts.filter(p=>p.id!==id);selectedIds.delete(id);save();renderFeed();renderSidebar();}
 function toggleStar(id){const p=posts.find(x=>x.id===id);if(p){p.starred=!p.starred;save();renderFeed();renderSidebar();}}
@@ -756,9 +1081,26 @@ function newOutline(){
 }
 
 function goToOutlineWithSel(){
-  selectedIds.forEach(id=>{if(!currentOutline.find(it=>it.id===id))currentOutline.push({id,level:0});});
+  // 選択中の投稿をアウトラインに追加（連ツイは構造ごと）
+  selectedIds.forEach(id=>{
+    if(!currentOutline.find(it=>it.id===id)){
+      addThreadToOutline(id,0);
+    }
+  });
   selectedIds.clear();
   switchPhase(2);
+}
+
+// 投稿（＋連ツイ）をアウトラインに追加するヘルパー
+function addThreadToOutline(pid,baseLevel){
+  const p=posts.find(x=>x.id===pid);if(!p)return;
+  currentOutline.push({id:pid,level:baseLevel});
+  (p.replies||[]).forEach(r=>{
+    // 返信はreplyIdとして仮想postとして扱う（id='reply:親id:index'）
+    if(!currentOutline.find(it=>it.id==='reply:'+pid+':'+p.replies.indexOf(r))){
+      currentOutline.push({id:'reply:'+pid+':'+p.replies.indexOf(r),level:baseLevel+1,_replyContent:r.content,_replyCreatedAt:r.createdAt});
+    }
+  });
 }
 
 // アウトライン内で新規投稿
@@ -786,13 +1128,15 @@ function renderAllPostsPanel(){
   if(!pool.length){feed.innerHTML=`<div class="empty-state"><div class="empty-icon">✦</div>メモがありません</div>`;return;}
   feed.innerHTML=pool.map(p=>{
     const inOut=outIds.has(p.id);
+    const replyCount=(p.replies||[]).length;
     return`<div class="all-post-card ${inOut?'in-outline':''}">
       <div class="all-post-text">${esc(cleanText(p.content))}</div>
+      ${replyCount?`<div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);margin-top:4px;">↩ 連ツイ ${replyCount}件</div>`:''}
       <div class="all-post-foot">
         <span class="all-post-time">${fmtDt(p.createdAt)}</span>
         <button class="add-to-outline-btn ${inOut?'remove':'add'}"
           onclick="${inOut?`removeFromOutline('${p.id}')`:`addToOutline('${p.id}')`}">
-          ${inOut?'✕ 外す':'＋ 追加'}
+          ${inOut?'✕ 外す':replyCount?`＋ 追加（連ツイ込み）`:'＋ 追加'}
         </button>
       </div>
     </div>`;
@@ -800,11 +1144,14 @@ function renderAllPostsPanel(){
 }
 
 function addToOutline(pid){
-  if(!currentOutline.find(it=>it.id===pid))currentOutline.push({id:pid,level:0});
+  if(!currentOutline.find(it=>it.id===pid)){
+    addThreadToOutline(pid,0);
+  }
   renderAllPostsPanel();renderOutlineFeed();
 }
 function removeFromOutline(pid){
-  currentOutline=currentOutline.filter(it=>it.id!==pid);
+  // 元投稿と、それに紐づく返信アイテムも一括削除
+  currentOutline=currentOutline.filter(it=>it.id!==pid&&!it.id.startsWith('reply:'+pid+':'));
   renderAllPostsPanel();renderOutlineFeed();
 }
 
@@ -879,9 +1226,18 @@ function deleteOutline(id){
 }
 
 function buildOutCard(it,idx){
-  const p=posts.find(x=>x.id===it.id);
+  const isReply=it.id.startsWith('reply:');
   const lvl=it.level||0;
-  const preview=p?esc(cleanText(p.content)):'（削除済み）';
+  let preview, timeStr;
+  if(isReply){
+    preview=esc(it._replyContent||'');
+    timeStr=it._replyCreatedAt?fmtDt(it._replyCreatedAt):'';
+  } else {
+    const p=posts.find(x=>x.id===it.id);
+    preview=p?esc(cleanText(p.content)):'（削除済み）';
+    timeStr=p?fmtDt(p.createdAt):'';
+  }
+  const replyIcon=isReply?`<span style="font-size:10px;color:var(--text3);flex-shrink:0;margin-right:2px;">↩</span>`:'';
   return`<div class="outline-item" data-level="${lvl}" id="oitem-${idx}">
     <div class="out-card" id="ocard-${idx}"
       draggable="true"
@@ -893,14 +1249,26 @@ function buildOutCard(it,idx){
           <button class="out-lv-btn" onclick="outIndent(${idx})" ${lvl<MAX_LEVEL?'':'disabled'}>→</button>
         </div>
         <span class="out-grip">⠿</span>
+        ${replyIcon}
         <div class="out-text">${preview}</div>
       </div>
       <div class="out-card-foot">
-        <span class="out-time">${p?fmtDt(p.createdAt):''}</span>
-        <button class="out-remove" onclick="removeFromOutline('${it.id}')">✕</button>
+        <span class="out-time">${timeStr}</span>
+        <button class="out-remove" onclick="removeOutItem(${idx})">✕</button>
       </div>
     </div>
   </div>`;
+}
+
+function removeOutItem(idx){
+  const it=currentOutline[idx];if(!it)return;
+  if(it.id.startsWith('reply:')){
+    currentOutline.splice(idx,1);
+  } else {
+    // 元投稿と紐づく返信アイテムも削除
+    removeFromOutline(it.id);return;
+  }
+  renderAllPostsPanel();renderOutlineFeed();
 }
 
 function outIndent(idx){if(currentOutline[idx]&&currentOutline[idx].level<MAX_LEVEL){currentOutline[idx].level++;renderOutlineFeed();}}
@@ -929,7 +1297,6 @@ function onOutDrop(e,idx){
 function goToNote(){
   if(!currentOutline.length){alert('アウトラインにメモを追加してください');return;}
   const title=document.getElementById('outlineTitleIn').value.trim()||'無題のノート';
-  // 既存ノートか新規か
   let n=notes.find(x=>x.id===currentNoteId);
   if(!n){
     n={id:uid(),title,body:'',paragraphs:[],items:[],stickies:[],createdAt:Date.now(),updatedAt:Date.now()};
@@ -938,15 +1305,20 @@ function goToNote(){
     n.title=title;
   }
   n.items=[...currentOutline];
-  // アウトラインをクリーンテキストとして段落に変換（既存段落を保持してから追記）
-  const existingIds=new Set((n.paragraphs||[]).map((p,i)=>i));
-  const newParas=currentOutline.map(it=>{const p=posts.find(x=>x.id===it.id);return p?cleanText(p.content):'';}).filter(Boolean);
+  const newParas=outlineToParas(currentOutline);
   if(!n.paragraphs.length)n.paragraphs=newParas;
   n.updatedAt=Date.now();
   currentNoteId=n.id;
-  save();
-  switchPhase(3);
+  save();switchPhase(3);
   setTimeout(()=>{openNote(n.id);},30);
+}
+
+// アウトラインアイテム配列 → 段落テキスト配列（reply: も含む）
+function outlineToParas(items){
+  return items.map(it=>{
+    if(it.id.startsWith('reply:'))return it._replyContent?cleanText(it._replyContent):'';
+    const p=posts.find(x=>x.id===it.id);return p?cleanText(p.content):'';
+  }).filter(Boolean);
 }
 
 // ─── Phase 3: Note Editor ────────────────────────────────
@@ -989,7 +1361,7 @@ function loadOutlineIntoNote(outlineId){
   if(n.paragraphs.length&&!confirm(`現在の段落に追記しますか？\n（「キャンセル」で上書き）`)){
     n.paragraphs=[];
   }
-  const newParas=ol.items.map(it=>{const p=posts.find(x=>x.id===it.id);return p?cleanText(p.content):'';}).filter(Boolean);
+  const newParas=outlineToParas(ol.items);
   n.paragraphs.push(...newParas);
   n.items=[...ol.items];
   if(!n.title||n.title==='無題のノート')n.title=ol.title;
@@ -1269,9 +1641,7 @@ const DEMO_NOTES=[
 ];
 
 // ─── Init ────────────────────────────────────────────────
-load();
-renderSidebar();
-renderFeed();
+initAuth();
 </script>
 </body>
 </html>
