@@ -539,14 +539,14 @@ body {
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
     <div class="login-title">ThinkNotes</div>
-    <div class="login-sub">メールアドレスを入力してください。<br>ログイン用のリンクをお送りします。</div>
+    <div class="login-sub">メールアドレスとパスワードでログイン<br>初回は「新規登録」を押してください</div>
     <input class="login-input" type="email" id="loginEmail" placeholder="メールアドレス"
-      onkeydown="if(event.key==='Enter')sendMagicLink()">
-    <button class="login-btn" id="loginBtn" onclick="sendMagicLink()">ログインリンクを送る</button>
+      onkeydown="if(event.key==='Enter')document.getElementById('loginPw').focus()">
+    <input class="login-input" type="password" id="loginPw" placeholder="パスワード（6文字以上）"
+      onkeydown="if(event.key==='Enter')signInWithPassword()">
+    <button class="login-btn" id="loginBtn" onclick="signInWithPassword()">ログイン</button>
+    <button onclick="signUpWithPassword()" style="width:100%;padding:9px;background:none;border:0.5px solid var(--border2);border-radius:var(--rsm);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;color:var(--text2);cursor:pointer;">新規登録</button>
     <div class="login-msg" id="loginMsg"></div>
-    <div style="margin-top:8px;text-align:center;">
-      <button onclick="retrySession()" style="background:none;border:none;cursor:pointer;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);text-decoration:underline;">リンクをクリック済みの場合はここをタップ</button>
-    </div>
   </div>
 </div>
 
@@ -742,43 +742,16 @@ const sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 let currentUser=null;
 
 async function initAuth(){
-  // ① リスナーを最初に登録
   sb.auth.onAuthStateChange(async(event,session)=>{
     if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&!currentUser){
-      history.replaceState(null,'',location.pathname);
-      currentUser=session.user;
-      showApp();
-      await loadFromSupabase();
+      currentUser=session.user;showApp();await loadFromSupabase();
     } else if(event==='SIGNED_OUT'){
       currentUser=null;posts=[];notes=[];outlines=[];showLogin();
     }
   });
-
-  // ② URLに code パラメーターがあれば明示的にセッション交換（PKCEフロー）
-  const code=new URLSearchParams(location.search).get('code');
-  if(code){
-    const {data,error}=await sb.auth.exchangeCodeForSession(code);
-    if(data?.session){
-      // onAuthStateChange が SIGNED_IN を発火する
-      return;
-    }
-    console.error('exchangeCodeForSession failed:',error);
-    showLogin();
-    return;
-  }
-
-  // ③ ハッシュに access_token があれば少し待つ（implicitフロー）
-  if(location.hash.includes('access_token')){
-    await new Promise(r=>setTimeout(r,800));
-  }
-
-  // ④ 既存セッション確認
   const {data:{session}}=await sb.auth.getSession();
-  if(session){
-    currentUser=session.user;showApp();await loadFromSupabase();
-  } else if(!location.hash.includes('access_token')){
-    showLogin();
-  }
+  if(session){currentUser=session.user;showApp();await loadFromSupabase();}
+  else showLogin();
 }
 function showLogin(){
   document.getElementById('loginOverlay').style.display='flex';
@@ -790,29 +763,27 @@ function showApp(){
   ub.style.display='flex';
   document.getElementById('userEmail').textContent=currentUser.email||'';
 }
-async function sendMagicLink(){
+async function signInWithPassword(){
   const email=document.getElementById('loginEmail').value.trim();
+  const pw=document.getElementById('loginPw').value;
   const msg=document.getElementById('loginMsg');
   const btn=document.getElementById('loginBtn');
-  if(!email){msg.textContent='メールアドレスを入力してください';msg.className='login-msg err';return;}
-  btn.disabled=true;btn.textContent='送信中…';
-  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});
-  btn.disabled=false;btn.textContent='ログインリンクを送る';
+  if(!email||!pw){msg.textContent='メールとパスワードを入力してください';msg.className='login-msg err';return;}
+  btn.disabled=true;btn.textContent='ログイン中…';
+  const {error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='ログイン';
   if(error){msg.textContent='エラー: '+error.message;msg.className='login-msg err';}
-  else{msg.textContent=`✓ ${email} にログインリンクを送りました。メールを確認してください。`;msg.className='login-msg ok';}
 }
-async function retrySession(){
+async function signUpWithPassword(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pw=document.getElementById('loginPw').value;
   const msg=document.getElementById('loginMsg');
-  msg.textContent='確認中…';msg.className='login-msg';
-  const {data:{session}}=await sb.auth.getSession();
-  if(session){
-    currentUser=session.user;
-    showApp();
-    await loadFromSupabase();
-  } else {
-    msg.textContent='セッションが見つかりません。もう一度リンクを送ってください。';
-    msg.className='login-msg err';
-  }
+  if(!email||!pw){msg.textContent='メールとパスワードを入力してください';msg.className='login-msg err';return;}
+  if(pw.length<6){msg.textContent='パスワードは6文字以上で入力してください';msg.className='login-msg err';return;}
+  msg.textContent='登録中…';msg.className='login-msg';
+  const {error}=await sb.auth.signUp({email,password:pw});
+  if(error){msg.textContent='エラー: '+error.message;msg.className='login-msg err';}
+  else{msg.textContent='✓ 登録しました。そのままログインされます。';msg.className='login-msg ok';}
 }
 async function signOut(){
   await sb.auth.signOut();
