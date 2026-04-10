@@ -739,21 +739,37 @@ const sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 let currentUser=null;
 
 async function initAuth(){
-  const {data:{session}}=await sb.auth.getSession();
-  if(session){
-    currentUser=session.user;
-    showApp();
-    await loadFromSupabase();
-  } else {
-    showLogin();
-  }
-  sb.auth.onAuthStateChange(async(event,session)=>{
-    if(session&&!currentUser){
+  // URLにマジックリンクのトークンが含まれている場合は
+  // オーバーレイを出さずに処理完了を待つ
+  const hasToken=location.hash.includes('access_token')||
+                 location.search.includes('access_token')||
+                 location.hash.includes('type=magiclink')||
+                 location.hash.includes('type=recovery');
+
+  if(!hasToken){
+    // トークンなし → セッション確認
+    const {data:{session}}=await sb.auth.getSession();
+    if(session){
       currentUser=session.user;
       showApp();
       await loadFromSupabase();
-    } else if(!session){
-      currentUser=null;showLogin();
+    } else {
+      showLogin();
+    }
+  }
+  // トークンあり or セッションなし → onAuthStateChange で処理
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_IN'&&session){
+      // URLのハッシュを綺麗にする
+      if(location.hash.includes('access_token')){
+        history.replaceState(null,'',location.pathname);
+      }
+      currentUser=session.user;
+      showApp();
+      await loadFromSupabase();
+    } else if(event==='SIGNED_OUT'){
+      currentUser=null;
+      showLogin();
     }
   });
 }
