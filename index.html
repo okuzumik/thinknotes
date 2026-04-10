@@ -742,47 +742,43 @@ const sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 let currentUser=null;
 
 async function initAuth(){
-  // URLにトークンまたはコードが含まれているか確認
-  const hasToken=location.hash.includes('access_token')||
-                 location.search.includes('code=')||
-                 location.search.includes('access_token');
-
-  // ① まずリスナーを登録（getSessionより先）
+  // ① リスナーを最初に登録
   sb.auth.onAuthStateChange(async(event,session)=>{
-    if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session){
-      // URLを綺麗にする
-      if(location.hash.includes('access_token')||location.search.includes('code=')){
-        history.replaceState(null,'',location.pathname);
-      }
-      if(!currentUser){
-        currentUser=session.user;
-        showApp();
-        await loadFromSupabase();
-      }
+    if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&!currentUser){
+      history.replaceState(null,'',location.pathname);
+      currentUser=session.user;
+      showApp();
+      await loadFromSupabase();
     } else if(event==='SIGNED_OUT'){
-      currentUser=null;
-      posts=[];notes=[];outlines=[];
-      showLogin();
+      currentUser=null;posts=[];notes=[];outlines=[];showLogin();
     }
   });
 
-  // ② トークンありの場合は少し待ってからgetSession
-  // （Supabaseがhashを処理する時間を与える）
-  if(hasToken){
-    await new Promise(r=>setTimeout(r,500));
+  // ② URLに code パラメーターがあれば明示的にセッション交換（PKCEフロー）
+  const code=new URLSearchParams(location.search).get('code');
+  if(code){
+    const {data,error}=await sb.auth.exchangeCodeForSession(code);
+    if(data?.session){
+      // onAuthStateChange が SIGNED_IN を発火する
+      return;
+    }
+    console.error('exchangeCodeForSession failed:',error);
+    showLogin();
+    return;
   }
 
-  // ③ 既存セッション確認
+  // ③ ハッシュに access_token があれば少し待つ（implicitフロー）
+  if(location.hash.includes('access_token')){
+    await new Promise(r=>setTimeout(r,800));
+  }
+
+  // ④ 既存セッション確認
   const {data:{session}}=await sb.auth.getSession();
   if(session){
-    currentUser=session.user;
-    showApp();
-    await loadFromSupabase();
-  } else if(!hasToken){
-    // トークンなし・セッションなし → ログイン画面
+    currentUser=session.user;showApp();await loadFromSupabase();
+  } else if(!location.hash.includes('access_token')){
     showLogin();
   }
-  // hasTokenの場合はonAuthStateChangeが処理する
 }
 function showLogin(){
   document.getElementById('loginOverlay').style.display='flex';
