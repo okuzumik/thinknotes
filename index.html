@@ -874,19 +874,18 @@ async function signOut(){
 
 async function loadFromSupabase(){
   if(!currentUser)return;
-
-  // ① まずlocalStorageのデータを即表示（ユーザーを待たせない）
-  loadLocal();
-  renderSidebar();renderFeed();
-
-  // ② Supabaseから読み込む
   setSyncDot('syncing');
+
+  // Supabaseから読み込む（ローカルを先見せしない）
   const {data,error}=await sb.from('thinkdata')
     .select('data_key,data_value').eq('user_id',currentUser.id);
 
   if(error){
     console.error('Supabase load error:',error);
+    // エラー時のみlocalStorageにフォールバック
+    loadLocal();
     setSyncDot('');
+    renderSidebar();renderFeed();
     return;
   }
 
@@ -897,12 +896,13 @@ async function loadFromSupabase(){
     posts=map.posts||[];
     notes=map.notes||[];
     outlines=map.outlines||[];
-  } else if(posts.length>0){
-    // Supabaseが空でlocalStorageにデータあり → Supabaseに保存して同期
-    console.log('Supabaseが空。localStorageのデータをアップロードします。');
-    await saveToSupabase();
-    setSyncDot('saved');
-    return;
+  } else {
+    // Supabaseが空 → localStorageのデータをアップロード
+    loadLocal();
+    if(posts.length>0){
+      console.log('Supabaseが空。localStorageをアップロードします。');
+      await saveToSupabase();
+    }
   }
 
   // migrate
@@ -912,7 +912,7 @@ async function loadFromSupabase(){
   });
   posts.forEach(p=>{if(!p.replies)p.replies=[];});
 
-  // ③ localStorageを最新で上書き
+  // localStorageを最新で更新
   localStorage.setItem(KP,JSON.stringify(posts));
   localStorage.setItem(KN,JSON.stringify(notes));
   localStorage.setItem(KO,JSON.stringify(outlines));
@@ -1135,14 +1135,23 @@ const expandedOutlineCards=new Set(); // pids with replies shown
 // ─── Persist (local fallback) ─────────────────────────────
 function load(){loadLocal();}
 function save(){
-  // ローカルに即時保存
   localStorage.setItem(KP,JSON.stringify(posts));
   localStorage.setItem(KN,JSON.stringify(notes));
   localStorage.setItem(KO,JSON.stringify(outlines));
-  // Supabaseにデバウンス保存
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(saveToSupabase,1500);
+  saveTimer=setTimeout(saveToSupabase,800); // 1.5s→0.8sに短縮
 }
+
+// ページが非表示になるとき・閉じるときに即保存
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'&&currentUser){
+    clearTimeout(saveTimer);
+    saveToSupabase();
+  }
+});
+window.addEventListener('beforeunload',()=>{
+  if(currentUser){clearTimeout(saveTimer);saveToSupabase();}
+});
 
 // ─── Helpers ─────────────────────────────────────────────
 function extractTags(t){return[...new Set((t.match(/#[^\s#、。！？,.!?]+/g)||[]).map(x=>x.slice(1)))]}
