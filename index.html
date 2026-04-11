@@ -547,6 +547,9 @@ body {
     <button class="login-btn" id="loginBtn" onclick="signInWithPassword()">ログイン</button>
     <button onclick="signUpWithPassword()" style="width:100%;padding:9px;background:none;border:0.5px solid var(--border2);border-radius:var(--rsm);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;color:var(--text2);cursor:pointer;">新規登録</button>
     <div class="login-msg" id="loginMsg"></div>
+    <div style="text-align:center;margin-top:4px;">
+      <button onclick="importBackup()" style="background:none;border:none;cursor:pointer;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);text-decoration:underline;">バックアップから復元</button>
+    </div>
   </div>
 </div>
 
@@ -570,6 +573,7 @@ body {
     <div class="sync-dot" id="syncDot" title="保存状態"></div>
     <div class="user-badge" id="userBadge" style="display:none">
       <span id="userEmail" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <button class="logout-btn" onclick="exportBackup()" title="データをバックアップ" style="border-color:var(--border2)">💾 バックアップ</button>
       <button class="logout-btn" onclick="signOut()">ログアウト</button>
     </div>
     <div class="search-wrap" id="searchWrap">
@@ -848,6 +852,35 @@ function setSyncDot(state){
   dot.className='sync-dot'+(state?' '+state:'');
   dot.title=state==='syncing'?'同期中…':state==='saved'?'保存済み':'';
   if(state==='saved')setTimeout(()=>{if(dot.classList.contains('saved'))dot.className='sync-dot';},2000);
+}
+
+// ─── バックアップ ─────────────────────────────────────────
+function exportBackup(){
+  const data={version:20,exportedAt:new Date().toISOString(),posts,notes,outlines};
+  const date=new Date().toISOString().slice(0,10);
+  dl(new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),
+    `thinknotes-backup-${date}.json`);
+}
+function importBackup(){
+  const input=document.createElement('input');
+  input.type='file';input.accept='.json';
+  input.onchange=async e=>{
+    const file=e.target.files[0];if(!file)return;
+    try{
+      const data=JSON.parse(await file.text());
+      if(!data.posts||!data.notes){alert('有効なバックアップファイルではありません');return;}
+      if(!confirm(`復元しますか？\n投稿：${data.posts.length}件　ノート：${data.notes.length}件\n※現在のデータは上書きされます`))return;
+      posts=data.posts||[];notes=data.notes||[];outlines=data.outlines||[];
+      notes.forEach(n=>{
+        if(!n.items)n.items=[];if(!n.stickies)n.stickies=[];
+        if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
+      });
+      posts.forEach(p=>{if(!p.replies)p.replies=[];});
+      save();renderSidebar();renderFeed();
+      alert('✓ 復元が完了しました');
+    }catch(err){alert('読み込みエラー: '+err.message);}
+  };
+  input.click();
 }
 
 function loadLocal(){
