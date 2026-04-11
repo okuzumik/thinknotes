@@ -875,11 +875,11 @@ async function signOut(){
 async function loadFromSupabase(){
   if(!currentUser)return;
 
-  // ① まずlocalStorageのデータを即座に表示（ユーザーを待たせない）
+  // ① まずlocalStorageのデータを即表示（ユーザーを待たせない）
   loadLocal();
   renderSidebar();renderFeed();
 
-  // ② バックグラウンドでSupabaseからロード
+  // ② Supabaseから読み込む
   setSyncDot('syncing');
   const {data,error}=await sb.from('thinkdata')
     .select('data_key,data_value').eq('user_id',currentUser.id);
@@ -887,27 +887,19 @@ async function loadFromSupabase(){
   if(error){
     console.error('Supabase load error:',error);
     setSyncDot('');
-    return; // localStorageのデータをそのまま使い続ける
+    return;
   }
 
   const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
 
-  // ③ Supabaseにデータがあればそちらを優先（件数が多い方を使う）
-  const sbPosts=map.posts||[];
-  const sbNotes=map.notes||[];
-  const sbOutlines=map.outlines||[];
-
-  const localPosts=JSON.parse(localStorage.getItem(KP)||'[]');
-  const localNotes=JSON.parse(localStorage.getItem(KN)||'[]');
-
-  // 件数が多い方を採用（データ消失を防ぐ）
-  if(sbPosts.length>=localPosts.length&&sbPosts.length>0){
-    posts=sbPosts;
-    notes=sbNotes.length>0?sbNotes:notes;
-    outlines=sbOutlines.length>0?sbOutlines:outlines;
-  } else if(localPosts.length>sbPosts.length&&localPosts.length>0){
-    // localStorageの方が多ければそちらを使いSupabaseに保存
-    console.log('localStorageの方が新しい。Supabaseに保存します');
+  if(map.posts||map.notes){
+    // Supabaseにデータあり → Supabaseを正とする
+    posts=map.posts||[];
+    notes=map.notes||[];
+    outlines=map.outlines||[];
+  } else if(posts.length>0){
+    // Supabaseが空でlocalStorageにデータあり → Supabaseに保存して同期
+    console.log('Supabaseが空。localStorageのデータをアップロードします。');
     await saveToSupabase();
     setSyncDot('saved');
     return;
@@ -920,7 +912,7 @@ async function loadFromSupabase(){
   });
   posts.forEach(p=>{if(!p.replies)p.replies=[];});
 
-  // ④ localStorageにキャッシュ
+  // ③ localStorageを最新で上書き
   localStorage.setItem(KP,JSON.stringify(posts));
   localStorage.setItem(KN,JSON.stringify(notes));
   localStorage.setItem(KO,JSON.stringify(outlines));
