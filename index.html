@@ -1016,15 +1016,13 @@ async function bskyRefreshSession(){
   }catch(e){return false;}
 }
 
-async function postToBsky(text){
+async function postToBsky(text, replyRef=null){
   if(!bskySession)return{ok:false,error:'未接続'};
-  // 300文字制限
   const bskyText=text.length>300?text.slice(0,297)+'…':text;
   // ハッシュタグをfacetに変換
   const facets=[];
   const tagRe=/#([^\s#、。！？,.!?]+)/g;
-  let m;
-  const enc=new TextEncoder();
+  let m;const enc=new TextEncoder();
   while((m=tagRe.exec(bskyText))!==null){
     const start=enc.encode(bskyText.slice(0,m.index)).length;
     const end=enc.encode(bskyText.slice(0,m.index+m[0].length)).length;
@@ -1032,6 +1030,10 @@ async function postToBsky(text){
   }
   const record={$type:'app.bsky.feed.post',text:bskyText,createdAt:new Date().toISOString()};
   if(facets.length)record.facets=facets;
+  // 返信の場合はreply参照を追加
+  if(replyRef){
+    record.reply={root:replyRef.root||replyRef,parent:replyRef};
+  }
 
   const tryPost=async(token)=>{
     return fetch('https://bsky.social/xrpc/com.atproto.repo.createRecord',{
@@ -1043,12 +1045,14 @@ async function postToBsky(text){
 
   let res=await tryPost(bskySession.accessJwt);
   if(res.status===401){
-    // トークン期限切れ → 再認証
     const ok=await bskyRefreshSession();
     if(!ok)return{ok:false,error:'再認証失敗'};
     res=await tryPost(bskySession.accessJwt);
   }
-  if(res.ok)return{ok:true};
+  if(res.ok){
+    const d=await res.json();
+    return{ok:true,uri:d.uri,cid:d.cid};
+  }
   const err=await res.json().catch(()=>({message:res.status}));
   return{ok:false,error:err.message||res.status};
 }
@@ -1237,6 +1241,9 @@ function renderPost(p){
       <textarea class="reply-ta" id="reply-ta-${p.id}" placeholder="返信を入力… (Ctrl+Enter で投稿)"
         onkeydown="onReplyKey(event,'${p.id}')"></textarea>
       <div class="reply-compose-foot">
+        ${bskyIsConnected()?`<label class="bsky-check-wrap connected" style="margin-right:auto;font-size:11px;">
+          <input type="checkbox" id="reply-bsky-${p.id}">🦋 Bskyにも
+        </label>`:''}
         <button class="reply-cancel" onclick="cancelReply()">キャンセル</button>
         <button class="reply-btn" onclick="submitReply('${p.id}')">返信</button>
       </div>
@@ -1282,13 +1289,13 @@ async function submitPost(){
   const p={id:uid(),content:text,createdAt:Date.now(),updatedAt:Date.now(),starred:false,replies:[]};
   posts.push(p);
   ta.value='';ta.style.height='';save();renderFeed();renderSidebar();
-  // Bluesky連携
   const bskyCheck=document.getElementById('bskyCheck');
   if(bskyCheck?.checked&&bskySession){
-    const cleanedText=cleanText(text); // タグを除いたテキスト + タグをfacetで付ける
     const result=await postToBsky(text);
     if(result.ok){
-      // 投稿にBskyURLを記録（将来的な参照用）
+      // uri/cidを保存（連ツイのリプライ参照用）
+      p.bskyUri=result.uri;p.bskyCid=result.cid;
+      save();
       showBskyPostStatus(p.id,true);
     } else {
       showBskyPostStatus(p.id,false,result.error);
@@ -1296,12 +1303,13 @@ async function submitPost(){
   }
 }
 
-function showBskyPostStatus(pid,ok,error){
-  const postEl=document.getElementById('post-'+pid);
-  if(!postEl)return;
+function showBskyPostStatus(pid,ok,mode,error){
+  const postEl=document.getElementById('post-'+pid);if(!postEl)return;
+  const existing=postEl.querySelector('.bsky-post-status');if(existing)existing.remove();
   const status=document.createElement('span');
   status.className='bsky-post-status '+(ok?'ok':'err');
-  status.textContent=ok?'🦋 Bsky投稿済':'🦋 Bsky失敗: '+(error||'');
+  const label=mode==='reply'?'🦋 返信投稿済':'🦋 Bsky投稿済';
+  status.textContent=ok?label:'🦋 失敗: '+(error||'');
   const meta=postEl.querySelector('.post-meta');
   if(meta)meta.appendChild(status);
 }
@@ -1313,14 +1321,31 @@ function startReply(pid){
   setTimeout(()=>{const ta=document.getElementById('reply-ta-'+pid);if(ta){ta.focus();}},30);
 }
 function cancelReply(){replyingToId=null;renderFeed();}
-function submitReply(pid){
+async function submitReply(pid){
   const ta=document.getElementById('reply-ta-'+pid);if(!ta)return;
   const text=ta.value.trim();if(!text)return;
   const p=posts.find(x=>x.id===pid);if(!p)return;
   if(!p.replies)p.replies=[];
-  p.replies.push({id:uid(),content:text,createdAt:Date.now()});
+  const reply={id:uid(),content:text,createdAt:Date.now()};
+  p.replies.push(reply);
   p.updatedAt=Date.now();
   replyingToId=null;save();renderFeed();
+
+  // Bluesky連携
+  const bskyCheck=document.getElementById('reply-bsky-'+pid);
+  if(bskyCheck?.checked&&bskySession){
+    // 親投稿のBsky参照があればリプライ、なければ単独投稿
+    const replyRef=p.bskyUri&&p.bskyCid?{uri:p.bskyUri,cid:p.bskyCid}:null;
+    const result=await postToBsky(text,replyRef);
+    if(result.ok){
+      // 返信のbskyUriも保存（さらにぶら下げる場合のために）
+      reply.bskyUri=result.uri;reply.bskyCid=result.cid;
+      save();
+      showBskyPostStatus(pid,true,'reply');
+    } else {
+      showBskyPostStatus(pid,false,'reply',result.error);
+    }
+  }
 }
 function deleteReply(pid,idx){
   const p=posts.find(x=>x.id===pid);if(!p||!p.replies)return;
