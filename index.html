@@ -746,7 +746,7 @@ async function initAuth(){
     if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&!currentUser){
       currentUser=session.user;showApp();await loadFromSupabase();
     } else if(event==='SIGNED_OUT'){
-      currentUser=null;posts=[];notes=[];outlines=[];showLogin();
+      currentUser=null;showLogin();
     }
   });
   const {data:{session}}=await sb.auth.getSession();
@@ -788,9 +788,9 @@ async function signUpWithPassword(){
 async function signOut(){
   try{ await sb.auth.signOut(); }catch(e){ console.warn('signOut error:',e); }
   currentUser=null;
-  posts=[];notes=[];outlines=[];
+  // データはメモリとlocalStorageに残したまま画面だけリセット
   showLogin();
-  // セッションキャッシュを確実にクリア
+  // Supabaseのセッションキャッシュだけ削除（アプリデータは消さない）
   Object.keys(localStorage).forEach(k=>{
     if(k.startsWith('sb-'))localStorage.removeItem(k);
   });
@@ -803,17 +803,24 @@ async function loadFromSupabase(){
     .select('data_key,data_value').eq('user_id',currentUser.id);
   if(error){console.error('load error',error);loadLocal();setSyncDot('');return;}
   const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
-  posts=map.posts||JSON.parse(localStorage.getItem(KP)||'[]');
-  notes=map.notes||JSON.parse(localStorage.getItem(KN)||'[]');
-  outlines=map.outlines||JSON.parse(localStorage.getItem(KO)||'[]');
+
+  // Supabaseにデータがあればそれを使う、なければlocalStorageのデータを保持
+  const localPosts=JSON.parse(localStorage.getItem(KP)||'[]');
+  const localNotes=JSON.parse(localStorage.getItem(KN)||'[]');
+  const localOutlines=JSON.parse(localStorage.getItem(KO)||'[]');
+
+  posts=map.posts?.length?map.posts:(localPosts.length?localPosts:DEMO_POSTS);
+  notes=map.notes?.length?map.notes:(localNotes.length?localNotes:DEMO_NOTES);
+  outlines=map.outlines||localOutlines;
+
   // migrate
   notes.forEach(n=>{
     if(!n.items)n.items=[];if(!n.stickies)n.stickies=[];
     if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
   });
-  if(!posts.length)posts=DEMO_POSTS;
-  if(!notes.length)notes=DEMO_NOTES;
-  // cache locally
+  posts.forEach(p=>{if(!p.replies)p.replies=[];});
+
+  // ローカルにキャッシュ
   localStorage.setItem(KP,JSON.stringify(posts));
   localStorage.setItem(KN,JSON.stringify(notes));
   localStorage.setItem(KO,JSON.stringify(outlines));
