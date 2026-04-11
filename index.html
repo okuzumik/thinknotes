@@ -1242,7 +1242,8 @@ function renderPost(p){
         onkeydown="onReplyKey(event,'${p.id}')"></textarea>
       <div class="reply-compose-foot">
         ${bskyIsConnected()?`<label class="bsky-check-wrap connected" style="margin-right:auto;font-size:11px;">
-          <input type="checkbox" id="reply-bsky-${p.id}">🦋 Bskyにも
+          <input type="checkbox" id="reply-bsky-${p.id}">
+          🦋 Bskyにも${p.bskyUri?' <span style="color:var(--teal);font-size:10px;">(スレッド)</span>':' <span style="color:var(--text3);font-size:10px;">(単独投稿)</span>'}
         </label>`:''}
         <button class="reply-cancel" onclick="cancelReply()">キャンセル</button>
         <button class="reply-btn" onclick="submitReply('${p.id}')">返信</button>
@@ -1256,6 +1257,7 @@ function renderPost(p){
         ${isEditing?'':`<div class="post-text">${displayText||'（空）'}</div>`}
         <div class="post-meta">
           <span class="post-time">${fmtDt(p.createdAt)}</span>
+          ${p.bskyUri?`<span class="bsky-post-status ok" style="font-size:9px;padding:1px 5px;">🦋</span>`:''}
           ${replies.length?`<span class="thread-badge">↩ ${replies.length}件</span>`:''}
           <div class="post-actions">
             <button class="pa" title="返信" onclick="startReply('${p.id}')">↩</button>
