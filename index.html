@@ -874,35 +874,35 @@ async function signOut(){
 
 async function loadFromSupabase(){
   if(!currentUser)return;
+
+  // ① localStorageを即表示（画面が空にならないように）
+  loadLocal();
+  renderSidebar();renderFeed();
   setSyncDot('syncing');
 
-  // Supabaseから読み込む（ローカルを先見せしない）
+  // ② Supabaseから読み込む
   const {data,error}=await sb.from('thinkdata')
     .select('data_key,data_value').eq('user_id',currentUser.id);
 
   if(error){
     console.error('Supabase load error:',error);
-    // エラー時のみlocalStorageにフォールバック
-    loadLocal();
     setSyncDot('');
-    renderSidebar();renderFeed();
     return;
   }
 
   const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
 
   if(map.posts||map.notes){
-    // Supabaseにデータあり → Supabaseを正とする
+    // ③ Supabaseにデータあり → 常にSupabaseを正として上書き
     posts=map.posts||[];
     notes=map.notes||[];
     outlines=map.outlines||[];
-  } else {
-    // Supabaseが空 → localStorageのデータをアップロード
-    loadLocal();
-    if(posts.length>0){
-      console.log('Supabaseが空。localStorageをアップロードします。');
-      await saveToSupabase();
-    }
+  } else if(posts.length>0){
+    // Supabaseが空 → localStorageをアップロード
+    console.log('Supabaseが空。localStorageをアップロードします。');
+    await saveToSupabase();
+    setSyncDot('saved');
+    return;
   }
 
   // migrate
@@ -912,7 +912,7 @@ async function loadFromSupabase(){
   });
   posts.forEach(p=>{if(!p.replies)p.replies=[];});
 
-  // localStorageを最新で更新
+  // ④ localStorageをSupabaseの内容で更新（次回の表示精度向上）
   localStorage.setItem(KP,JSON.stringify(posts));
   localStorage.setItem(KN,JSON.stringify(notes));
   localStorage.setItem(KO,JSON.stringify(outlines));
