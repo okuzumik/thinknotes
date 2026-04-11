@@ -531,6 +531,33 @@ body {
 .sync-dot { width:6px; height:6px; border-radius:50%; background:var(--border2); flex-shrink:0; transition:background .3s; }
 .sync-dot.syncing { background:var(--accent-m); }
 .sync-dot.saved { background:var(--teal); }
+
+/* Bluesky設定モーダル */
+.bsky-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; display:none; align-items:center; justify-content:center; }
+.bsky-modal-overlay.open { display:flex; }
+.bsky-modal { background:var(--bg2); border:0.5px solid var(--border2); border-radius:var(--r); width:400px; max-width:94vw; padding:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,.12); display:flex; flex-direction:column; gap:12px; }
+.bsky-modal-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:15px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:8px; }
+.bsky-logo { font-size:18px; }
+.bsky-label { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text2); margin-bottom:3px; }
+.bsky-input { width:100%; padding:8px 10px; border:0.5px solid var(--border2); border-radius:var(--rsm); font-size:14px; font-family:inherit; color:var(--text); background:var(--bg3); outline:none; }
+.bsky-input:focus { border-color:var(--accent-m); background:var(--bg2); }
+.bsky-hint { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); line-height:1.6; }
+.bsky-status { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; padding:4px 0; }
+.bsky-status.ok { color:var(--teal); }
+.bsky-status.err { color:var(--red); }
+.bsky-footer { display:flex; gap:8px; justify-content:flex-end; }
+.bsky-btn { padding:6px 16px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:600; border-radius:var(--rsm); border:none; cursor:pointer; }
+.bsky-btn.primary { background:var(--accent); color:#fff; }
+.bsky-btn.primary:hover { background:var(--accent-d); }
+.bsky-btn.cancel { background:var(--surface); color:var(--text2); }
+/* Bskyチェックボックス */
+.bsky-check-wrap { display:flex; align-items:center; gap:6px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); cursor:pointer; user-select:none; }
+.bsky-check-wrap input { width:14px; height:14px; accent-color:var(--accent); cursor:pointer; }
+.bsky-check-wrap.connected { color:var(--accent-d); }
+/* Bsky投稿ステータス */
+.bsky-post-status { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; padding:2px 6px; border-radius:20px; }
+.bsky-post-status.ok { background:var(--teal-l); color:var(--teal); }
+.bsky-post-status.err { background:var(--red-l); color:var(--red); }
 </style>
 </head>
 <body>
@@ -574,6 +601,7 @@ body {
     <div class="user-badge" id="userBadge" style="display:none">
       <span id="userEmail" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <button class="logout-btn" onclick="exportBackup()" title="データをバックアップ" style="border-color:var(--border2)">💾 バックアップ</button>
+      <button class="logout-btn" onclick="openBskySettings()" id="bskySettingsBtn" title="Bluesky連携設定">🦋 Bsky設定</button>
       <button class="logout-btn" onclick="signOut()">ログアウト</button>
     </div>
     <div class="search-wrap" id="searchWrap">
@@ -608,7 +636,12 @@ body {
       <div class="compose-inner">
         <textarea class="compose-ta" id="composeTA" placeholder="思考の断片を書き流す…" onkeydown="onComposeKey(event)"></textarea>
         <div class="compose-footer">
-          <div class="compose-hint">Ctrl+Enter で投稿　<span>#タグ</span> は後から追加・削除できます</div>
+          <div style="display:flex;align-items:center;gap:10px;flex:1;">
+            <div class="compose-hint">Ctrl+Enter で投稿　<span>#タグ</span> は後から追加・削除できます</div>
+            <label class="bsky-check-wrap" id="bskyCheckWrap" style="display:none">
+              <input type="checkbox" id="bskyCheck">🦋 Bskyにも
+            </label>
+          </div>
           <button class="compose-btn" onclick="submitPost()">投稿</button>
         </div>
       </div>
@@ -738,6 +771,28 @@ body {
   </div>
 </div>
 
+<!-- Bluesky設定モーダル -->
+<div class="bsky-modal-overlay" id="bskyModal">
+  <div class="bsky-modal">
+    <div class="bsky-modal-title"><span class="bsky-logo">🦋</span>Bluesky連携設定</div>
+    <div>
+      <div class="bsky-label">Blueskyハンドル（例: yourname.bsky.social）</div>
+      <input class="bsky-input" id="bskyHandle" type="text" placeholder="yourname.bsky.social">
+    </div>
+    <div>
+      <div class="bsky-label">アプリパスワード</div>
+      <input class="bsky-input" id="bskyAppPw" type="password" placeholder="xxxx-xxxx-xxxx-xxxx">
+      <div class="bsky-hint" style="margin-top:5px;">Bluesky → 設定 → プライバシーとセキュリティ → アプリパスワード で発行できます。<br>ここで入力したパスワードはこのブラウザにのみ保存されます。</div>
+    </div>
+    <div class="bsky-status" id="bskyModalStatus"></div>
+    <div class="bsky-footer">
+      <button class="bsky-btn cancel" onclick="closeBskySettings()">キャンセル</button>
+      <button class="bsky-btn primary" onclick="saveBskySettings()">接続テスト &amp; 保存</button>
+      <button class="bsky-btn cancel" onclick="clearBskySettings()" style="color:var(--red)">解除</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─── Supabase ─────────────────────────────────────────────
 const SUPA_URL='https://ojdvyoubvhmtslvxfsxl.supabase.co';
@@ -854,7 +909,124 @@ function setSyncDot(state){
   if(state==='saved')setTimeout(()=>{if(dot.classList.contains('saved'))dot.className='sync-dot';},2000);
 }
 
-// ─── バックアップ ─────────────────────────────────────────
+// ─── Bluesky 連携 ────────────────────────────────────────
+const BSKY_KEY_HANDLE='bsky_handle';
+const BSKY_KEY_PW='bsky_app_pw';
+const BSKY_KEY_DID='bsky_did';
+const BSKY_KEY_TOKEN='bsky_token';
+let bskySession=null; // {did, accessJwt, handle}
+
+function bskyIsConnected(){return!!(localStorage.getItem(BSKY_KEY_TOKEN)&&localStorage.getItem(BSKY_KEY_DID));}
+
+function initBsky(){
+  const token=localStorage.getItem(BSKY_KEY_TOKEN);
+  const did=localStorage.getItem(BSKY_KEY_DID);
+  const handle=localStorage.getItem(BSKY_KEY_HANDLE);
+  if(token&&did){
+    bskySession={accessJwt:token,did,handle};
+    updateBskyUI(true);
+  }
+}
+
+function updateBskyUI(connected){
+  const wrap=document.getElementById('bskyCheckWrap');
+  const btn=document.getElementById('bskySettingsBtn');
+  if(wrap){wrap.style.display=connected?'flex':'none';wrap.className='bsky-check-wrap'+(connected?' connected':'');}
+  if(btn){btn.textContent=connected?'🦋 Bsky接続中':'🦋 Bsky設定';btn.style.borderColor=connected?'var(--teal)':'var(--border2)';btn.style.color=connected?'var(--teal)':'var(--text3)';}
+}
+
+function openBskySettings(){
+  document.getElementById('bskyHandle').value=localStorage.getItem(BSKY_KEY_HANDLE)||'';
+  document.getElementById('bskyAppPw').value=localStorage.getItem(BSKY_KEY_PW)||'';
+  document.getElementById('bskyModalStatus').textContent='';
+  document.getElementById('bskyModal').classList.add('open');
+}
+function closeBskySettings(){document.getElementById('bskyModal').classList.remove('open');}
+function clearBskySettings(){
+  [BSKY_KEY_HANDLE,BSKY_KEY_PW,BSKY_KEY_DID,BSKY_KEY_TOKEN].forEach(k=>localStorage.removeItem(k));
+  bskySession=null;updateBskyUI(false);closeBskySettings();
+}
+
+async function saveBskySettings(){
+  const handle=document.getElementById('bskyHandle').value.trim().replace(/^@/,'');
+  const pw=document.getElementById('bskyAppPw').value.trim();
+  const status=document.getElementById('bskyModalStatus');
+  if(!handle||!pw){status.textContent='ハンドルとパスワードを入力してください';status.className='bsky-status err';return;}
+  status.textContent='接続テスト中…';status.className='bsky-status';
+  try{
+    const res=await fetch('https://bsky.social/xrpc/com.atproto.server.createSession',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({identifier:handle,password:pw})
+    });
+    const data=await res.json();
+    if(!res.ok){status.textContent='エラー: '+(data.message||res.status);status.className='bsky-status err';return;}
+    // 保存
+    localStorage.setItem(BSKY_KEY_HANDLE,handle);
+    localStorage.setItem(BSKY_KEY_PW,pw);
+    localStorage.setItem(BSKY_KEY_DID,data.did);
+    localStorage.setItem(BSKY_KEY_TOKEN,data.accessJwt);
+    bskySession={accessJwt:data.accessJwt,did:data.did,handle};
+    status.textContent=`✓ @${handle} として接続しました`;status.className='bsky-status ok';
+    updateBskyUI(true);
+    setTimeout(closeBskySettings,1200);
+  }catch(e){status.textContent='通信エラー: '+e.message;status.className='bsky-status err';}
+}
+
+async function bskyRefreshSession(){
+  // アプリパスワードで再認証
+  const handle=localStorage.getItem(BSKY_KEY_HANDLE);
+  const pw=localStorage.getItem(BSKY_KEY_PW);
+  if(!handle||!pw)return false;
+  try{
+    const res=await fetch('https://bsky.social/xrpc/com.atproto.server.createSession',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({identifier:handle,password:pw})
+    });
+    if(!res.ok)return false;
+    const data=await res.json();
+    localStorage.setItem(BSKY_KEY_TOKEN,data.accessJwt);
+    localStorage.setItem(BSKY_KEY_DID,data.did);
+    bskySession={accessJwt:data.accessJwt,did:data.did,handle};
+    return true;
+  }catch(e){return false;}
+}
+
+async function postToBsky(text){
+  if(!bskySession)return{ok:false,error:'未接続'};
+  // 300文字制限
+  const bskyText=text.length>300?text.slice(0,297)+'…':text;
+  // ハッシュタグをfacetに変換
+  const facets=[];
+  const tagRe=/#([^\s#、。！？,.!?]+)/g;
+  let m;
+  const enc=new TextEncoder();
+  while((m=tagRe.exec(bskyText))!==null){
+    const start=enc.encode(bskyText.slice(0,m.index)).length;
+    const end=enc.encode(bskyText.slice(0,m.index+m[0].length)).length;
+    facets.push({index:{byteStart:start,byteEnd:end},features:[{'$type':'app.bsky.richtext.facet#tag',tag:m[1]}]});
+  }
+  const record={$type:'app.bsky.feed.post',text:bskyText,createdAt:new Date().toISOString()};
+  if(facets.length)record.facets=facets;
+
+  const tryPost=async(token)=>{
+    return fetch('https://bsky.social/xrpc/com.atproto.repo.createRecord',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({repo:bskySession.did,collection:'app.bsky.feed.post',record})
+    });
+  };
+
+  let res=await tryPost(bskySession.accessJwt);
+  if(res.status===401){
+    // トークン期限切れ → 再認証
+    const ok=await bskyRefreshSession();
+    if(!ok)return{ok:false,error:'再認証失敗'};
+    res=await tryPost(bskySession.accessJwt);
+  }
+  if(res.ok)return{ok:true};
+  const err=await res.json().catch(()=>({message:res.status}));
+  return{ok:false,error:err.message||res.status};
+}
 function exportBackup(){
   const data={version:20,exportedAt:new Date().toISOString(),posts,notes,outlines};
   const date=new Date().toISOString().slice(0,10);
@@ -1080,10 +1252,33 @@ function renderPost(p){
 }
 
 // Post CRUD
-function submitPost(){
+async function submitPost(){
   const ta=document.getElementById('composeTA');const text=ta.value.trim();if(!text)return;
-  posts.push({id:uid(),content:text,createdAt:Date.now(),updatedAt:Date.now(),starred:false,replies:[]});
+  const p={id:uid(),content:text,createdAt:Date.now(),updatedAt:Date.now(),starred:false,replies:[]};
+  posts.push(p);
   ta.value='';ta.style.height='';save();renderFeed();renderSidebar();
+  // Bluesky連携
+  const bskyCheck=document.getElementById('bskyCheck');
+  if(bskyCheck?.checked&&bskySession){
+    const cleanedText=cleanText(text); // タグを除いたテキスト + タグをfacetで付ける
+    const result=await postToBsky(text);
+    if(result.ok){
+      // 投稿にBskyURLを記録（将来的な参照用）
+      showBskyPostStatus(p.id,true);
+    } else {
+      showBskyPostStatus(p.id,false,result.error);
+    }
+  }
+}
+
+function showBskyPostStatus(pid,ok,error){
+  const postEl=document.getElementById('post-'+pid);
+  if(!postEl)return;
+  const status=document.createElement('span');
+  status.className='bsky-post-status '+(ok?'ok':'err');
+  status.textContent=ok?'🦋 Bsky投稿済':'🦋 Bsky失敗: '+(error||'');
+  const meta=postEl.querySelector('.post-meta');
+  if(meta)meta.appendChild(status);
 }
 
 // ─── Reply (thread) ──────────────────────────────────────
@@ -1756,6 +1951,7 @@ const DEMO_NOTES=[
 
 // ─── Init ────────────────────────────────────────────────
 initAuth();
+initBsky();
 </script>
 </body>
 </html>
