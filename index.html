@@ -473,6 +473,7 @@ body {
 
   /* 検索 → モバイル検索バー */
   .mobile-search-bar { display:flex !important; }
+  .mobile-bsky-bar { display:flex !important; }
 
   /* 編集 */
   .post-edit-ta { font-size:16px; }
@@ -493,6 +494,18 @@ body {
   padding:8px .75rem;
   border-bottom:0.5px solid var(--border);
   background:var(--bg3); flex-shrink:0;
+}
+.mobile-bsky-bar {
+  padding:6px .75rem;
+  border-bottom:0.5px solid var(--border);
+  background:var(--bg3); flex-shrink:0;
+  display:flex; align-items:center; gap:8px;
+}
+.mobile-bsky-bar button {
+  padding:5px 12px; background:none;
+  border:0.5px solid var(--border2); border-radius:20px;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:12px; color:var(--text2); cursor:pointer;
 }
 .mobile-search-in {
   width:100%; padding:8px 14px;
@@ -645,6 +658,10 @@ body {
           <button class="compose-btn" onclick="submitPost()">投稿</button>
         </div>
       </div>
+    </div>
+    <!-- モバイル用Bskyバー -->
+    <div class="mobile-bsky-bar" id="mobileBskyBar" style="display:none">
+      <button onclick="openBskySettings()" id="mobileBskyBtn">🦋 Bsky設定</button>
     </div>
     <!-- 選択バー -->
     <div class="sel-bar" id="selBar">
@@ -956,8 +973,15 @@ function initBsky(){
 function updateBskyUI(connected){
   const wrap=document.getElementById('bskyCheckWrap');
   const btn=document.getElementById('bskySettingsBtn');
+  const mobileBar=document.getElementById('mobileBskyBar');
+  const mobileBtn=document.getElementById('mobileBskyBtn');
   if(wrap){wrap.style.display=connected?'flex':'none';wrap.className='bsky-check-wrap'+(connected?' connected':'');}
   if(btn){btn.textContent=connected?'🦋 Bsky接続中':'🦋 Bsky設定';btn.style.borderColor=connected?'var(--teal)':'var(--border2)';btn.style.color=connected?'var(--teal)':'var(--text3)';}
+  if(mobileBtn){
+    mobileBtn.textContent=connected?'🦋 Bsky接続中':'🦋 Bsky設定';
+    mobileBtn.style.borderColor=connected?'var(--teal)':'var(--border2)';
+    mobileBtn.style.color=connected?'var(--teal)':'var(--text2)';
+  }
 }
 
 function openBskySettings(){
