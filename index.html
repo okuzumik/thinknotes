@@ -936,7 +936,7 @@ function filteredPosts(){
   if(searchQuery){const q=searchQuery.toLowerCase();r=r.filter(p=>p.content.toLowerCase().includes(q));}
   if(currentFilter==='starred')r=r.filter(p=>p.starred);
   if(currentTag)r=r.filter(p=>extractTags(p.content).includes(currentTag));
-  return r.sort((a,b)=>b.createdAt-a.createdAt);
+  return r.sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));
 }
 function renderFeed(){
   const fp=filteredPosts();
@@ -1036,7 +1036,7 @@ function renderPost(p){
 // Post CRUD
 function submitPost(){
   const ta=document.getElementById('composeTA');const text=ta.value.trim();if(!text)return;
-  posts.push({id:uid(),content:text,createdAt:Date.now(),starred:false,replies:[]});
+  posts.push({id:uid(),content:text,createdAt:Date.now(),updatedAt:Date.now(),starred:false,replies:[]});
   ta.value='';ta.style.height='';save();renderFeed();renderSidebar();
 }
 
@@ -1053,6 +1053,7 @@ function submitReply(pid){
   const p=posts.find(x=>x.id===pid);if(!p)return;
   if(!p.replies)p.replies=[];
   p.replies.push({id:uid(),content:text,createdAt:Date.now()});
+  p.updatedAt=Date.now();
   replyingToId=null;save();renderFeed();
 }
 function deleteReply(pid,idx){
