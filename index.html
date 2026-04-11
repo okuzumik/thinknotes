@@ -857,20 +857,44 @@ async function signOut(){
 
 async function loadFromSupabase(){
   if(!currentUser)return;
+
+  // ① まずlocalStorageのデータを即座に表示（ユーザーを待たせない）
+  loadLocal();
+  renderSidebar();renderFeed();
+
+  // ② バックグラウンドでSupabaseからロード
   setSyncDot('syncing');
   const {data,error}=await sb.from('thinkdata')
     .select('data_key,data_value').eq('user_id',currentUser.id);
-  if(error){console.error('load error',error);loadLocal();setSyncDot('');return;}
+
+  if(error){
+    console.error('Supabase load error:',error);
+    setSyncDot('');
+    return; // localStorageのデータをそのまま使い続ける
+  }
+
   const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
 
-  // Supabaseにデータがあればそれを使う、なければlocalStorageのデータを保持
+  // ③ Supabaseにデータがあればそちらを優先（件数が多い方を使う）
+  const sbPosts=map.posts||[];
+  const sbNotes=map.notes||[];
+  const sbOutlines=map.outlines||[];
+
   const localPosts=JSON.parse(localStorage.getItem(KP)||'[]');
   const localNotes=JSON.parse(localStorage.getItem(KN)||'[]');
-  const localOutlines=JSON.parse(localStorage.getItem(KO)||'[]');
 
-  posts=map.posts?.length?map.posts:(localPosts.length?localPosts:DEMO_POSTS);
-  notes=map.notes?.length?map.notes:(localNotes.length?localNotes:DEMO_NOTES);
-  outlines=map.outlines||localOutlines;
+  // 件数が多い方を採用（データ消失を防ぐ）
+  if(sbPosts.length>=localPosts.length&&sbPosts.length>0){
+    posts=sbPosts;
+    notes=sbNotes.length>0?sbNotes:notes;
+    outlines=sbOutlines.length>0?sbOutlines:outlines;
+  } else if(localPosts.length>sbPosts.length&&localPosts.length>0){
+    // localStorageの方が多ければそちらを使いSupabaseに保存
+    console.log('localStorageの方が新しい。Supabaseに保存します');
+    await saveToSupabase();
+    setSyncDot('saved');
+    return;
+  }
 
   // migrate
   notes.forEach(n=>{
@@ -879,10 +903,11 @@ async function loadFromSupabase(){
   });
   posts.forEach(p=>{if(!p.replies)p.replies=[];});
 
-  // ローカルにキャッシュ
+  // ④ localStorageにキャッシュ
   localStorage.setItem(KP,JSON.stringify(posts));
   localStorage.setItem(KN,JSON.stringify(notes));
   localStorage.setItem(KO,JSON.stringify(outlines));
+
   setSyncDot('saved');
   renderSidebar();renderFeed();
 }
