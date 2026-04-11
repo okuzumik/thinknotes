@@ -1286,19 +1286,19 @@ function renderPost(p){
 // Post CRUD
 async function submitPost(){
   const ta=document.getElementById('composeTA');const text=ta.value.trim();if(!text)return;
+  // ① DOM が変わる前にチェックボックスを読む
+  const bskyCheck=document.getElementById('bskyCheck');
+  const postToBskyFlag=!!(bskyCheck?.checked&&bskySession);
   const p={id:uid(),content:text,createdAt:Date.now(),updatedAt:Date.now(),starred:false,replies:[]};
   posts.push(p);
   ta.value='';ta.style.height='';save();renderFeed();renderSidebar();
-  const bskyCheck=document.getElementById('bskyCheck');
-  if(bskyCheck?.checked&&bskySession){
+  if(postToBskyFlag){
     const result=await postToBsky(text);
     if(result.ok){
-      // uri/cidを保存（連ツイのリプライ参照用）
       p.bskyUri=result.uri;p.bskyCid=result.cid;
-      save();
-      showBskyPostStatus(p.id,true);
+      save();showBskyPostStatus(p.id,true);
     } else {
-      showBskyPostStatus(p.id,false,result.error);
+      showBskyPostStatus(p.id,false,null,result.error);
     }
   }
 }
@@ -1325,20 +1325,22 @@ async function submitReply(pid){
   const ta=document.getElementById('reply-ta-'+pid);if(!ta)return;
   const text=ta.value.trim();if(!text)return;
   const p=posts.find(x=>x.id===pid);if(!p)return;
+
+  // ① DOM が消える前にチェックボックスの値を読む
+  const bskyCheck=document.getElementById('reply-bsky-'+pid);
+  const postToBskyFlag=!!(bskyCheck?.checked&&bskySession);
+
   if(!p.replies)p.replies=[];
   const reply={id:uid(),content:text,createdAt:Date.now()};
   p.replies.push(reply);
   p.updatedAt=Date.now();
-  replyingToId=null;save();renderFeed();
+  replyingToId=null;save();renderFeed(); // ← ここでDOM再描画
 
-  // Bluesky連携
-  const bskyCheck=document.getElementById('reply-bsky-'+pid);
-  if(bskyCheck?.checked&&bskySession){
-    // 親投稿のBsky参照があればリプライ、なければ単独投稿
+  // ② Bluesky投稿（DOM操作後）
+  if(postToBskyFlag){
     const replyRef=p.bskyUri&&p.bskyCid?{uri:p.bskyUri,cid:p.bskyCid}:null;
     const result=await postToBsky(text,replyRef);
     if(result.ok){
-      // 返信のbskyUriも保存（さらにぶら下げる場合のために）
       reply.bskyUri=result.uri;reply.bskyCid=result.cid;
       save();
       showBskyPostStatus(pid,true,'reply');
