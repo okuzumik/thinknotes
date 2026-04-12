@@ -638,6 +638,7 @@ body {
     <div class="user-badge" id="userBadge" style="display:none">
       <span id="userEmail" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <button class="logout-btn" onclick="exportBackup()" title="データをバックアップ" style="border-color:var(--border2)">💾 バックアップ</button>
+      <button class="logout-btn" onclick="showDiag()" title="診断" id="diagBtn">🔍 診断</button>
       <button class="logout-btn" onclick="forceSyncFromSupabase()" title="Supabaseから再読み込み" id="syncBtn">🔄 同期</button>
       <button class="logout-btn" onclick="openBskySettings()" id="bskySettingsBtn" title="Bluesky連携設定">🦋 Bsky設定</button>
       <button class="logout-btn" onclick="signOut()">ログアウト</button>
@@ -949,16 +950,59 @@ async function loadFromSupabase(){
   renderSidebar();renderFeed();
 }
 
+async function showDiag(){
+  const lines=[];
+  // セッション確認
+  const {data:{session},error:se}=await sb.auth.getSession();
+  lines.push('=== 診断 ===');
+  lines.push('セッション: '+(session?'あり ('+session.user.email+')':'なし'));
+  if(se)lines.push('セッションエラー: '+se.message);
+  lines.push('currentUser: '+(currentUser?currentUser.email:'null'));
+  lines.push('ローカル投稿数: '+posts.length);
+
+  // Supabase読み込みテスト
+  if(session){
+    const {data,error}=await sb.from('thinkdata')
+      .select('data_key,data_value').eq('user_id',session.user.id);
+    if(error){
+      lines.push('Supabase読込エラー: '+error.message);
+    } else {
+      const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
+      lines.push('Supabase投稿数: '+(map.posts?.length||0));
+      lines.push('Supabaseノート数: '+(map.notes?.length||0));
+    }
+
+    // 書き込みテスト
+    const {error:we}=await sb.from('thinkdata').upsert(
+      {user_id:session.user.id,data_key:'_test',data_value:{t:Date.now()},updated_at:new Date().toISOString()},
+      {onConflict:'user_id,data_key'}
+    );
+    lines.push('書き込みテスト: '+(we?'失敗: '+we.message:'成功'));
+  }
+
+  alert(lines.join('\n'));
+}
+
+async function forceSyncFromSupabase(){
+  const btn=document.getElementById('syncBtn');
+  if(btn){btn.textContent='🔄 読込中…';btn.disabled=true;}
+  await loadFromSupabase();
+  if(btn){btn.textContent='🔄 同期';btn.disabled=false;}
+}
+
 async function saveToSupabase(){
   if(!currentUser)return;
   setSyncDot('syncing');
-  const uid=currentUser.id;
-  const ts=new Date().toISOString();
 
-  // セッションを最新にしてから保存
   const {data:{session}}=await sb.auth.getSession();
-  if(!session){console.warn('No session');setSyncDot('');return;}
+  if(!session){
+    console.warn('No session - cannot save');
+    setSyncDot('');
+    return;
+  }
 
+  const uid=session.user.id;
+  const ts=new Date().toISOString();
   try{
     for(const [key,val] of [['posts',posts],['notes',notes],['outlines',outlines]]){
       const {error}=await sb.from('thinkdata').upsert(
@@ -971,14 +1015,10 @@ async function saveToSupabase(){
   }catch(e){
     console.error('saveToSupabase error:',e);
     setSyncDot('');
+    // エラーをユーザーに見せる
+    const dot=document.getElementById('syncDot');
+    if(dot){dot.style.background='var(--red)';dot.title='保存失敗: '+e.message;}
   }
-}
-
-async function forceSyncFromSupabase(){
-  const btn=document.getElementById('syncBtn');
-  if(btn){btn.textContent='🔄 読込中…';btn.disabled=true;}
-  await loadFromSupabase();
-  if(btn){btn.textContent='🔄 同期';btn.disabled=false;}
 }
 
 function setSyncDot(state){
