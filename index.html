@@ -981,13 +981,17 @@ let bskySession=null; // {did, accessJwt, handle}
 
 function bskyIsConnected(){return!!(localStorage.getItem(BSKY_KEY_TOKEN)&&localStorage.getItem(BSKY_KEY_DID));}
 
-function initBsky(){
-  const token=localStorage.getItem(BSKY_KEY_TOKEN);
-  const did=localStorage.getItem(BSKY_KEY_DID);
+async function initBsky(){
   const handle=localStorage.getItem(BSKY_KEY_HANDLE);
-  if(token&&did){
-    bskySession={accessJwt:token,did,handle};
+  const pw=localStorage.getItem(BSKY_KEY_PW);
+  if(!handle||!pw)return;
+  // 毎回アプリ起動時にトークンを取り直す（期限切れを防ぐ）
+  const ok=await bskyRefreshSession();
+  if(ok){
     updateBskyUI(true);
+  } else {
+    // 接続情報は残すがUIは未接続に
+    updateBskyUI(false);
   }
 }
 
