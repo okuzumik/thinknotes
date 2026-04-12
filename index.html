@@ -938,7 +938,7 @@ async function signOut(){
   location.reload();
 }
 
-async function loadFromSupabase(){
+async function loadFromSupabase(force=false){
   if(!currentUser)return;
 
   // ① localStorageを即表示（画面が空にならないように）
@@ -959,13 +959,17 @@ async function loadFromSupabase(){
   const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
 
   if(map.posts||map.notes){
-    // ③ Supabaseにデータあり → 常にSupabaseを正として上書き
-    posts=map.posts||[];
-    notes=map.notes||[];
-    outlines=map.outlines||[];
+    const sbPosts=map.posts||[];
+    const sbNotes=map.notes||[];
+    const sbOutlines=map.outlines||[];
+    // 強制同期か、Supabaseの方がデータが多い場合のみ上書き
+    if(force||sbPosts.length>=posts.length){
+      posts=sbPosts;
+      notes=sbNotes;
+      outlines=sbOutlines;
+    }
   } else if(posts.length>0){
     // Supabaseが空 → localStorageをアップロード
-    console.log('Supabaseが空。localStorageをアップロードします。');
     await saveToSupabase();
     setSyncDot('saved');
     return;
@@ -978,7 +982,6 @@ async function loadFromSupabase(){
   });
   posts.forEach(p=>{if(!p.replies)p.replies=[];});
 
-  // ④ localStorageをSupabaseの内容で更新（次回の表示精度向上）
   localStorage.setItem(KP,JSON.stringify(posts));
   localStorage.setItem(KN,JSON.stringify(notes));
   localStorage.setItem(KO,JSON.stringify(outlines));
@@ -1024,8 +1027,9 @@ async function showDiag(){
 
 async function forceSyncFromSupabase(){
   const btn=document.getElementById('syncBtn');
-  if(btn){btn.textContent='🔄 読込中…';btn.disabled=true;}
-  await loadFromSupabase();
+  if(btn){btn.textContent='🔄 同期中…';btn.disabled=true;}
+  await saveToSupabase();       // まず今のデータを保存
+  await loadFromSupabase(true); // 強制的にSupabaseで上書き
   if(btn){btn.textContent='🔄 同期';btn.disabled=false;}
 }
 
