@@ -953,36 +953,44 @@ async function loadFromSupabase(){
 }
 
 async function showDiag(){
-  const lines=[];
-  // セッション確認
-  const {data:{session},error:se}=await sb.auth.getSession();
-  lines.push('=== 診断 ===');
-  lines.push('セッション: '+(session?'あり ('+session.user.email+')':'なし'));
-  if(se)lines.push('セッションエラー: '+se.message);
-  lines.push('currentUser: '+(currentUser?currentUser.email:'null'));
-  lines.push('ローカル投稿数: '+posts.length);
-
-  // Supabase読み込みテスト
-  if(session){
-    const {data,error}=await sb.from('thinkdata')
-      .select('data_key,data_value').eq('user_id',session.user.id);
-    if(error){
-      lines.push('Supabase読込エラー: '+error.message);
-    } else {
-      const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
-      lines.push('Supabase投稿数: '+(map.posts?.length||0));
-      lines.push('Supabaseノート数: '+(map.notes?.length||0));
-    }
-
-    // 書き込みテスト
-    const {error:we}=await sb.from('thinkdata').upsert(
-      {user_id:session.user.id,data_key:'_test',data_value:{t:Date.now()},updated_at:new Date().toISOString()},
-      {onConflict:'user_id,data_key'}
-    );
-    lines.push('書き込みテスト: '+(we?'失敗: '+we.message:'成功'));
+  // 画面内に診断パネルを表示（alertは使わない）
+  let panel=document.getElementById('diagPanel');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='diagPanel';
+    panel.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:#fff;border:2px solid #7a5c1e;border-radius:12px;padding:20px;width:90vw;max-width:400px;font-family:monospace;font-size:13px;max-height:80vh;overflow-y:auto;';
+    document.body.appendChild(panel);
   }
+  panel.innerHTML='<div style="font-weight:bold;margin-bottom:8px;">🔍 診断中…</div>';
 
-  alert(lines.join('\n'));
+  const lines=[];
+  try{
+    const {data:{session},error:se}=await sb.auth.getSession();
+    lines.push('セッション: '+(session?'✅ あり':'❌ なし'));
+    if(session)lines.push('ユーザー: '+session.user.email);
+    if(se)lines.push('セッションエラー: '+se.message);
+    lines.push('currentUser: '+(currentUser?currentUser.email:'null'));
+    lines.push('ローカル投稿数: '+posts.length);
+
+    if(session){
+      const {data,error}=await sb.from('thinkdata')
+        .select('data_key,data_value').eq('user_id',session.user.id);
+      if(error){lines.push('読込エラー: '+error.message);}
+      else{
+        const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
+        lines.push('Supabase投稿数: '+(map.posts?.length??'なし'));
+        lines.push('Supabaseノート数: '+(map.notes?.length??'なし'));
+      }
+      const {error:we}=await sb.from('thinkdata').upsert(
+        {user_id:session.user.id,data_key:'_test',data_value:{t:Date.now()},updated_at:new Date().toISOString()},
+        {onConflict:'user_id,data_key'}
+      );
+      lines.push('書込テスト: '+(we?'❌ '+we.message:'✅ 成功'));
+    }
+  }catch(e){lines.push('例外: '+e.message);}
+
+  panel.innerHTML=lines.map(l=>`<div style="padding:3px 0;border-bottom:1px solid #eee;">${l}</div>`).join('')
+    +'<button onclick="document.getElementById(\'diagPanel\').remove()" style="margin-top:12px;padding:6px 20px;background:#7a5c1e;color:#fff;border:none;border-radius:20px;cursor:pointer;">閉じる</button>';
 }
 
 async function forceSyncFromSupabase(){
