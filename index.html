@@ -430,13 +430,11 @@ body {
 @media (max-width: 640px) {
   body { font-size:16px; }
 
-  /* トップバー：アプリ名 ＋ フェーズボタンのみ */
-  .topbar { padding:0 .75rem; height:52px; }
-  .app-name { font-size:14px; margin-right:.75rem; }
-  .phase-step { padding:5px 10px; font-size:12px; gap:5px; }
-  .phase-step .phase-num { width:16px; height:16px; font-size:9px; }
-  .phase-arrow { margin:0 2px; }
-  .topbar-right { display:none; } /* 検索はモバイルでは非表示 */
+  /* トップバー：アプリ名のみ（フェーズステップ非表示） */
+  .topbar { padding:0 .75rem; height:46px; }
+  .app-name { font-size:15px; margin-right:0; }
+  .phase-steps { display:none; } /* モバイルではフェーズタブ非表示 */
+  .topbar-right { display:none; }
 
   /* サイドバー非表示 */
   .tag-sidebar { display:none !important; }
@@ -451,7 +449,7 @@ body {
 
   /* 投稿 */
   .post { padding:13px 0; }
-  .post-actions { opacity:1 !important; } /* 常時表示（ホバーなし） */
+  .post-actions { opacity:1 !important; }
   .pa { width:32px; height:32px; font-size:14px; }
 
   /* コンポーズ */
@@ -471,8 +469,8 @@ body {
   .tag-pill { padding:3px 10px 3px 11px; font-size:11px; }
   .tag-add-btn { padding:3px 10px; font-size:11px; }
 
-  /* 検索 → モバイル検索バー */
-  .mobile-search-bar { display:flex !important; }
+  /* モバイルツールバー表示 */
+  .mobile-toolbar { display:flex !important; }
   .mobile-bsky-bar { display:flex !important; }
 
   /* 編集 */
@@ -489,12 +487,38 @@ body {
   color:var(--text3); font-size:13px;
 }
 .mobile-phase-msg .msg-icon { font-size:28px; margin-bottom:4px; }
-.mobile-search-bar {
-  display:none;
-  padding:8px .75rem;
+.mobile-search-bar { display:none; } /* 旧バー非表示 */
+/* モバイルツールバー（検索＋タグフィルター） */
+.mobile-toolbar {
+  display:none; flex-direction:column; gap:0;
   border-bottom:0.5px solid var(--border);
   background:var(--bg3); flex-shrink:0;
 }
+.mobile-toolbar-row1 {
+  display:flex; align-items:center; gap:6px;
+  padding:7px .75rem 5px;
+}
+.mobile-search-in-new {
+  flex:1; padding:7px 12px;
+  background:var(--bg2); border:0.5px solid var(--border);
+  border-radius:20px; font-size:15px; outline:none;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif; color:var(--text);
+}
+.mobile-search-in-new::placeholder { color:var(--text3); }
+.mobile-filter-btns {
+  display:flex; gap:6px; padding:0 .75rem 7px;
+  overflow-x:auto; -webkit-overflow-scrolling:touch;
+}
+.mobile-filter-btns::-webkit-scrollbar { display:none; }
+.mobile-filter-btn {
+  padding:4px 12px; border-radius:20px; border:none;
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:12px; white-space:nowrap; cursor:pointer;
+  background:var(--bg2); color:var(--text2);
+  border:0.5px solid var(--border);
+  flex-shrink:0;
+}
+.mobile-filter-btn.active { background:var(--accent-l); color:var(--accent); border-color:var(--accent-m); font-weight:600; }
 .mobile-bsky-bar {
   padding:6px .75rem;
   border-bottom:0.5px solid var(--border);
@@ -641,9 +665,14 @@ body {
 
   <!-- ═══ PHASE 1 ═══ -->
   <div class="phase-screen active" id="phase1">
-    <!-- モバイル用検索バー -->
-    <div class="mobile-search-bar" id="mobileSearchBar">
-      <input class="mobile-search-in" placeholder="検索…" oninput="onSearch(this.value)">
+    <!-- モバイル用ツールバー（検索＋タグフィルター） -->
+    <div class="mobile-toolbar" id="mobileToolbar">
+      <div class="mobile-toolbar-row1">
+        <input class="mobile-search-in-new" id="mobileSearchIn" placeholder="検索…" oninput="onSearch(this.value)">
+        <button onclick="setFilter('starred')" id="mobileStarBtn" style="padding:6px 10px;border:0.5px solid var(--border);border-radius:20px;background:var(--bg2);font-size:14px;cursor:pointer;">⭐</button>
+        <button onclick="setFilter('all')" id="mobileAllBtn" style="padding:4px 10px;border:0.5px solid var(--border);border-radius:20px;background:var(--accent-l);color:var(--accent);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;cursor:pointer;font-weight:600;">全て</button>
+      </div>
+      <div class="mobile-filter-btns" id="mobileTagFilters"></div>
     </div>
     <div class="compose-wrap">
       <div class="compose-inner">
@@ -1192,12 +1221,36 @@ function renderSidebar(){
     <div class="sb-item" id="sbtag-${t}" onclick="setFilter('tag','${esc(t)}')">
       <div class="sb-tag-dot"></div><span>#${esc(t)}</span><span class="sb-count">${n}</span>
     </div>`).join('');
+  renderMobileTagFilters(tags);
+}
+
+function renderMobileTagFilters(tags){
+  const el=document.getElementById('mobileTagFilters');if(!el)return;
+  el.innerHTML=Object.entries(tags).sort((a,b)=>b[1]-a[1]).map(([t])=>`
+    <button class="mobile-filter-btn ${currentTag===t?'active':''}"
+      onclick="setFilter('tag','${esc(t)}')">#${esc(t)}</button>`).join('');
+}
+
+function updateMobileFilterUI(){
+  const allBtn=document.getElementById('mobileAllBtn');
+  const starBtn=document.getElementById('mobileStarBtn');
+  if(allBtn){
+    allBtn.style.background=(!currentTag&&currentFilter==='all')?'var(--accent-l)':'var(--bg2)';
+    allBtn.style.color=(!currentTag&&currentFilter==='all')?'var(--accent)':'var(--text2)';
+    allBtn.style.borderColor=(!currentTag&&currentFilter==='all')?'var(--accent-m)':'var(--border)';
+    allBtn.style.fontWeight=(!currentTag&&currentFilter==='all')?'600':'400';
+  }
+  if(starBtn){
+    starBtn.style.background=currentFilter==='starred'?'var(--accent-l)':'var(--bg2)';
+  }
+  renderMobileTagFilters(allTagsMap());
 }
 function setFilter(f,tag){
   currentFilter=f;currentTag=tag||null;
   document.querySelectorAll('.sb-item').forEach(el=>el.classList.remove('active'));
   if(!tag)document.getElementById('filter-'+f)?.classList.add('active');
   if(tag)document.getElementById('sbtag-'+tag)?.classList.add('active');
+  updateMobileFilterUI();
   renderFeed();
 }
 function onSearch(q){searchQuery=q;renderFeed();}
