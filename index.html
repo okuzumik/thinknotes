@@ -858,9 +858,15 @@ async function initAuth(){
       currentUser=null;showLogin();
     }
   });
-  const {data:{session}}=await sb.auth.getSession();
-  if(session){currentUser=session.user;showApp();await loadFromSupabase();}
-  else showLogin();
+  try{
+    const {data:{session}}=await getSessionWithTimeout(6000);
+    if(session){currentUser=session.user;showApp();await loadFromSupabase();}
+    else showLogin();
+  }catch(e){
+    console.warn('initAuth timeout or error:',e);
+    // タイムアウト時はローカルデータを表示してログイン画面を出す
+    loadLocal();showLogin();
+  }
 }
 function showLogin(){
   document.getElementById('loginOverlay').style.display='flex';
@@ -965,7 +971,7 @@ async function showDiag(){
 
   const lines=[];
   try{
-    const {data:{session},error:se}=await sb.auth.getSession();
+    const {data:{session},error:se}=await getSessionWithTimeout();
     lines.push('セッション: '+(session?'✅ あり':'❌ なし'));
     if(session)lines.push('ユーザー: '+session.user.email);
     if(se)lines.push('セッションエラー: '+se.message);
@@ -1004,7 +1010,7 @@ async function saveToSupabase(){
   if(!currentUser)return;
   setSyncDot('syncing');
 
-  const {data:{session}}=await sb.auth.getSession();
+  const {data:{session}}=await getSessionWithTimeout();
   if(!session){
     console.warn('No session - cannot save');
     setSyncDot('');
@@ -1039,7 +1045,13 @@ function setSyncDot(state){
   if(state==='saved')setTimeout(()=>{if(dot.classList.contains('saved'))dot.className='sync-dot';},2000);
 }
 
-// ─── Bluesky 連携 ────────────────────────────────────────
+// getSession にタイムアウトを付けるラッパー
+async function getSessionWithTimeout(ms=5000){
+  return Promise.race([
+    sb.auth.getSession(),
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('getSession timeout')),ms))
+  ]);
+}
 const BSKY_KEY_HANDLE='bsky_handle';
 const BSKY_KEY_PW='bsky_app_pw';
 const BSKY_KEY_DID='bsky_did';
