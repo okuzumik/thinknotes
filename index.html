@@ -387,7 +387,7 @@ body {
 .thread-replies { flex:1; min-width:0; }
 .reply-post { padding:8px 0; border-bottom:0.5px solid var(--border); }
 .reply-post:last-child { border-bottom:none; }
-.reply-text { font-size:13.5px; line-height:1.8; white-space:pre-wrap; word-break:break-word; color:var(--text); }
+.reply-text { font-size:14px; line-height:1.8; white-space:pre-wrap; word-break:break-word; color:var(--text); }
 .reply-meta { display:flex; align-items:center; gap:6px; margin-top:4px; }
 .reply-time { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); }
 .reply-del { background:none; border:none; cursor:pointer; font-size:10px; color:var(--text3); padding:2px 4px; border-radius:3px; opacity:0; }
@@ -425,7 +425,7 @@ body {
 
 @media (max-width:640px) {
   .thread-line { margin:0 8px 0 4px; }
-  .reply-text { font-size:15px; }
+  .reply-text { font-size:16px; } /* iOSズーム防止のため16px */
 }
 @media (max-width: 640px) {
   body { font-size:16px; }
@@ -455,6 +455,7 @@ body {
   /* コンポーズ */
   .compose-wrap { padding:.75rem .75rem .6rem; }
   .compose-ta { font-size:16px; min-height:72px; }
+  .post-text { font-size:16px; }
   .compose-hint { display:none; }
   .compose-btn { padding:7px 20px; font-size:14px; }
   .compose-footer { padding:7px 10px; }
