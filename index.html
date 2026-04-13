@@ -867,28 +867,35 @@ function getStoredSession(){
 }
 
 async function initAuth(){
-  // ① まずlocalStorageから直接セッションを読む
   const stored=getStoredSession();
   if(stored){
     try{
-      // セッションをSupabaseクライアントにセット
+      // トークンをセット（refresh_tokenがあれば自動更新される）
       const {data,error}=await sb.auth.setSession({
         access_token:stored.access_token,
         refresh_token:stored.refresh_token||''
       });
       if(data?.session){
         currentUser=data.session.user;
+        // 書き込みテストで実際に認証が通るか確認
+        const {error:te}=await sb.from('thinkdata').upsert(
+          {user_id:currentUser.id,data_key:'_ping',data_value:{t:Date.now()},updated_at:new Date().toISOString()},
+          {onConflict:'user_id,data_key'}
+        );
+        if(te){
+          console.warn('write test failed, trying refresh:',te.message);
+          // 書き込みに失敗したらトークンを強制リフレッシュ
+          const {data:rd}=await sb.auth.refreshSession();
+          if(rd?.session)currentUser=rd.session.user;
+        }
         showApp();
         await loadFromSupabase();
         return;
       }
+      if(error)console.warn('setSession error:',error.message);
     }catch(e){console.warn('setSession failed:',e);}
   }
-
-  // ② localStorageにセッションがなければログイン画面
   showLogin();
-
-  // ③ バックグラウンドでonAuthStateChange監視（マジックリンク等の対応）
   sb.auth.onAuthStateChange(async(event,session)=>{
     if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&!currentUser){
       currentUser=session.user;showApp();await loadFromSupabase();
@@ -962,6 +969,12 @@ async function loadFromSupabase(force=false){
     const sbPosts=map.posts||[];
     const sbNotes=map.notes||[];
     const sbOutlines=map.outlines||[];
+    // 保存失敗中はローカルデータを守る（上書きしない）
+    if(!lastSaveOk&&!force){
+      console.warn('Last save failed - keeping local data');
+      setSyncDot('');
+      return;
+    }
     // 強制同期か、Supabaseの方がデータが多い場合のみ上書き
     if(force||sbPosts.length>=posts.length){
       posts=sbPosts;
@@ -1033,6 +1046,8 @@ async function forceSyncFromSupabase(){
   if(btn){btn.textContent='🔄 同期';btn.disabled=false;}
 }
 
+let lastSaveOk=true; // 最後の保存が成功したか
+
 async function saveToSupabase(){
   if(!currentUser)return;
   setSyncDot('syncing');
@@ -1046,12 +1061,30 @@ async function saveToSupabase(){
       );
       if(error)throw error;
     }
+    lastSaveOk=true;
     setSyncDot('saved');
   }catch(e){
+    lastSaveOk=false;
     console.error('saveToSupabase error:',e);
+    // 保存失敗を赤で表示
     const dot=document.getElementById('syncDot');
-    if(dot){dot.style.background='var(--red)';dot.title='保存失敗: '+e.message;}
-    setSyncDot('');
+    if(dot){dot.style.background='var(--red)';dot.title='保存失敗（ローカルには保存済み）: '+e.message;}
+    // 再認証して再試行
+    try{
+      const {data:rd}=await sb.auth.refreshSession();
+      if(rd?.session){
+        currentUser=rd.session.user;
+        // 再試行
+        for(const [key,val] of [['posts',posts],['notes',notes],['outlines',outlines]]){
+          await sb.from('thinkdata').upsert(
+            {user_id:currentUser.id,data_key:key,data_value:val,updated_at:ts},
+            {onConflict:'user_id,data_key'}
+          );
+        }
+        lastSaveOk=true;
+        setSyncDot('saved');
+      }
+    }catch(e2){console.error('retry save failed:',e2);}
   }
 }
 
@@ -1371,6 +1404,14 @@ function renderFeed(){
   feed.innerHTML=fp.map(p=>renderPost(p)).join('');
   updateSelBar();
 }
+function linkify(text){
+  // URLをリンクに変換（XSS対策でescした後に処理）
+  return esc(text).replace(
+    /https?:\/\/[^\s<>"'）】』」\u3002\uff0e]+/g,
+    url=>`<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--teal);text-decoration:underline;word-break:break-all;">${url}</a>`
+  );
+}
+
 function renderPost(p){
   const tags=extractTags(p.content);
   const isEditing=editingPostId===p.id;
@@ -1402,7 +1443,7 @@ function renderPost(p){
                       <button class="post-edit-btn cancel" onclick="cancelReplyEdit()">キャンセル</button>
                     </div>
                   </div>`
-                :`<div class="reply-text">${esc(r.content)}</div>`}
+                :`<div class="reply-text">${linkify(r.content)}</div>`}
               <div class="reply-meta">
                 <span class="reply-time">${fmtDt(r.createdAt)}</span>
                 <button class="reply-edit-btn" onclick="startReplyEdit('${p.id}',${ri})">✎</button>
@@ -1433,7 +1474,7 @@ function renderPost(p){
     <div class="post-row1">
       <div class="post-sel"><div class="post-sel-box ${sel?'checked':''}" onclick="toggleSel('${p.id}')"></div></div>
       <div class="post-body">
-        ${isEditing?'':`<div class="post-text">${displayText||'（空）'}</div>`}
+        ${isEditing?'':`<div class="post-text">${linkify(displayText)||'（空）'}</div>`}
         <div class="post-meta">
           <span class="post-time">${fmtDt(p.createdAt)}</span>
           ${p.bskyUri?`<span class="bsky-post-status ok" style="font-size:9px;padding:1px 5px;">🦋</span>`:''}
