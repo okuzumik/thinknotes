@@ -1402,7 +1402,7 @@ function linkify(text){
   // URLをリンクに変換（XSS対策でescした後に処理）
   return esc(text).replace(
     /https?:\/\/[^\s<>"'）】』」\u3002\uff0e]+/g,
-    url=>`<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--teal);text-decoration:underline;word-break:break-all;">${url}</a>`
+    url=>`<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--teal);text-decoration:underline;word-break:break-all;font-size:.85em;">${url}</a>`
   );
 }
 
