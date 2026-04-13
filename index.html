@@ -39,26 +39,21 @@ body {
   letter-spacing:.06em; margin-right:2rem; flex-shrink:0;
 }
 
-/* フェーズステップ */
-.phase-steps { display:flex; align-items:center; gap:0; flex:1; }
+/* タブ */
+.phase-steps { display:flex; align-items:stretch; gap:0; flex:1; border-bottom:none; }
 .phase-step {
-  display:flex; align-items:center; gap:8px;
-  padding:5px 14px;
-  background:none; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  padding:0 18px; height:48px;
+  background:none; border:none; border-bottom:2.5px solid transparent;
+  cursor:pointer;
   font-family:'Hiragino Kaku Gothic ProN',sans-serif;
   font-size:12px; color:var(--text3);
-  border-radius:var(--rsm); transition:all .12s;
+  transition:all .12s; white-space:nowrap;
 }
-.phase-step:hover { background:var(--surface); color:var(--text2); }
-.phase-step.active { background:var(--accent-l); color:var(--accent); font-weight:600; }
-.phase-num {
-  width:18px; height:18px; border-radius:50%;
-  border:1.5px solid currentColor;
-  display:flex; align-items:center; justify-content:center;
-  font-size:10px; font-weight:700; flex-shrink:0;
-}
-.phase-step.active .phase-num { background:var(--accent); color:#fff; border-color:var(--accent); }
-.phase-arrow { color:var(--border2); margin:0 4px; font-size:11px; user-select:none; }
+.phase-step:hover { color:var(--text2); background:var(--surface); }
+.phase-step.active { color:var(--accent); font-weight:700; border-bottom-color:var(--accent); }
+.phase-num { display:none; } /* 番号は非表示 */
+.phase-arrow { display:none; } /* 矢印は非表示 */
 
 .topbar-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
 .search-wrap { position:relative; width:180px; }
@@ -456,6 +451,10 @@ body {
   .compose-wrap { padding:.75rem .75rem .6rem; }
   .compose-ta { font-size:16px; min-height:72px; }
   .post-text { font-size:16px; }
+  /* モバイル：入力欄は折りたたみ、フォーカスで展開 */
+  .compose-wrap { padding:.5rem .75rem .5rem; }
+  .compose-ta.mobile-collapsed { min-height:42px; max-height:42px; overflow:hidden; }
+  .compose-ta.mobile-expanded { min-height:120px; max-height:240px; }
   .compose-hint { display:none; }
   .compose-btn { padding:7px 20px; font-size:14px; }
   .compose-footer { padding:7px 10px; }
@@ -622,17 +621,9 @@ body {
 <div class="topbar">
   <div class="app-name">ThinkNotes</div>
   <div class="phase-steps">
-    <button class="phase-step active" id="ps-1" onclick="switchPhase(1)">
-      <span class="phase-num">1</span>タイムライン
-    </button>
-    <span class="phase-arrow">→</span>
-    <button class="phase-step" id="ps-2" onclick="switchPhase(2)">
-      <span class="phase-num">2</span>アウトライン
-    </button>
-    <span class="phase-arrow">→</span>
-    <button class="phase-step" id="ps-3" onclick="switchPhase(3)">
-      <span class="phase-num">3</span>ノート
-    </button>
+    <button class="phase-step active" id="ps-1" onclick="switchPhase(1)">タイムライン</button>
+    <button class="phase-step" id="ps-2" onclick="switchPhase(2)">アウトライン</button>
+    <button class="phase-step" id="ps-3" onclick="switchPhase(3)">ノート</button>
   </div>
   <div class="topbar-right">
     <div class="sync-dot" id="syncDot" title="保存状態"></div>
@@ -679,7 +670,10 @@ body {
     </div>
     <div class="compose-wrap">
       <div class="compose-inner">
-        <textarea class="compose-ta" id="composeTA" placeholder="思考の断片を書き流す…" onkeydown="onComposeKey(event)"></textarea>
+        <textarea class="compose-ta" id="composeTA" placeholder="思考の断片を書き流す…"
+          onkeydown="onComposeKey(event)"
+          onfocus="this.classList.remove('mobile-collapsed');this.classList.add('mobile-expanded')"
+          onblur="if(!this.value.trim()){this.classList.remove('mobile-expanded');this.classList.add('mobile-collapsed');}"></textarea>
         <div class="compose-footer">
           <div style="display:flex;align-items:center;gap:10px;flex:1;">
             <div class="compose-hint">Ctrl+Enter で投稿　<span>#タグ</span> は後から追加・削除できます</div>
@@ -2226,6 +2220,11 @@ const DEMO_NOTES=[
 // ─── Init ────────────────────────────────────────────────
 initAuth();
 initBsky();
+// モバイルで入力欄を最初は折りたたむ
+if(window.innerWidth<=640){
+  const ta=document.getElementById('composeTA');
+  if(ta)ta.classList.add('mobile-collapsed');
+}
 </script>
 </body>
 </html>
