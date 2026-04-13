@@ -1205,7 +1205,10 @@ async function postToBsky(text, replyRef=null){
   if(facets.length)record.facets=facets;
   // 返信の場合はreply参照を追加
   if(replyRef){
-    record.reply={root:replyRef.root||replyRef,parent:replyRef};
+    // replyRef が {root, parent} の場合と単純な {uri,cid} の場合を両方扱う
+    const root=replyRef.root||replyRef;
+    const parent=replyRef.parent||replyRef;
+    record.reply={root,parent};
   }
 
   const tryPost=async(token)=>{
@@ -1554,7 +1557,15 @@ async function submitReply(pid){
 
   // ② Bluesky投稿（DOM操作後）
   if(postToBskyFlag){
-    const replyRef=p.bskyUri&&p.bskyCid?{uri:p.bskyUri,cid:p.bskyCid}:null;
+    let replyRef=null;
+    if(p.bskyUri&&p.bskyCid){
+      const root={uri:p.bskyUri,cid:p.bskyCid};
+      // 直前のリプにbskyUriがあればそれをparentに（A→B→C連鎖）
+      const prevReplies=p.replies.slice(0,-1); // 今追加した分を除く
+      const lastBskyReply=[...prevReplies].reverse().find(r=>r.bskyUri&&r.bskyCid);
+      const parent=lastBskyReply?{uri:lastBskyReply.bskyUri,cid:lastBskyReply.bskyCid}:root;
+      replyRef={root,parent};
+    }
     const result=await postToBsky(text,replyRef);
     if(result.ok){
       reply.bskyUri=result.uri;reply.bskyCid=result.cid;
