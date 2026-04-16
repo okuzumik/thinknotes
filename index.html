@@ -1485,6 +1485,7 @@ function renderPost(p){
             <button class="pa" title="返信" onclick="startReply('${p.id}')">↩</button>
             <button class="pa" title="編集" onclick="startPostEdit('${p.id}')">✎</button>
             <button class="pa star ${p.starred?'on':''}" onclick="toggleStar('${p.id}')">★</button>
+            ${bskyIsConnected()&&!p.bskyUri?`<button class="pa" title="Blueskyに投稿" onclick="postExistingToBsky('${p.id}')">🦋</button>`:''}
             <button class="pa del" onclick="deletePost('${p.id}')">✕</button>
           </div>
         </div>
@@ -1527,6 +1528,18 @@ async function submitPost(){
   }
 }
 
+async function postExistingToBsky(pid){
+  if(!bskySession)return;
+  const p=posts.find(x=>x.id===pid);if(!p)return;
+  const result=await postToBsky(p.content);
+  if(result.ok){
+    p.bskyUri=result.uri;p.bskyCid=result.cid;
+    save();renderFeed();
+    showBskyPostStatus(pid,true);
+  } else {
+    showBskyPostStatus(pid,false,null,result.error);
+  }
+}
 function showBskyPostStatus(pid,ok,mode,error){
   const postEl=document.getElementById('post-'+pid);if(!postEl)return;
   const existing=postEl.querySelector('.bsky-post-status');if(existing)existing.remove();
