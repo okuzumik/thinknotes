@@ -539,7 +539,62 @@ body {
 }
 .mobile-search-in::placeholder { color:var(--text3); }
 
-/* ═══ LOGIN OVERLAY ═══ */
+/* ═══════════════════════════════
+   PHASE 2 — CALENDAR
+   ═══════════════════════════════ */
+.calendar-wrap { display:flex; flex:1; overflow:hidden; }
+.calendar-left { width:280px; flex-shrink:0; border-right:0.5px solid var(--border); display:flex; flex-direction:column; overflow:hidden; background:var(--bg3); }
+.calendar-right { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+/* 月カレンダー */
+.cal-month-nav { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:0.5px solid var(--border); flex-shrink:0; }
+.cal-month-label { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:700; color:var(--text); }
+.cal-nav-btn { background:none; border:none; cursor:pointer; font-size:16px; color:var(--text3); padding:2px 6px; border-radius:var(--rsm); }
+.cal-nav-btn:hover { background:var(--surface); color:var(--text); }
+.cal-grid { padding:8px; flex:1; overflow-y:auto; }
+.cal-dow { display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px; }
+.cal-dow span { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); text-align:center; padding:2px 0; }
+.cal-days { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.cal-day { aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:4px 2px 2px; border-radius:var(--rsm); cursor:pointer; border:0.5px solid transparent; transition:all .1s; position:relative; }
+.cal-day:hover { background:var(--surface); }
+.cal-day.selected { background:var(--accent-l); border-color:var(--accent-m); }
+.cal-day.today .cal-day-num { background:var(--accent); color:#fff; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; }
+.cal-day.other-month { opacity:.35; }
+.cal-day-num { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text); line-height:1; }
+.cal-day-dots { display:flex; gap:1px; margin-top:2px; flex-wrap:wrap; justify-content:center; }
+.cal-dot { width:4px; height:4px; border-radius:50%; flex-shrink:0; }
+.cal-dot-log { background:#7a9e8c; }
+.cal-dot-thought { background:var(--accent-m); }
+.cal-dot-other { background:var(--border2); }
+
+/* カテゴリ設定 */
+.cal-category-bar { border-top:0.5px solid var(--border); padding:10px 12px; flex-shrink:0; }
+.cal-category-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); letter-spacing:.08em; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; }
+.cal-cat-toggle { display:flex; gap:6px; }
+.cal-cat-btn { padding:3px 10px; border-radius:20px; border:0.5px solid var(--border2); background:var(--bg2); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; cursor:pointer; color:var(--text2); transition:all .1s; white-space:nowrap; }
+.cal-cat-btn.active { font-weight:600; }
+.cal-cat-btn.log.active { background:#dce6df; color:#2a6e50; border-color:#7a9e8c; }
+.cal-cat-btn.thought.active { background:var(--accent-l); color:var(--accent-d); border-color:var(--accent-m); }
+.cal-cat-btn.other.active { background:var(--surface); color:var(--text); border-color:var(--border2); }
+
+/* 右ペイン：日ビュー */
+.cal-day-header { display:flex; align-items:center; gap:8px; padding:10px 16px; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.cal-day-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:14px; font-weight:700; color:var(--text); flex:1; }
+.cal-day-nav { background:none; border:0.5px solid var(--border2); border-radius:20px; padding:3px 10px; cursor:pointer; font-size:14px; color:var(--text3); }
+.cal-day-nav:hover { background:var(--surface); }
+.cal-day-compose { padding:.75rem 1rem .6rem; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.cal-day-feed { flex:1; overflow-y:auto; padding:.5rem 1rem 2rem; }
+.cal-cat-section { margin-bottom:1.5rem; }
+.cal-cat-label { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; letter-spacing:.1em; color:var(--text3); margin-bottom:6px; padding-bottom:4px; border-bottom:0.5px solid var(--border); }
+.cal-cat-label.log { color:#2a6e50; border-color:#7a9e8c; }
+.cal-cat-label.thought { color:var(--accent-d); border-color:var(--accent-m); }
+
+/* カレンダー設定モーダル */
+.cal-settings-wrap { padding:10px 12px; border-top:0.5px solid var(--border); flex-shrink:0; font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
+.cal-settings-row { margin-bottom:8px; }
+.cal-settings-label { font-size:10px; color:var(--text3); margin-bottom:3px; }
+.cal-settings-input { width:100%; padding:5px 8px; border:0.5px solid var(--border2); border-radius:var(--rsm); font-size:11px; font-family:inherit; color:var(--text); background:var(--bg2); outline:none; }
+.cal-settings-hint { font-size:10px; color:var(--text3); margin-top:2px; }
 .login-overlay {
   position:fixed; inset:0; z-index:9999;
   background:var(--bg);
@@ -622,8 +677,9 @@ body {
   <div class="app-name">ThinkNotes</div>
   <div class="phase-steps">
     <button class="phase-step active" id="ps-1" onclick="switchPhase(1)">タイムライン</button>
-    <button class="phase-step" id="ps-2" onclick="switchPhase(2)">アウトライン</button>
-    <button class="phase-step" id="ps-3" onclick="switchPhase(3)">ノート</button>
+    <button class="phase-step" id="ps-2" onclick="switchPhase(2)">カレンダー</button>
+    <button class="phase-step" id="ps-3" onclick="switchPhase(3)">アウトライン</button>
+    <button class="phase-step" id="ps-4" onclick="switchPhase(4)">ノート</button>
   </div>
   <div class="topbar-right">
     <div class="sync-dot" id="syncDot" title="保存状態"></div>
@@ -701,7 +757,7 @@ body {
   </div>
 
   <!-- ═══ PHASE 2 ═══ -->
-  <div class="phase-screen" id="phase2">
+  <div class="phase-screen" id="phase3">
     <div class="mobile-phase-msg">
       <div class="msg-icon">🖥️</div>
       <div>アウトライン機能はPC画面でご利用ください</div>
@@ -741,8 +797,71 @@ body {
     </div>
   </div>
 
+  <!-- ═══ PHASE 2 — CALENDAR ═══ -->
+  <div class="phase-screen" id="phase2">
+    <div class="calendar-wrap">
+      <!-- 左：月カレンダー＋設定 -->
+      <div class="calendar-left">
+        <div class="cal-month-nav">
+          <button class="cal-nav-btn" onclick="calPrevMonth()">‹</button>
+          <span class="cal-month-label" id="calMonthLabel"></span>
+          <button class="cal-nav-btn" onclick="calNextMonth()">›</button>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-dow">
+            <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+          </div>
+          <div class="cal-days" id="calDays"></div>
+        </div>
+        <!-- カテゴリフィルター -->
+        <div class="cal-category-bar">
+          <div class="cal-category-title">
+            <span>カテゴリ</span>
+            <button onclick="toggleCalSettings()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);">⚙️ 設定</button>
+          </div>
+          <div class="cal-cat-toggle">
+            <button class="cal-cat-btn log active" id="calCatLog" onclick="toggleCalCat('log')">🌿 ライフログ</button>
+            <button class="cal-cat-btn thought active" id="calCatThought" onclick="toggleCalCat('thought')">💭 思考</button>
+            <button class="cal-cat-btn other active" id="calCatOther" onclick="toggleCalCat('other')">📝 その他</button>
+          </div>
+        </div>
+        <!-- タグ設定 -->
+        <div class="cal-settings-wrap" id="calSettings" style="display:none;">
+          <div class="cal-settings-row">
+            <div class="cal-settings-label">🌿 ライフログのタグ（カンマ区切り）</div>
+            <input class="cal-settings-input" id="calLogTags" placeholder="例: 日記,記録,ライフログ" oninput="saveCalSettings()">
+            <div class="cal-settings-hint">指定タグを持つ投稿がライフログに分類されます</div>
+          </div>
+          <div class="cal-settings-row">
+            <div class="cal-settings-label">💭 思考のタグ（カンマ区切り）</div>
+            <input class="cal-settings-input" id="calThoughtTags" placeholder="例: 思考,アイデア,考察" oninput="saveCalSettings()">
+          </div>
+        </div>
+      </div>
+      <!-- 右：日ビュー -->
+      <div class="calendar-right">
+        <div class="cal-day-header">
+          <button class="cal-day-nav" onclick="calPrevDay()">‹</button>
+          <div class="cal-day-title" id="calDayTitle">日付を選択してください</div>
+          <button class="cal-day-nav" onclick="calNextDay()">›</button>
+        </div>
+        <div class="cal-day-compose" id="calDayCompose" style="display:none;">
+          <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;">
+            <textarea class="compose-ta" id="calComposeTA" placeholder="この日のつぶやきを追加…" onkeydown="onCalComposeKey(event)" style="min-height:52px;font-size:14px;"></textarea>
+            <div style="display:flex;justify-content:flex-end;padding:5px 10px;border-top:0.5px solid var(--border);">
+              <button class="compose-btn" onclick="submitCalPost()">投稿</button>
+            </div>
+          </div>
+        </div>
+        <div class="cal-day-feed" id="calDayFeed">
+          <div class="empty-state" style="padding:3rem 1rem;"><div class="empty-icon">📅</div>左のカレンダーから日付を選んでください</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ PHASE 3 ═══ -->
-  <div class="phase-screen" id="phase3">
+  <div class="phase-screen" id="phase4">
     <div class="mobile-phase-msg">
       <div class="msg-icon">🖥️</div>
       <div>ノートエディター機能はPC画面でご利用ください</div>
@@ -1289,8 +1408,13 @@ let _syncScrolling=false;
 let _pickerStickyId=null;
 // post edit
 let editingPostId=null, editingTagPostId=null, replyingToId=null;
-let editingReplyKey=null; // 'pid:ri' format
-const expandedOutlineCards=new Set(); // pids with replies shown
+let editingReplyKey=null;
+const expandedOutlineCards=new Set();
+// カレンダー
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+let calSelectedDate=null; // 'YYYY-MM-DD'
+let calCatFilter={log:true,thought:true,other:true};
+let calLogTags=[], calThoughtTags=[];
 
 // ─── Persist (local fallback) ─────────────────────────────
 function load(){loadLocal();}
@@ -1332,18 +1456,199 @@ function cleanText(content){
 // ─── Phase switching ─────────────────────────────────────
 function switchPhase(n){
   currentPhase=n;
-  [1,2,3].forEach(i=>{
-    document.getElementById('ps-'+i).classList.toggle('active',i===n);
-    document.getElementById('phase'+i).classList.toggle('active',i===n);
+  [1,2,3,4].forEach(i=>{
+    document.getElementById('ps-'+i)?.classList.toggle('active',i===n);
+    document.getElementById('phase'+i)?.classList.toggle('active',i===n);
   });
   document.getElementById('tagSidebar').style.display=n===1?'':'none';
   document.getElementById('searchWrap').style.display=n===1?'':'none';
   if(n===1)renderFeed();
-  if(n===2){renderOutlineTagFilters();renderAllPostsPanel();renderOutlineFeed();renderSavedOutlinesBar();}
-  if(n===3){renderNotesList();}
+  if(n===2){renderCalendar();}
+  if(n===3){renderOutlineTagFilters();renderAllPostsPanel();renderOutlineFeed();renderSavedOutlinesBar();}
+  if(n===4){renderNotesList();}
 }
 
-// ─── Sidebar & Filter ────────────────────────────────────
+// ─── Calendar ────────────────────────────────────────────
+function calDateStr(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function calDateLabel(dateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  const days=['日','月','火','水','木','金','土'];
+  return`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）`;
+}
+function postsForDate(dateStr){
+  return posts.filter(p=>{
+    const d=new Date(p.createdAt);
+    return calDateStr(d.getFullYear(),d.getMonth(),d.getDate())===dateStr;
+  }).sort((a,b)=>a.createdAt-b.createdAt);
+}
+function getCatForPost(p){
+  const tags=extractTags(p.content);
+  if(calLogTags.length&&tags.some(t=>calLogTags.includes(t)))return'log';
+  if(calThoughtTags.length&&tags.some(t=>calThoughtTags.includes(t)))return'thought';
+  return'other';
+}
+function loadCalSettings(){
+  const s=JSON.parse(localStorage.getItem('tn_cal_settings')||'{}');
+  calLogTags=(s.logTags||'').split(',').map(t=>t.trim()).filter(Boolean);
+  calThoughtTags=(s.thoughtTags||'').split(',').map(t=>t.trim()).filter(Boolean);
+  const li=document.getElementById('calLogTags');
+  const ti=document.getElementById('calThoughtTags');
+  if(li)li.value=s.logTags||'';
+  if(ti)ti.value=s.thoughtTags||'';
+}
+function saveCalSettings(){
+  const logVal=document.getElementById('calLogTags')?.value||'';
+  const thoughtVal=document.getElementById('calThoughtTags')?.value||'';
+  localStorage.setItem('tn_cal_settings',JSON.stringify({logTags:logVal,thoughtTags:thoughtVal}));
+  calLogTags=logVal.split(',').map(t=>t.trim()).filter(Boolean);
+  calThoughtTags=thoughtVal.split(',').map(t=>t.trim()).filter(Boolean);
+  renderCalendar();
+  if(calSelectedDate)renderCalDayView(calSelectedDate);
+}
+function toggleCalSettings(){
+  const el=document.getElementById('calSettings');
+  if(el)el.style.display=el.style.display==='none'?'':'none';
+}
+function toggleCalCat(cat){
+  calCatFilter[cat]=!calCatFilter[cat];
+  const btn=document.getElementById('calCat'+cat.charAt(0).toUpperCase()+cat.slice(1));
+  if(btn)btn.classList.toggle('active',calCatFilter[cat]);
+  if(calSelectedDate)renderCalDayView(calSelectedDate);
+}
+function renderCalendar(){
+  loadCalSettings();
+  // 月ラベル
+  const months=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const lbl=document.getElementById('calMonthLabel');
+  if(lbl)lbl.textContent=`${calYear}年 ${months[calMonth]}`;
+  // カレンダーグリッド
+  const grid=document.getElementById('calDays');if(!grid)return;
+  const today=new Date();
+  const todayStr=calDateStr(today.getFullYear(),today.getMonth(),today.getDate());
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  const cells=[];
+  // 前月の日
+  for(let i=firstDay-1;i>=0;i--){
+    cells.push({d:daysInPrev-i,m:calMonth-1,y:calYear,other:true});
+  }
+  // 当月
+  for(let d=1;d<=daysInMonth;d++){
+    cells.push({d,m:calMonth,y:calYear,other:false});
+  }
+  // 次月
+  const remaining=42-cells.length;
+  for(let d=1;d<=remaining;d++){
+    cells.push({d,m:calMonth+1,y:calYear,other:true});
+  }
+  grid.innerHTML=cells.map(c=>{
+    const ds=calDateStr(c.y,c.m,c.d);
+    const dayPosts=postsForDate(ds);
+    const dots=dayPosts.slice(0,5).map(p=>{
+      const cat=getCatForPost(p);
+      return`<div class="cal-dot cal-dot-${cat}"></div>`;
+    }).join('');
+    const isToday=ds===todayStr;
+    const isSel=ds===calSelectedDate;
+    return`<div class="cal-day${c.other?' other-month':''}${isToday?' today':''}${isSel?' selected':''}"
+      onclick="selectCalDay('${ds}')">
+      <div class="cal-day-num">${c.d}</div>
+      <div class="cal-day-dots">${dots}</div>
+    </div>`;
+  }).join('');
+}
+function selectCalDay(dateStr){
+  calSelectedDate=dateStr;
+  renderCalendar();
+  renderCalDayView(dateStr);
+  const compose=document.getElementById('calDayCompose');
+  if(compose)compose.style.display='';
+}
+function renderCalDayView(dateStr){
+  const title=document.getElementById('calDayTitle');
+  if(title)title.textContent=calDateLabel(dateStr);
+  const feed=document.getElementById('calDayFeed');if(!feed)return;
+  const dayPosts=postsForDate(dateStr);
+  if(!dayPosts.length){
+    feed.innerHTML=`<div class="empty-state" style="padding:2rem 1rem;"><div class="empty-icon">📭</div>この日のつぶやきはありません</div>`;
+    return;
+  }
+  // カテゴリ別に分類
+  const catPosts={log:[],thought:[],other:[]};
+  dayPosts.forEach(p=>{catPosts[getCatForPost(p)].push(p);});
+  const catDefs=[
+    {key:'log',label:'🌿 ライフログ',cls:'log'},
+    {key:'thought',label:'💭 思考',cls:'thought'},
+    {key:'other',label:'📝 その他',cls:'other'},
+  ];
+  feed.innerHTML=catDefs.filter(cd=>calCatFilter[cd.key]&&catPosts[cd.key].length).map(cd=>`
+    <div class="cal-cat-section">
+      <div class="cal-cat-label ${cd.cls}">${cd.label}</div>
+      ${catPosts[cd.key].map(p=>renderCalPost(p)).join('')}
+    </div>`).join('');
+}
+function renderCalPost(p){
+  const text=p.content.replace(/#[^\s#、。！？,.!?]+/g,'').trim();
+  const tags=extractTags(p.content);
+  return`<div class="post" id="calpost-${p.id}" style="padding:10px 0;">
+    <div class="post-text" style="font-size:14px;">${linkify(text)||'（空）'}</div>
+    <div class="post-meta" style="margin-top:4px;">
+      <span class="post-time">${fmtDt(p.createdAt)}</span>
+      ${tags.map(t=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--accent);margin-left:4px;">#${esc(t)}</span>`).join('')}
+      ${p.bskyUri?`<span class="bsky-post-status ok" style="font-size:9px;padding:1px 5px;margin-left:4px;">🦋</span>`:''}
+    </div>
+    ${(p.replies||[]).length?`<div style="padding-left:14px;border-left:2px solid var(--border2);margin-top:6px;">
+      ${(p.replies||[]).map(r=>`<div style="padding:4px 0;font-size:13px;color:var(--text2);">${esc(r.content)}<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);margin-left:6px;">${fmtDt(r.createdAt)}</span></div>`).join('')}
+    </div>`:''}
+  </div>`;
+}
+function calPrevMonth(){
+  calMonth--;if(calMonth<0){calMonth=11;calYear--;}
+  renderCalendar();
+}
+function calNextMonth(){
+  calMonth++;if(calMonth>11){calMonth=0;calYear++;}
+  renderCalendar();
+}
+function calPrevDay(){
+  if(!calSelectedDate)return;
+  const d=new Date(calSelectedDate+'T00:00:00');
+  d.setDate(d.getDate()-1);
+  const ds=calDateStr(d.getFullYear(),d.getMonth(),d.getDate());
+  // 月をまたいだら月を更新
+  calYear=d.getFullYear();calMonth=d.getMonth();
+  selectCalDay(ds);
+}
+function calNextDay(){
+  if(!calSelectedDate)return;
+  const d=new Date(calSelectedDate+'T00:00:00');
+  d.setDate(d.getDate()+1);
+  const ds=calDateStr(d.getFullYear(),d.getMonth(),d.getDate());
+  calYear=d.getFullYear();calMonth=d.getMonth();
+  selectCalDay(ds);
+}
+function onCalComposeKey(e){
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();submitCalPost();}
+  setTimeout(()=>{const t=e.target;t.style.height='auto';t.style.height=Math.min(160,t.scrollHeight)+'px';},0);
+}
+function submitCalPost(){
+  const ta=document.getElementById('calComposeTA');if(!ta)return;
+  const text=ta.value.trim();if(!text||!calSelectedDate)return;
+  // 指定日の23:59:59に投稿（タイムライン上では過去に並ぶ）
+  const d=new Date(calSelectedDate+'T23:59:59');
+  // 同日に複数あれば最後+1秒
+  const dayPosts=postsForDate(calSelectedDate);
+  const ts=dayPosts.length>0
+    ?Math.max(...dayPosts.map(p=>p.createdAt))+1000
+    :d.getTime();
+  const p={id:uid(),content:text,createdAt:ts,updatedAt:ts,starred:false,replies:[]};
+  posts.push(p);
+  ta.value='';ta.style.height='';
+  save();renderFeed();renderSidebar();
+  renderCalendar();renderCalDayView(calSelectedDate);
+}
+
 function renderSidebar(){
   const tags=allTagsMap();
   document.getElementById('cnt-all').textContent=posts.length;
@@ -1678,7 +1983,7 @@ function goToOutlineWithSel(){
     }
   });
   selectedIds.clear();
-  switchPhase(2);
+  switchPhase(4);
 }
 
 // 投稿（＋連ツイ）をアウトラインに追加するヘルパー
@@ -1915,7 +2220,7 @@ function goToNote(){
   if(!n.paragraphs.length)n.paragraphs=newParas;
   n.updatedAt=Date.now();
   currentNoteId=n.id;
-  save();switchPhase(3);
+  save();switchPhase(4);
   setTimeout(()=>{openNote(n.id);},30);
 }
 
@@ -1961,7 +2266,7 @@ function toggleOutlineLoadMenu(){
 function loadOutlineIntoNote(outlineId){
   const menu=document.getElementById('outlineLoadMenu');
   if(menu)menu.style.display='none';
-  if(!outlineId){switchPhase(2);return;}
+  if(!outlineId){switchPhase(4);return;}
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
   const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
   if(n.paragraphs.length&&!confirm(`現在の段落に追記しますか？\n（「キャンセル」で上書き）`)){
