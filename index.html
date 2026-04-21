@@ -98,6 +98,18 @@ body {
 .compose-hint span { color:var(--accent-d); }
 .compose-btn { padding:4px 14px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; font-weight:700; cursor:pointer; }
 .compose-btn:hover { background:var(--accent-d); }
+/* 画像 */
+.compose-img-preview { display:flex; flex-wrap:wrap; gap:6px; padding:6px 10px 0; }
+.compose-img-thumb { position:relative; width:72px; height:72px; border-radius:var(--rsm); overflow:hidden; border:0.5px solid var(--border2); }
+.compose-img-thumb img { width:100%; height:100%; object-fit:cover; }
+.compose-img-thumb-del { position:absolute; top:2px; right:2px; background:rgba(0,0,0,.55); color:#fff; border:none; border-radius:50%; width:16px; height:16px; font-size:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
+.img-attach-btn { background:none; border:none; cursor:pointer; font-size:16px; color:var(--text3); padding:2px 4px; border-radius:var(--rsm); }
+.img-attach-btn:hover { color:var(--accent); background:var(--surface); }
+.post-images { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; padding-left:27px; }
+.post-image { max-width:280px; max-height:220px; border-radius:var(--rsm); cursor:pointer; border:0.5px solid var(--border); object-fit:cover; }
+/* 画像ライトボックス */
+.img-lightbox { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:500; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.img-lightbox img { max-width:95vw; max-height:95vh; border-radius:8px; object-fit:contain; }
 
 /* 選択バー */
 .sel-bar {
@@ -726,12 +738,15 @@ body {
     </div>
     <div class="compose-wrap">
       <div class="compose-inner">
+        <div class="compose-img-preview" id="composeImgPreview"></div>
         <textarea class="compose-ta" id="composeTA" placeholder="思考の断片を書き流す…"
           onkeydown="onComposeKey(event)"
           onfocus="this.classList.remove('mobile-collapsed');this.classList.add('mobile-expanded')"
-          onblur="if(!this.value.trim()){this.classList.remove('mobile-expanded');this.classList.add('mobile-collapsed');}"></textarea>
+          onblur="if(!this.value.trim()&&!pendingImages.length){this.classList.remove('mobile-expanded');this.classList.add('mobile-collapsed');}"></textarea>
         <div class="compose-footer">
-          <div style="display:flex;align-items:center;gap:10px;flex:1;">
+          <div style="display:flex;align-items:center;gap:6px;flex:1;">
+            <button class="img-attach-btn" onclick="openImagePicker()" title="画像を追加">🖼️</button>
+            <input type="file" id="imageInput" accept="image/*" multiple style="display:none" onchange="onImageSelected(event)">
             <div class="compose-hint">Ctrl+Enter で投稿　<span>#タグ</span> は後から追加・削除できます</div>
             <label class="bsky-check-wrap" id="bskyCheckWrap" style="display:none">
               <input type="checkbox" id="bskyCheck">🦋 Bskyにも
@@ -1468,6 +1483,63 @@ function switchPhase(n){
   if(n===4){renderNotesList();}
 }
 
+// ─── 画像 ────────────────────────────────────────────────
+let pendingImages=[]; // [{dataUrl}]
+
+function openImagePicker(){document.getElementById('imageInput').click();}
+
+async function onImageSelected(e){
+  const files=[...e.target.files];
+  e.target.value='';
+  for(const file of files){
+    const dataUrl=await resizeImage(file,800,0.72);
+    pendingImages.push({dataUrl});
+  }
+  renderImgPreview();
+  // 入力欄を展開
+  const ta=document.getElementById('composeTA');
+  if(ta){ta.classList.remove('mobile-collapsed');ta.classList.add('mobile-expanded');}
+}
+
+function resizeImage(file,maxW,quality){
+  return new Promise(res=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let w=img.width,h=img.height;
+      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      res(canvas.toDataURL('image/jpeg',quality));
+    };
+    img.src=url;
+  });
+}
+
+function renderImgPreview(){
+  const el=document.getElementById('composeImgPreview');if(!el)return;
+  el.innerHTML=pendingImages.map((im,i)=>`
+    <div class="compose-img-thumb">
+      <img src="${im.dataUrl}">
+      <button class="compose-img-thumb-del" onclick="removePendingImg(${i})">✕</button>
+    </div>`).join('');
+  el.style.display=pendingImages.length?'flex':'none';
+}
+
+function removePendingImg(i){
+  pendingImages.splice(i,1);renderImgPreview();
+}
+
+function openLightbox(src){
+  const lb=document.createElement('div');
+  lb.className='img-lightbox';
+  lb.innerHTML=`<img src="${src}">`;
+  lb.onclick=()=>lb.remove();
+  document.body.appendChild(lb);
+}
+
 // ─── Calendar ────────────────────────────────────────────
 function calDateStr(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function calDateLabel(dateStr){
@@ -1591,6 +1663,10 @@ function renderCalDayView(dateStr){
 function renderCalPost(p){
   const text=p.content.replace(/#[^\s#、。！？,.!?]+/g,'').trim();
   const tags=extractTags(p.content);
+  const repliesHtml=(p.replies||[]).length?`<div style="padding-left:14px;border-left:2px solid var(--border2);margin-top:6px;">
+    ${(p.replies||[]).map(r=>`<div style="padding:4px 0;font-size:13px;color:var(--text2);">${esc(r.content)}<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);margin-left:6px;">${fmtDt(r.createdAt)}</span></div>`).join('')}
+  </div>`:'';
+  const imgsHtml=(p.images&&p.images.length)?`<div class="post-images" style="padding-left:0;margin-top:8px;">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:'';
   return`<div class="post" id="calpost-${p.id}" style="padding:10px 0;">
     <div class="post-text" style="font-size:14px;">${linkify(text)||'（空）'}</div>
     <div class="post-meta" style="margin-top:4px;">
@@ -1598,9 +1674,8 @@ function renderCalPost(p){
       ${tags.map(t=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--accent);margin-left:4px;">#${esc(t)}</span>`).join('')}
       ${p.bskyUri?`<span class="bsky-post-status ok" style="font-size:9px;padding:1px 5px;margin-left:4px;">🦋</span>`:''}
     </div>
-    ${(p.replies||[]).length?`<div style="padding-left:14px;border-left:2px solid var(--border2);margin-top:6px;">
-      ${(p.replies||[]).map(r=>`<div style="padding:4px 0;font-size:13px;color:var(--text2);">${esc(r.content)}<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);margin-left:6px;">${fmtDt(r.createdAt)}</span></div>`).join('')}
-    </div>`:''}
+    ${imgsHtml}
+    ${repliesHtml}
   </div>`;
 }
 function calPrevMonth(){
@@ -1808,28 +1883,59 @@ function renderPost(p){
         ?`<span class="tag-input-wrap"><input class="tag-input" id="taginput-${p.id}" placeholder="タグ名" maxlength="20" onkeydown="onTagInputKey(event,'${p.id}')" onblur="cancelTagEdit('${p.id}')"></span>`
         :`<button class="tag-add-btn" onclick="startTagEdit('${p.id}')">＋ タグ</button>`}
     </div>
+    ${(p.images&&p.images.length)?`<div class="post-images">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:''}
     ${threadHtml}
     ${replyComposeHtml}
   </div>`;
 }
 
+// 画像をSupabase Storageにアップロードしてurl配列を返す
+async function uploadImagesToStorage(pendingImgs){
+  if(!currentUser||!pendingImgs.length)return pendingImgs.map(i=>i.dataUrl);
+  const urls=[];
+  for(const im of pendingImgs){
+    try{
+      // base64 → Blob
+      const res=await fetch(im.dataUrl);
+      const blob=await res.blob();
+      const ext=blob.type.includes('png')?'png':'jpg';
+      const path=`${currentUser.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const {data,error}=await sb.storage.from('thinknotes-images').upload(path,blob,{contentType:blob.type});
+      if(error)throw error;
+      const {data:{publicUrl}}=sb.storage.from('thinknotes-images').getPublicUrl(path);
+      urls.push(publicUrl);
+    }catch(e){
+      console.error('upload error:',e);
+      urls.push(im.dataUrl); // 失敗時はbase64フォールバック
+    }
+  }
+  return urls;
+}
+
 // Post CRUD
 async function submitPost(){
-  const ta=document.getElementById('composeTA');const text=ta.value.trim();if(!text)return;
-  // ① DOM が変わる前にチェックボックスを読む
+  const ta=document.getElementById('composeTA');const text=ta.value.trim();
+  if(!text&&!pendingImages.length)return;
   const bskyCheck=document.getElementById('bskyCheck');
   const postToBskyFlag=!!(bskyCheck?.checked&&bskySession);
-  const p={id:uid(),content:text,createdAt:Date.now(),updatedAt:Date.now(),starred:false,replies:[]};
+  const localImgs=[...pendingImages];
+  const p={id:uid(),content:text,createdAt:Date.now(),updatedAt:Date.now(),starred:false,replies:[],
+    images:localImgs.map(i=>i.dataUrl)}; // 先にbase64で表示
   posts.push(p);
-  ta.value='';ta.style.height='';save();renderFeed();renderSidebar();
+  ta.value='';ta.style.height='';
+  pendingImages=[];renderImgPreview();
+  ta.classList.remove('mobile-expanded');ta.classList.add('mobile-collapsed');
+  save();renderFeed();renderSidebar();
+  // バックグラウンドでStorageにアップロードしてURLに差し替え
+  if(localImgs.length&&currentUser){
+    const urls=await uploadImagesToStorage(localImgs);
+    p.images=urls;
+    save();
+  }
   if(postToBskyFlag){
     const result=await postToBsky(text);
-    if(result.ok){
-      p.bskyUri=result.uri;p.bskyCid=result.cid;
-      save();showBskyPostStatus(p.id,true);
-    } else {
-      showBskyPostStatus(p.id,false,null,result.error);
-    }
+    if(result.ok){p.bskyUri=result.uri;p.bskyCid=result.cid;save();showBskyPostStatus(p.id,true);}
+    else showBskyPostStatus(p.id,false,null,result.error);
   }
 }
 
