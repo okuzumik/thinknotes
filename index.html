@@ -437,19 +437,29 @@ body {
 @media (max-width: 640px) {
   body { font-size:16px; }
 
-  /* トップバー：アプリ名のみ（フェーズステップ非表示） */
-  .topbar { padding:0 .75rem; height:46px; }
-  .app-name { font-size:15px; margin-right:0; }
-  .phase-steps { display:none; } /* モバイルではフェーズタブ非表示 */
+  /* トップバー：タイムライン・カレンダータブのみ表示 */
+  .topbar { padding:0 .5rem; height:46px; }
+  .app-name { font-size:14px; margin-right:.25rem; flex-shrink:0; }
+  .phase-steps { display:flex; flex:1; }
+  .phase-step { padding:0 10px; font-size:11px; height:46px; }
+  #ps-3, #ps-4 { display:none; } /* アウトライン・ノートはモバイル非表示 */
   .topbar-right { display:none; }
 
   /* サイドバー非表示 */
   .tag-sidebar { display:none !important; }
 
-  /* Phase 2,3 はモバイルでは警告表示 */
-  #phase2.active .outline-builder,
-  #phase3.active .note-editor-wrap { display:none; }
+  /* アウトライン・ノートはモバイルでは警告表示 */
+  #phase3.active .outline-builder,
+  #phase4.active .note-editor-wrap { display:none; }
   .mobile-phase-msg { display:flex !important; }
+
+  /* カレンダー：モバイルでは縦並び */
+  .calendar-wrap { flex-direction:column; }
+  .calendar-left { width:100%; border-right:none; border-bottom:0.5px solid var(--border); flex-shrink:0; max-height:55vh; overflow-y:auto; }
+  .cal-day { padding:2px 1px; }
+  .cal-day-num { font-size:10px; }
+  .cal-category-bar { padding:7px 10px; }
+  .cal-settings-wrap { padding:8px 10px; }
 
   /* フィード */
   .feed { padding:.5rem .75rem 5rem; }
@@ -1477,8 +1487,23 @@ function switchPhase(n){
   });
   document.getElementById('tagSidebar').style.display=n===1?'':'none';
   document.getElementById('searchWrap').style.display=n===1?'':'none';
-  if(n===1)renderFeed();
-  if(n===2){renderCalendar();}
+  if(n===1){renderFeed();}
+  if(n===2){
+    renderCalendar();
+    const mt=document.getElementById('mobileToolbar');
+    const mb=document.getElementById('mobileBskyBar');
+    if(mt)mt.style.display='none';
+    if(mb)mb.style.display='none';
+  }
+  if(n===1){
+    // モバイルツールバー復元
+    if(window.innerWidth<=640){
+      const mt=document.getElementById('mobileToolbar');
+      const mb=document.getElementById('mobileBskyBar');
+      if(mt)mt.style.display='';
+      if(mb)mb.style.display='';
+    }
+  }
   if(n===3){renderOutlineTagFilters();renderAllPostsPanel();renderOutlineFeed();renderSavedOutlinesBar();}
   if(n===4){renderNotesList();}
 }
