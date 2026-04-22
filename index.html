@@ -454,17 +454,29 @@ body {
   .mobile-phase-msg { display:flex !important; }
 
   #phase2.active { overflow-y:auto; }
-  #phase2 .calendar-wrap { min-height:100%; }
-  .calendar-wrap { flex-direction:column; overflow-y:auto; }
-  .calendar-left { width:100% !important; border-right:none !important; border-bottom:0.5px solid var(--border); flex-shrink:0; max-height:none; overflow:visible; }
-  .calendar-right { flex:none; min-height:50vh; }
-  .cal-grid { padding:2px 4px; }
-  .cal-day { padding:3px 1px; }
-  .cal-day-num { font-size:11px; }
-  .cal-category-bar { padding:7px 10px; }
-  .cal-cat-toggle { flex-wrap:wrap; gap:4px; }
-  .cal-settings-wrap { padding:8px 10px; }
-  .cal-day-header { position:sticky; top:0; z-index:10; }
+  #phase2 .calendar-wrap { min-height:100%; flex-direction:column; }
+  .calendar-left { width:100% !important; border-right:none !important; border-bottom:0.5px solid var(--border); flex-shrink:0; }
+  .calendar-right { flex:none; }
+  .calendar-wrap { flex-direction:column; }
+  /* カレンダーセルをコンパクトに */
+  .cal-grid { padding:2px 6px 4px; }
+  .cal-days { gap:1px; }
+  .cal-day { height:32px; aspect-ratio:auto; padding:1px 0; }
+  .cal-day-num { font-size:12px; line-height:1; }
+  .cal-day.today .cal-day-num { width:20px; height:20px; font-size:11px; }
+  .cal-dow span { font-size:10px; padding:2px 0; }
+  .cal-dot { width:3px; height:3px; }
+  .cal-day-dots { margin-top:1px; gap:1px; max-height:6px; }
+  .cal-month-nav { padding:7px 12px; }
+  .cal-month-label { font-size:12px; }
+  .cal-category-bar { padding:6px 10px; }
+  .cal-cat-toggle { flex-wrap:nowrap; gap:4px; overflow-x:auto; }
+  .cal-cat-btn { padding:3px 9px; font-size:10px; flex-shrink:0; }
+  .cal-day-header { background:var(--bg3); }
+  .cal-day-title { font-size:13px; }
+  /* 入力欄コンパクト */
+  .cal-day-compose { padding:.5rem .75rem; }
+  #calComposeTA { min-height:36px !important; font-size:15px; }
 
   /* フィード */
   .feed { padding:.5rem .75rem 5rem; }
@@ -1666,6 +1678,13 @@ function selectCalDay(dateStr){
   renderCalDayView(dateStr);
   const compose=document.getElementById('calDayCompose');
   if(compose)compose.style.display='';
+  // モバイルでは日ビューへ自動スクロール
+  if(window.innerWidth<=640){
+    setTimeout(()=>{
+      const header=document.getElementById('calDayTitle')?.closest('.cal-day-header');
+      if(header)header.scrollIntoView({behavior:'smooth',block:'start'});
+    },50);
+  }
 }
 function renderCalDayView(dateStr){
   const title=document.getElementById('calDayTitle');
