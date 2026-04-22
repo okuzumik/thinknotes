@@ -606,7 +606,9 @@ body {
 .cal-day-dots { display:flex; gap:1px; margin-top:2px; flex-wrap:wrap; justify-content:center; }
 .cal-dot { width:4px; height:4px; border-radius:50%; flex-shrink:0; }
 .cal-dot-log { background:#7a9e8c; }
-.cal-dot-thought { background:var(--accent-m); }
+.cal-dot-dev { background:#4a7ab5; }
+.cal-dot-knowledge { background:var(--accent-m); }
+.cal-dot-other { background:var(--border2); }
 .cal-dot-other { background:var(--border2); }
 
 /* カテゴリ設定 */
@@ -616,7 +618,8 @@ body {
 .cal-cat-btn { padding:3px 10px; border-radius:20px; border:0.5px solid var(--border2); background:var(--bg2); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; cursor:pointer; color:var(--text2); transition:all .1s; white-space:nowrap; }
 .cal-cat-btn.active { font-weight:600; }
 .cal-cat-btn.log.active { background:#dce6df; color:#2a6e50; border-color:#7a9e8c; }
-.cal-cat-btn.thought.active { background:var(--accent-l); color:var(--accent-d); border-color:var(--accent-m); }
+.cal-cat-btn.dev.active { background:#e0e8f4; color:#2a4a80; border-color:#4a7ab5; }
+.cal-cat-btn.knowledge.active { background:var(--accent-l); color:var(--accent-d); border-color:var(--accent-m); }
 .cal-cat-btn.other.active { background:var(--surface); color:var(--text); border-color:var(--border2); }
 
 /* 右ペイン：日ビュー */
@@ -629,7 +632,8 @@ body {
 .cal-cat-section { margin-bottom:1.5rem; }
 .cal-cat-label { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; letter-spacing:.1em; color:var(--text3); margin-bottom:6px; padding-bottom:4px; border-bottom:0.5px solid var(--border); }
 .cal-cat-label.log { color:#2a6e50; border-color:#7a9e8c; }
-.cal-cat-label.thought { color:var(--accent-d); border-color:var(--accent-m); }
+.cal-cat-label.dev { color:#2a4a80; border-color:#4a7ab5; }
+.cal-cat-label.knowledge { color:var(--accent-d); border-color:var(--accent-m); }
 
 /* カレンダー設定モーダル */
 .cal-settings-wrap { padding:10px 12px; border-top:0.5px solid var(--border); flex-shrink:0; font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
@@ -887,7 +891,8 @@ body {
           </div>
           <div class="cal-cat-toggle">
             <button class="cal-cat-btn log active" id="calCatLog" onclick="toggleCalCat('log')">🌿 ライフログ</button>
-            <button class="cal-cat-btn thought active" id="calCatThought" onclick="toggleCalCat('thought')">💭 思考</button>
+            <button class="cal-cat-btn dev active" id="calCatDev" onclick="toggleCalCat('dev')">💻 開発日誌</button>
+            <button class="cal-cat-btn knowledge active" id="calCatKnowledge" onclick="toggleCalCat('knowledge')">📚 知的生産</button>
             <button class="cal-cat-btn other active" id="calCatOther" onclick="toggleCalCat('other')">📝 その他</button>
           </div>
         </div>
@@ -895,12 +900,16 @@ body {
         <div class="cal-settings-wrap" id="calSettings" style="display:none;">
           <div class="cal-settings-row">
             <div class="cal-settings-label">🌿 ライフログのタグ（カンマ区切り）</div>
-            <input class="cal-settings-input" id="calLogTags" placeholder="例: 日記,記録,ライフログ" oninput="saveCalSettings()">
-            <div class="cal-settings-hint">指定タグを持つ投稿がライフログに分類されます</div>
+            <input class="cal-settings-input" id="calLogTags" placeholder="例: 日記,記録,生活" oninput="saveCalSettings()">
+            <div class="cal-settings-hint">指定タグを持つ投稿が各カテゴリに分類されます</div>
           </div>
           <div class="cal-settings-row">
-            <div class="cal-settings-label">💭 思考のタグ（カンマ区切り）</div>
-            <input class="cal-settings-input" id="calThoughtTags" placeholder="例: 思考,アイデア,考察" oninput="saveCalSettings()">
+            <div class="cal-settings-label">💻 開発日誌のタグ（カンマ区切り）</div>
+            <input class="cal-settings-input" id="calDevTags" placeholder="例: 開発,プログラミング,コード" oninput="saveCalSettings()">
+          </div>
+          <div class="cal-settings-row">
+            <div class="cal-settings-label">📚 知的生産のタグ（カンマ区切り）</div>
+            <input class="cal-settings-input" id="calKnowledgeTags" placeholder="例: 読書,思考,研究,論文" oninput="saveCalSettings()">
           </div>
         </div>
       </div>
@@ -1521,8 +1530,8 @@ const expandedOutlineCards=new Set();
 // カレンダー
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let calSelectedDate=null; // 'YYYY-MM-DD'
-let calCatFilter={log:true,thought:true,other:true};
-let calLogTags=[], calThoughtTags=[];
+let calCatFilter={log:true,dev:true,knowledge:true,other:true};
+let calLogTags=[], calDevTags=[], calKnowledgeTags=[];
 
 // ─── Persist (local fallback) ─────────────────────────────
 function load(){loadLocal();}
@@ -1665,17 +1674,21 @@ function postsForDate(dateStr){
 function getCatForPost(p){
   const tags=extractTags(p.content);
   if(calLogTags.length&&tags.some(t=>calLogTags.includes(t)))return'log';
-  if(calThoughtTags.length&&tags.some(t=>calThoughtTags.includes(t)))return'thought';
+  if(calDevTags.length&&tags.some(t=>calDevTags.includes(t)))return'dev';
+  if(calKnowledgeTags.length&&tags.some(t=>calKnowledgeTags.includes(t)))return'knowledge';
   return'other';
 }
 function loadCalSettings(){
   const s=JSON.parse(localStorage.getItem('tn_cal_settings')||'{}');
   calLogTags=(s.logTags||'').split(',').map(t=>t.trim()).filter(Boolean);
-  calThoughtTags=(s.thoughtTags||'').split(',').map(t=>t.trim()).filter(Boolean);
+  calDevTags=(s.devTags||'').split(',').map(t=>t.trim()).filter(Boolean);
+  calKnowledgeTags=(s.knowledgeTags||'').split(',').map(t=>t.trim()).filter(Boolean);
   const li=document.getElementById('calLogTags');
-  const ti=document.getElementById('calThoughtTags');
+  const di=document.getElementById('calDevTags');
+  const ki=document.getElementById('calKnowledgeTags');
   if(li)li.value=s.logTags||'';
-  if(ti)ti.value=s.thoughtTags||'';
+  if(di)di.value=s.devTags||'';
+  if(ki)ki.value=s.knowledgeTags||'';
 }
 async function loadCalSettingsFromSupabase(){
   if(!currentUser)return;
@@ -1690,11 +1703,13 @@ async function loadCalSettingsFromSupabase(){
 }
 function saveCalSettings(){
   const logVal=document.getElementById('calLogTags')?.value||'';
-  const thoughtVal=document.getElementById('calThoughtTags')?.value||'';
-  const s={logTags:logVal,thoughtTags:thoughtVal};
+  const devVal=document.getElementById('calDevTags')?.value||'';
+  const knowledgeVal=document.getElementById('calKnowledgeTags')?.value||'';
+  const s={logTags:logVal,devTags:devVal,knowledgeTags:knowledgeVal};
   localStorage.setItem('tn_cal_settings',JSON.stringify(s));
   calLogTags=logVal.split(',').map(t=>t.trim()).filter(Boolean);
-  calThoughtTags=thoughtVal.split(',').map(t=>t.trim()).filter(Boolean);
+  calDevTags=devVal.split(',').map(t=>t.trim()).filter(Boolean);
+  calKnowledgeTags=knowledgeVal.split(',').map(t=>t.trim()).filter(Boolean);
   // Supabaseにも保存
   if(currentUser){
     sb.from('thinkdata').upsert(
@@ -1823,11 +1838,12 @@ function renderCalDayView(dateStr){
     return;
   }
   // カテゴリ別に分類
-  const catPosts={log:[],thought:[],other:[]};
+  const catPosts={log:[],dev:[],knowledge:[],other:[]};
   dayPosts.forEach(p=>{catPosts[getCatForPost(p)].push(p);});
   const catDefs=[
     {key:'log',label:'🌿 ライフログ',cls:'log'},
-    {key:'thought',label:'💭 思考',cls:'thought'},
+    {key:'dev',label:'💻 開発日誌',cls:'dev'},
+    {key:'knowledge',label:'📚 知的生産',cls:'knowledge'},
     {key:'other',label:'📝 その他',cls:'other'},
   ];
   feed.innerHTML=catDefs.filter(cd=>calCatFilter[cd.key]&&catPosts[cd.key].length).map(cd=>`
