@@ -456,7 +456,10 @@ body {
   #phase2.active { overflow-y:auto; }
   #phase2 .calendar-wrap { min-height:100%; flex-direction:column; }
   .calendar-left { width:100% !important; border-right:none !important; border-bottom:0.5px solid var(--border); flex-shrink:0; }
-  .calendar-right { display:none; } /* モバイルでは右ペイン非表示、代わりにスライドパネル使用 */
+  .calendar-right { display:flex; flex:none; flex-direction:column; } /* モバイルでも右ペイン表示 */
+  .cal-day-compose { display:none !important; } /* 入力欄は非表示、代わりにボタン */
+  /* 日ビューヘッダーに投稿ボタンを追加 */
+  .cal-add-btn { padding:4px 14px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; cursor:pointer; flex-shrink:0; }
   .calendar-wrap { flex-direction:column; }
   /* カレンダーセルをコンパクトに */
   .cal-grid { padding:2px 6px 4px; }
@@ -907,6 +910,7 @@ body {
           <button class="cal-day-nav" onclick="calPrevDay()">‹</button>
           <div class="cal-day-title" id="calDayTitle">日付を選択してください</div>
           <button class="cal-day-nav" onclick="calNextDay()">›</button>
+          <button class="cal-add-btn" id="calAddBtn" onclick="openMobileDayPanel(calSelectedDate)" style="display:none;">＋ 追加</button>
         </div>
         <div class="cal-day-compose" id="calDayCompose" style="display:none;">
           <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;">
@@ -998,25 +1002,22 @@ body {
   </div>
 </div>
 
-<!-- モバイル用 日ビューパネル -->
+<!-- モバイル用 日付投稿モーダル -->
 <div class="mobile-day-panel" id="mobileDayPanel">
   <div class="mobile-day-panel-header">
-    <button class="mobile-day-back" onclick="closeMobileDayPanel()">‹</button>
-    <div class="mobile-day-panel-title" id="mobileDayTitle"></div>
-    <button class="mobile-day-nav2" onclick="mobilePrevDay()">‹</button>
-    <button class="mobile-day-nav2" onclick="mobileNextDay()">›</button>
+    <button class="mobile-day-back" onclick="closeMobileDayPanel()">✕</button>
+    <div class="mobile-day-panel-title" id="mobileDayTitle">この日に追加</div>
   </div>
-  <div class="mobile-day-panel-compose">
-    <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;">
-      <textarea id="mobileDayComposeTA" placeholder="この日のつぶやきを追加…"
-        style="width:100%;padding:8px 12px;font-family:inherit;font-size:16px;border:none;outline:none;background:transparent;color:var(--text);resize:none;min-height:40px;max-height:120px;line-height:1.6;"
+  <div style="padding:1rem .75rem;flex:1;">
+    <div style="background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);overflow:hidden;">
+      <textarea id="mobileDayComposeTA" placeholder="この日のつぶやきを入力…"
+        style="width:100%;padding:12px 14px;font-family:inherit;font-size:16px;border:none;outline:none;background:transparent;color:var(--text);resize:none;min-height:140px;line-height:1.7;"
         onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();submitMobileDayPost();}"></textarea>
-      <div style="display:flex;justify-content:flex-end;padding:4px 8px;border-top:0.5px solid var(--border);">
-        <button class="compose-btn" onclick="submitMobileDayPost()">投稿</button>
+      <div style="display:flex;justify-content:flex-end;padding:8px 12px;border-top:0.5px solid var(--border);">
+        <button class="compose-btn" style="padding:8px 24px;font-size:14px;" onclick="submitMobileDayPost()">投稿</button>
       </div>
     </div>
   </div>
-  <div class="mobile-day-panel-body" id="mobileDayFeed"></div>
 </div>
 
 <!-- Bluesky設定モーダル -->
@@ -1720,39 +1721,19 @@ function selectCalDay(dateStr){
   renderCalDayView(dateStr);
   const compose=document.getElementById('calDayCompose');
   if(compose)compose.style.display='';
-  // モバイルではスライドパネルを開く
-  if(window.innerWidth<=640){
-    openMobileDayPanel(dateStr);
-  }
+  // 「＋ 追加」ボタンを表示
+  const addBtn=document.getElementById('calAddBtn');
+  if(addBtn)addBtn.style.display='';
 }
 
 function openMobileDayPanel(dateStr){
+  if(!dateStr)return;
   const panel=document.getElementById('mobileDayPanel');
   const title=document.getElementById('mobileDayTitle');
-  const feed=document.getElementById('mobileDayFeed');
-  if(!panel)return;
-  if(title)title.textContent=calDateLabel(dateStr);
-  if(feed){
-    const dayPosts=postsForDate(dateStr);
-    if(!dayPosts.length){
-      feed.innerHTML=`<div class="empty-state" style="padding:2rem 1rem;"><div class="empty-icon">📭</div>この日のつぶやきはありません</div>`;
-    } else {
-      const catPosts={log:[],thought:[],other:[]};
-      dayPosts.forEach(p=>{catPosts[getCatForPost(p)].push(p);});
-      const catDefs=[
-        {key:'log',label:'🌿 ライフログ',cls:'log'},
-        {key:'thought',label:'💭 思考',cls:'thought'},
-        {key:'other',label:'📝 その他',cls:'other'},
-      ];
-      feed.innerHTML=catDefs.filter(cd=>calCatFilter[cd.key]&&catPosts[cd.key].length).map(cd=>`
-        <div class="cal-cat-section">
-          <div class="cal-cat-label ${cd.cls}">${cd.label}</div>
-          ${catPosts[cd.key].map(p=>renderCalPost(p)).join('')}
-        </div>`).join('');
-    }
-  }
-  panel.classList.add('open');
-  document.body.style.overflow='hidden';
+  const ta=document.getElementById('mobileDayComposeTA');
+  if(title)title.textContent=calDateLabel(dateStr)+' に追加';
+  if(ta){ta.value='';setTimeout(()=>ta.focus(),100);}
+  if(panel){panel.classList.add('open');document.body.style.overflow='hidden';}
 }
 
 function closeMobileDayPanel(){
@@ -1766,8 +1747,7 @@ function mobilePrevDay(){
   const d=new Date(calSelectedDate+'T00:00:00');d.setDate(d.getDate()-1);
   calYear=d.getFullYear();calMonth=d.getMonth();
   calSelectedDate=calDateStr(d.getFullYear(),d.getMonth(),d.getDate());
-  renderCalendar();
-  openMobileDayPanel(calSelectedDate);
+  renderCalendar();openMobileDayPanel(calSelectedDate);
 }
 
 function mobileNextDay(){
@@ -1775,8 +1755,7 @@ function mobileNextDay(){
   const d=new Date(calSelectedDate+'T00:00:00');d.setDate(d.getDate()+1);
   calYear=d.getFullYear();calMonth=d.getMonth();
   calSelectedDate=calDateStr(d.getFullYear(),d.getMonth(),d.getDate());
-  renderCalendar();
-  openMobileDayPanel(calSelectedDate);
+  renderCalendar();openMobileDayPanel(calSelectedDate);
 }
 
 function submitMobileDayPost(){
@@ -1786,10 +1765,10 @@ function submitMobileDayPost(){
   const d=new Date(calSelectedDate+'T23:59:59');
   const ts=dayPosts.length>0?Math.max(...dayPosts.map(p=>p.createdAt))+1000:d.getTime();
   const p={id:uid(),content:text,createdAt:ts,updatedAt:ts,starred:false,replies:[]};
-  posts.push(p);
-  ta.value='';
+  posts.push(p);ta.value='';
   save();renderFeed();renderSidebar();renderCalendar();
-  openMobileDayPanel(calSelectedDate);
+  renderCalDayView(calSelectedDate);
+  closeMobileDayPanel();
 }
 function renderCalDayView(dateStr){
   const title=document.getElementById('calDayTitle');
