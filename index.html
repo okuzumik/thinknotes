@@ -1111,6 +1111,8 @@ function showApp(){
   const ub=document.getElementById('userBadge');
   ub.style.display='flex';
   document.getElementById('userEmail').textContent=currentUser.email||'';
+  // カレンダー設定をSupabaseから読み込む
+  loadCalSettingsFromSupabase();
 }
 async function signInWithPassword(){
   const email=document.getElementById('loginEmail').value.trim();
@@ -1675,12 +1677,31 @@ function loadCalSettings(){
   if(li)li.value=s.logTags||'';
   if(ti)ti.value=s.thoughtTags||'';
 }
+async function loadCalSettingsFromSupabase(){
+  if(!currentUser)return;
+  const {data,error}=await sb.from('thinkdata')
+    .select('data_value').eq('user_id',currentUser.id).eq('data_key','cal_settings').single();
+  if(error||!data)return;
+  const s=data.data_value||{};
+  localStorage.setItem('tn_cal_settings',JSON.stringify(s));
+  loadCalSettings();
+  renderCalendar();
+  if(calSelectedDate)renderCalDayView(calSelectedDate);
+}
 function saveCalSettings(){
   const logVal=document.getElementById('calLogTags')?.value||'';
   const thoughtVal=document.getElementById('calThoughtTags')?.value||'';
-  localStorage.setItem('tn_cal_settings',JSON.stringify({logTags:logVal,thoughtTags:thoughtVal}));
+  const s={logTags:logVal,thoughtTags:thoughtVal};
+  localStorage.setItem('tn_cal_settings',JSON.stringify(s));
   calLogTags=logVal.split(',').map(t=>t.trim()).filter(Boolean);
   calThoughtTags=thoughtVal.split(',').map(t=>t.trim()).filter(Boolean);
+  // Supabaseにも保存
+  if(currentUser){
+    sb.from('thinkdata').upsert(
+      {user_id:currentUser.id,data_key:'cal_settings',data_value:s,updated_at:new Date().toISOString()},
+      {onConflict:'user_id,data_key'}
+    ).then(({error})=>{if(error)console.warn('cal_settings save error:',error);});
+  }
   renderCalendar();
   if(calSelectedDate)renderCalDayView(calSelectedDate);
 }
@@ -1819,7 +1840,10 @@ function renderCalPost(p){
   const text=p.content.replace(/#[^\s#、。！？,.!?]+/g,'').trim();
   const tags=extractTags(p.content);
   const repliesHtml=(p.replies||[]).length?`<div style="padding-left:14px;border-left:2px solid var(--border2);margin-top:6px;">
-    ${(p.replies||[]).map(r=>`<div style="padding:4px 0;font-size:13px;color:var(--text2);">${esc(r.content)}<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);margin-left:6px;">${fmtDt(r.createdAt)}</span></div>`).join('')}
+    ${(p.replies||[]).map(r=>`<div style="padding:4px 0;">
+      <div style="font-size:13px;color:var(--text2);">${esc(r.content)}<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);margin-left:6px;">${fmtDt(r.createdAt)}</span></div>
+      ${(r.images&&r.images.length)?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${r.images.map(src=>`<img src="${src}" onclick="openLightbox('${src}')" loading="lazy" style="max-width:160px;max-height:120px;border-radius:var(--rsm);cursor:pointer;object-fit:cover;border:0.5px solid var(--border);">`).join('')}</div>`:''}
+    </div>`).join('')}
   </div>`:'';
   const imgsHtml=(p.images&&p.images.length)?`<div class="post-images" style="padding-left:0;margin-top:8px;">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:'';
   return`<div class="post" id="calpost-${p.id}" style="padding:10px 0;">
