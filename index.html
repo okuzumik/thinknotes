@@ -1393,10 +1393,10 @@ async function bskyRefreshSession(){
   }catch(e){return false;}
 }
 
-async function postToBsky(text, replyRef=null){
+async function postToBsky(text, replyRef=null, imageUrls=[]){
   if(!bskySession)return{ok:false,error:'未接続'};
   const bskyText=text.length>300?text.slice(0,297)+'…':text;
-  // ハッシュタグをfacetに変換
+  // ハッシュタグfacet
   const facets=[];
   const tagRe=/#([^\s#、。！？,.!?]+)/g;
   let m;const enc=new TextEncoder();
@@ -1407,12 +1407,33 @@ async function postToBsky(text, replyRef=null){
   }
   const record={$type:'app.bsky.feed.post',text:bskyText,createdAt:new Date().toISOString()};
   if(facets.length)record.facets=facets;
-  // 返信の場合はreply参照を追加
   if(replyRef){
-    // replyRef が {root, parent} の場合と単純な {uri,cid} の場合を両方扱う
     const root=replyRef.root||replyRef;
     const parent=replyRef.parent||replyRef;
     record.reply={root,parent};
+  }
+
+  // 画像をBskyにアップロードしてembedに追加
+  if(imageUrls&&imageUrls.length>0){
+    const blobs=[];
+    for(const url of imageUrls.slice(0,4)){ // Bskyは最大4枚
+      try{
+        const imgRes=await fetch(url);
+        const blob=await imgRes.blob();
+        const uploadRes=await fetch('https://bsky.social/xrpc/com.atproto.repo.uploadBlob',{
+          method:'POST',
+          headers:{'Content-Type':blob.type,'Authorization':'Bearer '+bskySession.accessJwt},
+          body:blob
+        });
+        if(uploadRes.ok){
+          const d=await uploadRes.json();
+          blobs.push({image:d.blob,alt:''});
+        }
+      }catch(e){console.warn('blob upload error:',e);}
+    }
+    if(blobs.length>0){
+      record.embed={'$type':'app.bsky.embed.images',images:blobs};
+    }
   }
 
   const tryPost=async(token)=>{
@@ -1570,6 +1591,7 @@ function switchPhase(n){
 
 // ─── 画像 ────────────────────────────────────────────────
 let pendingImages=[]; // [{dataUrl}]
+const pendingReplyImages={}; // pid -> [{dataUrl}]
 
 function openImagePicker(){document.getElementById('imageInput').click();}
 
@@ -1953,7 +1975,8 @@ function renderPost(p){
                       <button class="post-edit-btn cancel" onclick="cancelReplyEdit()">キャンセル</button>
                     </div>
                   </div>`
-                :`<div class="reply-text">${linkify(r.content)}</div>`}
+                :`<div class="reply-text">${linkify(r.content)}</div>
+                ${(r.images&&r.images.length)?`<div class="post-images" style="padding-left:0;margin-top:6px;">${r.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy" style="max-width:200px;max-height:160px;">`).join('')}</div>`:''}`}
               <div class="reply-meta">
                 <span class="reply-time">${fmtDt(r.createdAt)}</span>
                 <button class="reply-edit-btn" onclick="startReplyEdit('${p.id}',${ri})">✎</button>
@@ -1970,6 +1993,7 @@ function renderPost(p){
     <div class="reply-compose">
       <textarea class="reply-ta" id="reply-ta-${p.id}" placeholder="返信を入力… (Ctrl+Enter で投稿)"
         onkeydown="onReplyKey(event,'${p.id}')"></textarea>
+      <div class="compose-img-preview" id="reply-img-preview-${p.id}" style="display:none;flex-wrap:wrap;gap:6px;padding:4px 0;"></div>
       <div class="reply-compose-foot">
         ${bskyIsConnected()?`<label class="bsky-check-wrap connected" style="margin-right:auto;font-size:11px;">
           <input type="checkbox" id="reply-bsky-${p.id}">
@@ -1979,7 +2003,10 @@ function renderPost(p){
             if(lastR)return` <span style="color:var(--teal);font-size:10px;">(↩直前のリプに連結)</span>`;
             return' <span style="color:var(--teal);font-size:10px;">(スレッド起点に連結)</span>';
           })()}
-        </label>`:''}
+        </label>`:'<div style="margin-right:auto;"></div>'}
+        <button class="img-attach-btn" onclick="openReplyImagePicker('${p.id}')" title="画像を追加">🖼️</button>
+        <input type="file" id="reply-img-input-${p.id}" accept="image/*" multiple style="display:none"
+          onchange="onReplyImageSelected(event,'${p.id}')">
         <button class="reply-cancel" onclick="cancelReply()">キャンセル</button>
         <button class="reply-btn" onclick="submitReply('${p.id}')">返信</button>
       </div>
@@ -2066,7 +2093,7 @@ async function submitPost(){
     save();
   }
   if(postToBskyFlag){
-    const result=await postToBsky(text);
+    const result=await postToBsky(text,null,p.images||[]);
     if(result.ok){p.bskyUri=result.uri;p.bskyCid=result.cid;save();showBskyPostStatus(p.id,true);}
     else showBskyPostStatus(p.id,false,null,result.error);
   }
@@ -2101,13 +2128,42 @@ function startReply(pid){
   renderFeed();
   setTimeout(()=>{const ta=document.getElementById('reply-ta-'+pid);if(ta){ta.focus();}},30);
 }
+function openReplyImagePicker(pid){
+  document.getElementById('reply-img-input-'+pid)?.click();
+}
+async function onReplyImageSelected(e,pid){
+  const files=[...e.target.files];e.target.value='';
+  if(!pendingReplyImages[pid])pendingReplyImages[pid]=[];
+  for(const file of files){
+    const dataUrl=await resizeImage(file,800,0.72);
+    pendingReplyImages[pid].push({dataUrl});
+  }
+  renderReplyImgPreview(pid);
+}
+function renderReplyImgPreview(pid){
+  const el=document.getElementById('reply-img-preview-'+pid);if(!el)return;
+  const imgs=pendingReplyImages[pid]||[];
+  el.innerHTML=imgs.map((im,i)=>`
+    <div class="compose-img-thumb">
+      <img src="${im.dataUrl}">
+      <button class="compose-img-thumb-del" onclick="removeReplyImg('${pid}',${i})">✕</button>
+    </div>`).join('');
+  el.style.display=imgs.length?'flex':'none';
+}
+function removeReplyImg(pid,i){
+  if(pendingReplyImages[pid])pendingReplyImages[pid].splice(i,1);
+  renderReplyImgPreview(pid);
+}
+
 function cancelReply(){replyingToId=null;renderFeed();}
 async function submitReply(pid){
   const ta=document.getElementById('reply-ta-'+pid);if(!ta)return;
-  const text=ta.value.trim();if(!text)return;
+  const text=ta.value.trim();
+  const localImgs=[...(pendingReplyImages[pid]||[])];
+  if(!text&&!localImgs.length)return;
   const p=posts.find(x=>x.id===pid);if(!p)return;
 
-  // ① DOM が消える前にチェックボックスの値を読む
+  // DOM消える前に値を取得
   const bskyCheck=document.getElementById('reply-bsky-'+pid);
   const postToBskyFlag=!!(bskyCheck?.checked&&bskySession);
 
@@ -2115,27 +2171,28 @@ async function submitReply(pid){
   const reply={id:uid(),content:text,createdAt:Date.now()};
   p.replies.push(reply);
   p.updatedAt=Date.now();
-  replyingToId=null;save();renderFeed(); // ← ここでDOM再描画
+  delete pendingReplyImages[pid];
+  replyingToId=null;save();renderFeed();
 
-  // ② Bluesky投稿（DOM操作後）
+  // 画像をStorageにアップロード
+  if(localImgs.length&&currentUser){
+    const urls=await uploadImagesToStorage(localImgs);
+    reply.images=urls;save();renderFeed();
+  }
+
+  // Bluesky投稿
   if(postToBskyFlag){
     let replyRef=null;
     if(p.bskyUri&&p.bskyCid){
       const root={uri:p.bskyUri,cid:p.bskyCid};
-      // 直前のリプにbskyUriがあればそれをparentに（A→B→C連鎖）
-      const prevReplies=p.replies.slice(0,-1); // 今追加した分を除く
+      const prevReplies=p.replies.slice(0,-1);
       const lastBskyReply=[...prevReplies].reverse().find(r=>r.bskyUri&&r.bskyCid);
       const parent=lastBskyReply?{uri:lastBskyReply.bskyUri,cid:lastBskyReply.bskyCid}:root;
       replyRef={root,parent};
     }
-    const result=await postToBsky(text,replyRef);
-    if(result.ok){
-      reply.bskyUri=result.uri;reply.bskyCid=result.cid;
-      save();
-      showBskyPostStatus(pid,true,'reply');
-    } else {
-      showBskyPostStatus(pid,false,'reply',result.error);
-    }
+    const result=await postToBsky(text,replyRef,reply.images||[]);
+    if(result.ok){reply.bskyUri=result.uri;reply.bskyCid=result.cid;save();showBskyPostStatus(pid,true,'reply');}
+    else showBskyPostStatus(pid,false,'reply',result.error);
   }
 }
 function deleteReply(pid,idx){
