@@ -753,28 +753,35 @@ body {
 .mobile-day-panel-body { flex:1; overflow-y:auto; padding:.5rem .75rem 3rem; }
 
 /* ═══════════════════════════════
-   PHASE 5 — CARD VIEW
+   PHASE 5 — CARD GRID
    ═══════════════════════════════ */
-.card-view-wrap { display:flex; flex:1; overflow:hidden; }
-.card-sidebar { width:220px; flex-shrink:0; border-right:0.5px solid var(--border); display:flex; flex-direction:column; overflow:hidden; background:var(--bg3); }
-.card-sidebar-hd { padding:10px 12px; border-bottom:0.5px solid var(--border); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); letter-spacing:.08em; flex-shrink:0; }
-.card-sidebar-list { flex:1; overflow-y:auto; }
-.card-sidebar-item { padding:9px 14px; cursor:pointer; border-bottom:0.5px solid var(--border); }
-.card-sidebar-item:hover { background:var(--surface); }
-.card-sidebar-item.active { background:var(--accent-l); }
-.card-sidebar-item-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.card-sidebar-item-meta { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); margin-top:2px; }
-.card-main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-.card-toolbar { display:flex; align-items:center; gap:8px; padding:8px 16px; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
-.card-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:14px; font-weight:700; color:var(--text); flex:1; }
+.card-grid-wrap { display:flex; flex-direction:column; flex:1; overflow:hidden; position:relative; }
+.card-grid-toolbar { display:flex; align-items:center; gap:10px; padding:10px 1.5rem; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.card-grid-search { flex:1; max-width:300px; padding:6px 12px; border:0.5px solid var(--border2); border-radius:20px; font-size:13px; font-family:inherit; color:var(--text); background:var(--bg2); outline:none; }
+.card-grid-count { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); }
+.card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; padding:1.25rem 1.5rem 3rem; overflow-y:auto; align-content:start; flex:1; }
+.card-grid-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; text-align:center; line-height:1.8; }
+.card-cell { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--r); padding:14px; cursor:pointer; transition:all .15s; display:flex; flex-direction:column; gap:6px; min-height:130px; max-height:200px; overflow:hidden; position:relative; }
+.card-cell:hover { border-color:var(--accent-m); box-shadow:0 3px 14px rgba(0,0,0,.09); transform:translateY(-1px); }
+.card-cell-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:700; color:var(--text); line-height:1.4; flex-shrink:0; }
+.card-cell-body { flex:1; overflow:hidden; }
+.card-cell-line { font-size:11px; line-height:1.65; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card-cell-foot { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); flex-shrink:0; }
+.card-cell-fade { position:absolute; bottom:0; left:0; right:0; height:36px; background:linear-gradient(transparent,var(--bg2)); pointer-events:none; border-radius:0 0 var(--r) var(--r); }
+/* 詳細パネル */
+.card-detail { position:absolute; inset:0; background:var(--bg); display:flex; flex-direction:column; z-index:10; }
+.card-detail-header { display:flex; align-items:center; gap:10px; padding:10px 1.5rem; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.card-detail-back { background:none; border:none; cursor:pointer; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; color:var(--accent); padding:0; white-space:nowrap; }
+.card-detail-back:hover { opacity:.7; }
+.card-detail-title { flex:1; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:15px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card-detail-body { flex:1; overflow-y:auto; padding:1.5rem 2rem 3rem; }
+.card-detail-item { display:flex; align-items:baseline; gap:8px; padding:3px 0; line-height:1.8; }
+.card-detail-bullet { color:var(--accent-m); flex-shrink:0; font-size:12px; margin-top:2px; }
+.card-detail-text { font-size:14px; color:var(--text); white-space:pre-wrap; word-break:break-word; }
 .card-export-btn { padding:5px 14px; background:var(--teal); color:#fff; border:none; border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; cursor:pointer; }
 .card-export-btn:hover { opacity:.85; }
 .card-copy-btn { padding:5px 14px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text2); cursor:pointer; }
 .card-copy-btn:hover { background:var(--surface); }
-.card-content { flex:1; overflow-y:auto; padding:1.5rem 2rem 3rem; }
-.card-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; gap:12px; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; }
-.card-cosense { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--r); padding:1.25rem 1.5rem; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13.5px; line-height:2; color:var(--text); white-space:pre-wrap; word-break:break-word; margin-bottom:1rem; }
-.card-cosense-title { font-size:15px; font-weight:700; color:var(--accent); margin-bottom:.5rem; padding-bottom:.5rem; border-bottom:1px solid var(--border); }
 
 .bsky-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; display:none; align-items:center; justify-content:center; }
 .bsky-modal-overlay.open { display:flex; }
@@ -1090,25 +1097,30 @@ body {
     </div>
   </div>
 
-  <!-- ═══ PHASE 5 — CARD VIEW ═══ -->
+  <!-- ═══ PHASE 5 — CARD GRID ═══ -->
   <div class="phase-screen" id="phase5">
-    <div class="card-view-wrap">
-      <!-- 左：アウトライン一覧 -->
-      <div class="card-sidebar">
-        <div class="card-sidebar-hd">保存済みアウトライン</div>
-        <div class="card-sidebar-list" id="cardSidebarList"></div>
+    <!-- カードグリッド -->
+    <div class="card-grid-wrap" id="cardGridWrap">
+      <div class="card-grid-toolbar">
+        <input class="card-grid-search" id="cardGridSearch" placeholder="アウトラインを検索…" oninput="renderCardGrid()">
+        <span class="card-grid-count" id="cardGridCount"></span>
       </div>
-      <!-- 右：カード表示 -->
-      <div class="card-main">
-        <div class="card-toolbar">
-          <div class="card-title" id="cardTitle">アウトラインを選択してください</div>
-          <button class="card-copy-btn" onclick="copyCardText()" id="cardCopyBtn" style="display:none;">📋 コピー</button>
-          <button class="card-export-btn" onclick="exportCardText()" id="cardExportBtn" style="display:none;">↓ テキスト書き出し</button>
-        </div>
-        <div class="card-content" id="cardContent">
-          <div class="card-empty"><div style="font-size:28px;">🗂️</div>左のリストからアウトラインを選んでください</div>
-        </div>
+      <div class="card-grid" id="cardGrid"></div>
+      <div class="card-grid-empty" id="cardGridEmpty" style="display:none;">
+        <div style="font-size:28px;margin-bottom:8px;">🗂️</div>
+        保存済みアウトラインがありません<br>
+        <span style="font-size:11px;margin-top:4px;display:block;">「思考」タブのアウトラインから保存してください</span>
       </div>
+    </div>
+    <!-- カード詳細（全画面スライドイン） -->
+    <div class="card-detail" id="cardDetail" style="display:none;">
+      <div class="card-detail-header">
+        <button class="card-detail-back" onclick="closeCardDetail()">‹ 一覧</button>
+        <div class="card-detail-title" id="cardDetailTitle"></div>
+        <button class="card-copy-btn" onclick="copyCardText()" style="flex-shrink:0;">📋 コピー</button>
+        <button class="card-export-btn" onclick="exportCardText()" style="flex-shrink:0;">↓ 書き出し</button>
+      </div>
+      <div class="card-detail-body" id="cardDetailBody"></div>
     </div>
   </div>
 
@@ -1656,21 +1668,64 @@ function wfInsertText(text,extraLevel=0){
 let currentCardOutlineId=null;
 
 function renderCardView(){
-  renderCardSidebar();
-  if(currentCardOutlineId)renderCard(currentCardOutlineId);
+  closeCardDetail();
+  renderCardGrid();
 }
 
-function renderCardSidebar(){
-  const list=document.getElementById('cardSidebarList');if(!list)return;
-  if(!outlines.length){
-    list.innerHTML=`<div style="padding:1rem;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text3);">保存済みアウトラインがありません</div>`;
-    return;
+function renderCardGrid(){
+  const q=(document.getElementById('cardGridSearch')?.value||'').toLowerCase();
+  const pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt)
+    .filter(ol=>!q||ol.title.toLowerCase().includes(q));
+  const grid=document.getElementById('cardGrid');
+  const empty=document.getElementById('cardGridEmpty');
+  const count=document.getElementById('cardGridCount');
+  if(!grid)return;
+  if(count)count.textContent=pool.length+'件';
+  if(!pool.length){grid.innerHTML='';if(empty)empty.style.display='flex';return;}
+  if(empty)empty.style.display='none';
+  grid.innerHTML=pool.map(ol=>{
+    const previewLines=ol.items.slice(0,8).map(it=>{
+      const lvl=it.level||0;
+      let text=it.text||'';
+      if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
+      if(!text.trim())return'';
+      return`<div class="card-cell-line${lvl?' indent'+Math.min(lvl,3):''}" style="padding-left:${lvl*8}px;">${esc(text.split('\n')[0].slice(0,60))}</div>`;
+    }).filter(Boolean).join('');
+    return`<div class="card-cell" onclick="openCardDetail('${ol.id}')">
+      <div class="card-cell-title">${esc(ol.title||'無題')}</div>
+      <div class="card-cell-body">${previewLines}</div>
+      <div class="card-cell-foot">${ol.items.length}項目 · ${fmtDate(ol.updatedAt)}</div>
+      <div class="card-cell-fade"></div>
+    </div>`;
+  }).join('');
+}
+
+function openCardDetail(outlineId){
+  currentCardOutlineId=outlineId;
+  const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
+  const detail=document.getElementById('cardDetail');
+  const title=document.getElementById('cardDetailTitle');
+  const body=document.getElementById('cardDetailBody');
+  if(title)title.textContent=ol.title||'無題';
+  if(body){
+    body.innerHTML=ol.items.map(it=>{
+      const lvl=it.level||0;
+      let text=it.text||'';
+      if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
+      if(!text.trim())return'';
+      return`<div class="card-detail-item" style="padding-left:${lvl*24}px;">
+        <span class="card-detail-bullet">•</span>
+        <div class="card-detail-text">${esc(text)}</div>
+      </div>`;
+    }).filter(Boolean).join('');
   }
-  list.innerHTML=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt).map(ol=>`
-    <div class="card-sidebar-item ${ol.id===currentCardOutlineId?'active':''}" onclick="renderCard('${ol.id}')">
-      <div class="card-sidebar-item-title">${esc(ol.title)}</div>
-      <div class="card-sidebar-item-meta">${ol.items.length}件 · ${fmtDate(ol.updatedAt)}</div>
-    </div>`).join('');
+  if(detail)detail.style.display='flex';
+}
+
+function closeCardDetail(){
+  const detail=document.getElementById('cardDetail');
+  if(detail)detail.style.display='none';
+  currentCardOutlineId=null;
 }
 
 function outlineToCosensetText(ol){
@@ -1730,8 +1785,8 @@ function renderCard(outlineId){
 function copyCardText(){
   const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
   navigator.clipboard.writeText(outlineToCosensetText(ol)).then(()=>{
-    const btn=document.getElementById('cardCopyBtn');
-    if(btn){const orig=btn.textContent;btn.textContent='✓ コピー済';setTimeout(()=>{btn.textContent=orig;},1500);}
+    const btns=document.querySelectorAll('.card-copy-btn');
+    btns.forEach(btn=>{const orig=btn.textContent;btn.textContent='✓ コピー済';setTimeout(()=>{btn.textContent=orig;},1500);});
   });
 }
 
