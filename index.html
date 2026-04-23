@@ -1632,9 +1632,9 @@ function wfRenderPicker(){
     const text=cleanText(p.content);
     const replies=p.replies||[];
     const repliesHtml=replies.length?`<div class="wf-picker-replies">
-      ${replies.map(r=>`<div class="wf-picker-reply">
+      ${replies.map((r,ri)=>`<div class="wf-picker-reply">
         <span style="flex:1;">${esc(r.content.slice(0,60))}${r.content.length>60?'…':''}</span>
-        <button class="wf-picker-reply-add" onclick="event.stopPropagation();wfInsertText(${JSON.stringify(r.content)},1)">＋</button>
+        <button class="wf-picker-reply-add" data-pid="${p.id}" data-ri="${ri}" onclick="event.stopPropagation();wfInsertReply(this)">＋</button>
       </div>`).join('')}
     </div>`:'';
     return`<div class="wf-picker-post">
@@ -1656,6 +1656,14 @@ function wfInsertPost(pid){
   const lvl=ol.items[wfCurrentFocus]?.level||0;
   ol.items.splice(wfCurrentFocus+1,0,{id:uid(),text,level:lvl});
   ol.updatedAt=Date.now();save();wfRenderItems();wfFocusItem(wfCurrentFocus+1);
+}
+
+function wfInsertReply(btn){
+  const pid=btn.dataset.pid;
+  const ri=parseInt(btn.dataset.ri);
+  const p=posts.find(x=>x.id===pid);
+  if(!p||!p.replies||!p.replies[ri])return;
+  wfInsertText(p.replies[ri].content,1);
 }
 
 function wfInsertText(text,extraLevel=0){
