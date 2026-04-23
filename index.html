@@ -200,6 +200,26 @@ body {
 .wf-foot-btn.teal { background:var(--teal); color:#fff; border-color:var(--teal); }
 .wf-foot-btn.teal:hover { opacity:.85; }
 
+/* つぶやきピッカードロワー */
+.wf-picker { width:300px; flex-shrink:0; border-left:0.5px solid var(--border); display:flex; flex-direction:column; overflow:hidden; background:var(--bg3); }
+.wf-picker-hd { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:0.5px solid var(--border); flex-shrink:0; }
+.wf-picker-search { padding:8px 10px; border-bottom:0.5px solid var(--border); flex-shrink:0; }
+.wf-picker-search-in { width:100%; padding:6px 10px; border:0.5px solid var(--border2); border-radius:20px; font-size:13px; font-family:inherit; color:var(--text); background:var(--bg2); outline:none; }
+.wf-picker-tags { display:flex; flex-wrap:wrap; gap:4px; padding:6px 10px; border-bottom:0.5px solid var(--border); flex-shrink:0; max-height:80px; overflow-y:auto; }
+.wf-picker-tag { padding:2px 9px; border-radius:20px; border:0.5px solid var(--border2); background:var(--bg2); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text2); cursor:pointer; white-space:nowrap; }
+.wf-picker-tag.active { background:var(--accent-l); color:var(--accent); border-color:var(--accent-m); font-weight:600; }
+.wf-picker-feed { flex:1; overflow-y:auto; }
+.wf-picker-post { padding:10px 12px; border-bottom:0.5px solid var(--border); cursor:pointer; }
+.wf-picker-post:hover { background:var(--surface); }
+.wf-picker-post-text { font-size:12.5px; line-height:1.65; color:var(--text); white-space:pre-wrap; word-break:break-word; }
+.wf-picker-post-meta { display:flex; align-items:center; gap:6px; margin-top:4px; }
+.wf-picker-post-time { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); }
+.wf-picker-add { padding:2px 8px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; cursor:pointer; margin-left:auto; }
+.wf-picker-replies { padding:4px 0 0 12px; border-left:2px solid var(--border2); margin-top:5px; }
+.wf-picker-reply { font-size:11.5px; color:var(--text2); padding:2px 0; display:flex; align-items:center; gap:6px; }
+.wf-picker-reply-add { padding:1px 6px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-size:10px; color:var(--text3); cursor:pointer; flex-shrink:0; }
+.wf-picker-reply-add:hover { border-color:var(--accent); color:var(--accent); }
+
 /* 旧outline CSS は残す（goToNote等で参照される可能性） */
 .outline-builder { flex:1; display:flex; overflow:hidden; }
 
@@ -902,10 +922,23 @@ body {
           <div class="wf-items" id="wfItems"></div>
           <div class="wf-doc-foot">
             <button class="wf-foot-btn" onclick="wfSave()">💾 保存</button>
+            <button class="wf-foot-btn" onclick="wfTogglePicker()" id="wfPickerBtn">📥 つぶやきから追加</button>
             <button class="wf-foot-btn" onclick="wfDelete()" style="color:var(--red);">削除</button>
             <button class="wf-foot-btn teal" onclick="goToNote()">ノートを書く →</button>
           </div>
         </div>
+      </div>
+      <!-- つぶやきピッカードロワー -->
+      <div class="wf-picker" id="wfPicker" style="display:none;">
+        <div class="wf-picker-hd">
+          <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;color:var(--text);">つぶやきから追加</span>
+          <button onclick="wfTogglePicker()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);">✕</button>
+        </div>
+        <div class="wf-picker-search">
+          <input class="wf-picker-search-in" id="wfPickerSearch" placeholder="キーワードで検索…" oninput="wfRenderPicker()">
+        </div>
+        <div class="wf-picker-tags" id="wfPickerTags"></div>
+        <div class="wf-picker-feed" id="wfPickerFeed"></div>
       </div>
     </div>
   </div>
@@ -1533,6 +1566,73 @@ async function postToBsky(text, replyRef=null, imageUrls=[]){
   const err=await res.json().catch(()=>({message:res.status}));
   return{ok:false,error:err.message||res.status};
 }
+// ─── WF Picker ───────────────────────────────────────────
+let wfPickerTag=null;
+
+function wfTogglePicker(){
+  const picker=document.getElementById('wfPicker');
+  if(!picker)return;
+  const open=picker.style.display!=='none';
+  picker.style.display=open?'none':'flex';
+  if(!open){wfRenderPickerTags();wfRenderPicker();}
+  const btn=document.getElementById('wfPickerBtn');
+  if(btn)btn.textContent=open?'📥 つぶやきから追加':'✕ ピッカーを閉じる';
+}
+
+function wfRenderPickerTags(){
+  const el=document.getElementById('wfPickerTags');if(!el)return;
+  const tags=allTagsMap();
+  el.innerHTML=`<span class="wf-picker-tag${!wfPickerTag?' active':''}" onclick="wfSetPickerTag(null)">すべて</span>`
+    +Object.entries(tags).sort((a,b)=>b[1]-a[1]).map(([t])=>`
+      <span class="wf-picker-tag${wfPickerTag===t?' active':''}" onclick="wfSetPickerTag('${esc(t)}')">#${esc(t)}</span>`).join('');
+}
+
+function wfSetPickerTag(tag){wfPickerTag=tag;wfRenderPickerTags();wfRenderPicker();}
+
+function wfRenderPicker(){
+  const feed=document.getElementById('wfPickerFeed');if(!feed)return;
+  const q=(document.getElementById('wfPickerSearch')?.value||'').toLowerCase();
+  let pool=[...posts].sort((a,b)=>b.updatedAt-a.updatedAt);
+  if(q)pool=pool.filter(p=>p.content.toLowerCase().includes(q));
+  if(wfPickerTag)pool=pool.filter(p=>extractTags(p.content).includes(wfPickerTag));
+  if(!pool.length){feed.innerHTML=`<div style="padding:1rem;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text3);text-align:center;">投稿が見つかりません</div>`;return;}
+  feed.innerHTML=pool.map(p=>{
+    const text=cleanText(p.content);
+    const replies=p.replies||[];
+    const repliesHtml=replies.length?`<div class="wf-picker-replies">
+      ${replies.map(r=>`<div class="wf-picker-reply">
+        <span style="flex:1;">${esc(r.content.slice(0,60))}${r.content.length>60?'…':''}</span>
+        <button class="wf-picker-reply-add" onclick="event.stopPropagation();wfInsertText(${JSON.stringify(r.content)},1)">＋</button>
+      </div>`).join('')}
+    </div>`:'';
+    return`<div class="wf-picker-post">
+      <div class="wf-picker-post-text">${esc(text.slice(0,120))}${text.length>120?'…':''}</div>
+      ${repliesHtml}
+      <div class="wf-picker-post-meta">
+        <span class="wf-picker-post-time">${fmtDt(p.createdAt)}</span>
+        ${replies.length?`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">↩ ${replies.length}件</span>`:''}
+        <button class="wf-picker-add" onclick="wfInsertPost('${p.id}')">＋ 追加</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function wfInsertPost(pid){
+  const ol=wfGetOl();if(!ol)return;
+  const p=posts.find(x=>x.id===pid);if(!p)return;
+  const text=cleanText(p.content);
+  const lvl=ol.items[wfCurrentFocus]?.level||0;
+  ol.items.splice(wfCurrentFocus+1,0,{id:uid(),text,level:lvl});
+  ol.updatedAt=Date.now();save();wfRenderItems();wfFocusItem(wfCurrentFocus+1);
+}
+
+function wfInsertText(text,extraLevel=0){
+  const ol=wfGetOl();if(!ol)return;
+  const baseLvl=ol.items[wfCurrentFocus]?.level||0;
+  ol.items.splice(wfCurrentFocus+1,0,{id:uid(),text,level:Math.min(6,baseLvl+extraLevel)});
+  ol.updatedAt=Date.now();save();wfRenderItems();wfFocusItem(wfCurrentFocus+1);
+}
+
 // ─── Card View ───────────────────────────────────────────
 let currentCardOutlineId=null;
 
