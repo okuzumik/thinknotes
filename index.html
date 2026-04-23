@@ -39,21 +39,28 @@ body {
   letter-spacing:.06em; margin-right:2rem; flex-shrink:0;
 }
 
-/* タブ */
-.phase-steps { display:flex; align-items:stretch; gap:0; flex:1; border-bottom:none; }
+/* メインタブ */
+.phase-steps { display:flex; align-items:stretch; gap:0; flex:1; }
 .phase-step {
   display:flex; align-items:center; justify-content:center;
-  padding:0 18px; height:48px;
-  background:none; border:none; border-bottom:2.5px solid transparent;
+  padding:0 20px; height:48px;
+  background:none; border:none; border-bottom:3px solid transparent;
   cursor:pointer;
   font-family:'Hiragino Kaku Gothic ProN',sans-serif;
-  font-size:12px; color:var(--text3);
-  transition:all .12s; white-space:nowrap;
+  font-size:13px; font-weight:600; color:var(--text3);
+  transition:all .12s; white-space:nowrap; letter-spacing:.02em;
 }
-.phase-step:hover { color:var(--text2); background:var(--surface); }
-.phase-step.active { color:var(--accent); font-weight:700; border-bottom-color:var(--accent); }
-.phase-num { display:none; } /* 番号は非表示 */
-.phase-arrow { display:none; } /* 矢印は非表示 */
+.phase-step:hover { color:var(--text2); }
+.phase-step.active { color:var(--accent); border-bottom-color:var(--accent); }
+.phase-num { display:none; }
+.phase-arrow { display:none; }
+
+/* サブタブバー */
+.sub-tabs { display:none; align-items:center; gap:0; padding:0 1.25rem; border-bottom:0.5px solid var(--border); background:var(--bg2); flex-shrink:0; }
+.sub-tabs.visible { display:flex; }
+.sub-tab { padding:6px 16px; background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text3); transition:all .1s; white-space:nowrap; }
+.sub-tab:hover { color:var(--text2); }
+.sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
 
 .topbar-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
 .search-wrap { position:relative; width:180px; }
@@ -486,13 +493,17 @@ body {
 @media (max-width: 640px) {
   body { font-size:16px; }
 
-  /* トップバー：タイムライン・カレンダータブのみ表示 */
+  /* トップバー：メインタブ表示 */
   .topbar { padding:0 .5rem; height:46px; }
   .app-name { font-size:14px; margin-right:.25rem; flex-shrink:0; }
   .phase-steps { display:flex; flex:1; }
-  .phase-step { padding:0 10px; font-size:11px; height:46px; }
-  #ps-3, #ps-4 { display:none; } /* アウトライン・ノートはモバイル非表示 */
+  .phase-step { padding:0 12px; font-size:12px; height:46px; }
   .topbar-right { display:none; }
+  /* サブタブ */
+  .sub-tabs.visible { display:flex; }
+  .sub-tab { padding:5px 14px; font-size:11px; }
+  /* ログ以外のサブタブはモバイルでは簡略 */
+  #subTabsThink { display:none !important; } /* 思考・ノートはPCのみ */
 
   /* サイドバー非表示 */
   .tag-sidebar { display:none !important; }
@@ -816,11 +827,9 @@ body {
 <div class="topbar">
   <div class="app-name">ThinkNotes</div>
   <div class="phase-steps">
-    <button class="phase-step active" id="ps-1" onclick="switchPhase(1)">タイムライン</button>
-    <button class="phase-step" id="ps-2" onclick="switchPhase(2)">カレンダー</button>
-    <button class="phase-step" id="ps-3" onclick="switchPhase(3)">アウトライン</button>
-    <button class="phase-step" id="ps-4" onclick="switchPhase(4)">ノート</button>
-    <button class="phase-step" id="ps-5" onclick="switchPhase(5)">カード</button>
+    <button class="phase-step active" id="main-log" onclick="switchMain('log')">ログ</button>
+    <button class="phase-step" id="main-think" onclick="switchMain('think')">思考</button>
+    <button class="phase-step" id="main-note" onclick="switchMain('note')">ノート</button>
   </div>
   <div class="topbar-right">
     <div class="sync-dot" id="syncDot" title="保存状態"></div>
@@ -837,6 +846,16 @@ body {
       <input class="search-in" id="searchIn" placeholder="検索…" oninput="onSearch(this.value)">
     </div>
   </div>
+</div>
+
+<!-- サブタブバー -->
+<div class="sub-tabs" id="subTabsLog">
+  <button class="sub-tab active" id="sub-timeline" onclick="switchPhase(1)">タイムライン</button>
+  <button class="sub-tab" id="sub-calendar" onclick="switchPhase(2)">カレンダー</button>
+</div>
+<div class="sub-tabs" id="subTabsThink">
+  <button class="sub-tab active" id="sub-outline" onclick="switchPhase(3)">アウトライン</button>
+  <button class="sub-tab" id="sub-card" onclick="switchPhase(5)">カード</button>
 </div>
 
 <div class="main">
@@ -1824,30 +1843,54 @@ function cleanText(content){
 }
 
 // ─── Phase switching ─────────────────────────────────────
+// ─── Main/Sub tab switching ──────────────────────────────
+let currentMain='log'; // 'log' | 'think' | 'note'
+
+function switchMain(main){
+  currentMain=main;
+  // メインタブのactive
+  ['log','think','note'].forEach(m=>{
+    document.getElementById('main-'+m)?.classList.toggle('active',m===main);
+  });
+  // サブタブバーの表示切替
+  document.getElementById('subTabsLog').classList.toggle('visible',main==='log');
+  document.getElementById('subTabsThink').classList.toggle('visible',main==='think');
+  // デフォルトphaseへ
+  if(main==='log') switchPhase(1);
+  if(main==='think') switchPhase(3);
+  if(main==='note') switchPhase(4);
+}
+
 function switchPhase(n){
   currentPhase=n;
   [1,2,3,4,5].forEach(i=>{
     document.getElementById('ps-'+i)?.classList.toggle('active',i===n);
     document.getElementById('phase'+i)?.classList.toggle('active',i===n);
   });
+  // サブタブのactive
+  document.getElementById('sub-timeline')?.classList.toggle('active',n===1);
+  document.getElementById('sub-calendar')?.classList.toggle('active',n===2);
+  document.getElementById('sub-outline')?.classList.toggle('active',n===3);
+  document.getElementById('sub-card')?.classList.toggle('active',n===5);
+
+  // サイドバー・検索はタイムラインのみ
   document.getElementById('tagSidebar').style.display=n===1?'':'none';
   document.getElementById('searchWrap').style.display=n===1?'':'none';
   if(n===1){renderFeed();}
   if(n===2){
     renderCalendar();
-    const mt=document.getElementById('mobileToolbar');
-    const mb=document.getElementById('mobileBskyBar');
-    if(mt)mt.style.display='none';
-    if(mb)mb.style.display='none';
-  }
-  if(n===1){
-    // モバイルツールバー復元
     if(window.innerWidth<=640){
       const mt=document.getElementById('mobileToolbar');
       const mb=document.getElementById('mobileBskyBar');
-      if(mt)mt.style.display='';
-      if(mb)mb.style.display='';
+      if(mt)mt.style.display='none';
+      if(mb)mb.style.display='none';
     }
+  }
+  if(n===1&&window.innerWidth<=640){
+    const mt=document.getElementById('mobileToolbar');
+    const mb=document.getElementById('mobileBskyBar');
+    if(mt)mt.style.display='';
+    if(mb)mb.style.display='';
   }
   if(n===3){wfRenderSidebar();}
   if(n===4){renderNotesList();}
@@ -3349,6 +3392,8 @@ const DEMO_NOTES=[
 // ─── Init ────────────────────────────────────────────────
 initAuth();
 initBsky();
+// サブタブバー初期表示
+document.getElementById('subTabsLog').classList.add('visible');
 // モバイルで入力欄を最初は折りたたむ
 if(window.innerWidth<=640){
   const ta=document.getElementById('composeTA');
