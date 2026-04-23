@@ -951,6 +951,7 @@ body {
             <button class="wf-foot-btn" onclick="wfTogglePicker()" id="wfPickerBtn">📥 つぶやきから追加</button>
             <button class="wf-foot-btn" onclick="wfDelete()" style="color:var(--red);">削除</button>
             <button class="wf-foot-btn teal" onclick="goToNote()">ノートを書く →</button>
+            <span style="margin-left:auto;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">Tab/Shift+Tab: 階層　Ctrl+↑↓: 並び替え　Enter: 新規行</span>
           </div>
         </div>
       </div>
@@ -2716,6 +2717,26 @@ let wfSaveTimer=null;
 function wfOnKey(e,i,div){
   const ol=wfGetOl();if(!ol)return;
 
+  // Ctrl+↑ → 行を上に移動
+  if(e.key==='ArrowUp'&&(e.ctrlKey||e.metaKey)&&!e.shiftKey){
+    e.preventDefault();
+    if(i>0){
+      ol.items[i].text=div.textContent;
+      [ol.items[i-1],ol.items[i]]=[ol.items[i],ol.items[i-1]];
+      ol.updatedAt=Date.now();save();wfRenderItems();wfFocusItem(i-1,true);
+    }
+    return;
+  }
+  // Ctrl+↓ → 行を下に移動
+  if(e.key==='ArrowDown'&&(e.ctrlKey||e.metaKey)&&!e.shiftKey){
+    e.preventDefault();
+    if(i<ol.items.length-1){
+      ol.items[i].text=div.textContent;
+      [ol.items[i],ol.items[i+1]]=[ol.items[i+1],ol.items[i]];
+      ol.updatedAt=Date.now();save();wfRenderItems();wfFocusItem(i+1,true);
+    }
+    return;
+  }
   // Tab → インデント深く
   if(e.key==='Tab'&&!e.shiftKey){
     e.preventDefault();
