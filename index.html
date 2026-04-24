@@ -1958,9 +1958,9 @@ function renderCardGrid(){
     const tagsHtml=[...tagSet].slice(0,3).map(t=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent-l);color:var(--accent);border:0.5px solid var(--accent-m);">#${esc(t)}</span>`).join('');
     const hasImg=ol.images?.length;
     return`<div class="card-cell" onclick="openCardDetail('${ol.id}')">
-      ${hasImg?`<img src="${ol.images[0]}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;margin-bottom:6px;flex-shrink:0;" loading="lazy">`:''}
       <div class="card-cell-title">${esc(ol.title||'無題')}</div>
-      <div class="card-cell-body">${previewLines}</div>
+      <div class="card-cell-body" style="flex:1;">${previewLines}</div>
+      ${hasImg?`<img src="${ol.images[0]}" style="width:100%;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`:''}
       ${labels?`<div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${labels}</div>`:''}
       ${tagsHtml?`<div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${tagsHtml}</div>`:''}
       <div class="card-cell-foot">${ol.items.length}項目 · ${fmtDate(ol.updatedAt)}</div>
@@ -2050,12 +2050,16 @@ function openCardDetail(outlineId){
             if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
             return text.split('\n')[0].slice(0,40);
           }).filter(Boolean).slice(0,2);
+          // 画像なしのときはプレビュー行を増やす
+          const morePreview=img?previewLines:ro.items.slice(0,6).map(it=>{
+            let text=it.text||'';
+            if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
+            return text.split('\n')[0].slice(0,40);
+          }).filter(Boolean).slice(0,4);
           return`<div class="card-related-thumb" onclick="openCardDetail('${ro.id}')">
-            ${img
-              ?`<img src="${img}" loading="lazy">`
-              :`<div style="width:100%;height:70px;background:var(--bg3);border-radius:4px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;"><span style="font-size:20px;opacity:.3;">🗂️</span></div>`}
             <div class="card-related-thumb-title">${esc(ro.title||'無題')}</div>
-            ${previewLines.map(l=>`<div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text2);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(l)}</div>`).join('')}
+            ${img?`<img src="${img}" loading="lazy" style="margin:4px 0;">`:''}
+            ${morePreview.map(l=>`<div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text2);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(l)}</div>`).join('')}
             <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;">
               ${matchLabels.map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent);color:#fff;">${esc(l)}</span>`).join('')}
             </div>
