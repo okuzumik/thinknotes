@@ -1921,13 +1921,14 @@ function confirmNoteCardPicker(){
   if(!notePickerSel.size)return;
   closeNoteCardPicker();
   const ordered=[...notePickerSel].map(id=>outlines.find(x=>x.id===id)).filter(Boolean);
-  // 現在のノートをカードブロックモードに変換、または新規作成
   let n=notes.find(x=>x.id===currentNoteId);
   if(!n){
     n={id:uid(),title:ordered.map(ol=>ol.title||'無題').join('・').slice(0,40),body:'',paragraphs:[],items:[],stickies:[],createdAt:Date.now(),updatedAt:Date.now()};
     notes.push(n);currentNoteId=n.id;
   }
-  n.cardBlocks=ordered.map(ol=>({outlineId:ol.id,stickies:[]}));
+  // 追加（置き換えではなく）
+  if(!n.cardBlocks)n.cardBlocks=[];
+  n.cardBlocks.push(...ordered.map(ol=>({outlineId:ol.id,stickies:[]})));
   if(!n.title||n.title==='無題のノート')n.title=ordered.map(ol=>ol.title||'無題').join('・').slice(0,40);
   n.updatedAt=Date.now();
   notePickerSel.clear();
@@ -3798,73 +3799,74 @@ function deleteCurrentNote(){
 }
 
 // ─── Card Block Note Editor ───────────────────────────────
+let ncbFocusedBi=null;
+
 function renderCardBlockEditor(){
   const n=notes.find(x=>x.id===currentNoteId);if(!n||!n.cardBlocks)return;
   const wrap=document.getElementById('cardBlocksWrap');if(!wrap)return;
   wrap.innerHTML='';
-
-  // 右ペインのタイトルを戻す
-  const paneTitle=document.getElementById('stickyPaneTitle');
-  const addBtn=document.getElementById('stickyPaneAddBtn');
-  if(paneTitle)paneTitle.textContent='付箋メモ';
-  if(addBtn)addBtn.style.display='';
 
   n.cardBlocks.forEach((block,bi)=>{
     const ol=outlines.find(x=>x.id===block.outlineId);
     const title=ol?ol.title||'無題':'（削除済み）';
     const items=ol?ol.items:[];
     const stickies=block.stickies||[];
-    // 編集済みテキストがあれば使う、なければ元の内容
-    const editedItems=block.editedItems||{};
+    const editedText=block.editedText; // 一続きのテキストとして保存
 
     const blockEl=document.createElement('div');
     blockEl.className='note-card-block';
     blockEl.dataset.bi=bi;
+    // フォーカス時のハイライト
+    if(ncbFocusedBi===bi)blockEl.style.background='var(--accent-l)';
 
-    // ── 左：テキスト本文（編集可能）
+    // ── 左：テキスト（一続きのcontenteditable）
     const body=document.createElement('div');
     body.className='note-card-block-body';
-    let prevLevel=null;
-    items.forEach((it,ii)=>{
-      let defaultText=it.text||'';
-      if(!defaultText&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);defaultText=p?cleanText(p.content):'';}
-      if(!defaultText.trim())return;
-      const lvl=it.level||0;
-      // レベル0（最上位）の前に空行
-      if(lvl===0&&prevLevel!==null){
-        const sp=document.createElement('div');sp.style.height='.75em';body.appendChild(sp);
-      }
-      prevLevel=lvl;
-      const text=editedItems[ii]!==undefined?editedItems[ii]:defaultText;
-      const div=document.createElement('div');
-      div.className='ncb-text-item';
-      div.contentEditable='true';
-      div.textContent=text;
-      div.dataset.ii=ii;
-      div.oninput=()=>{
-        if(!block.editedItems)block.editedItems={};
-        block.editedItems[ii]=div.textContent;
-        n.updatedAt=Date.now();
-        clearTimeout(div._t);div._t=setTimeout(()=>save(),800);
-      };
-      body.appendChild(div);
-    });
-    if(!body.children.length){
-      const ph=document.createElement('div');
-      ph.style.cssText='color:var(--text3);font-size:12px;';
-      ph.textContent='（空）';body.appendChild(ph);
+
+    // 既存編集テキストがあればそれを、なければ元アイテムを一続きに結合
+    let text=editedText;
+    if(text===undefined){
+      text=items.map(it=>{
+        let t=it.text||'';
+        if(!t&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);t=p?cleanText(p.content):'';}
+        return t.trim();
+      }).filter(Boolean).join('\n');
     }
+
+    const div=document.createElement('div');
+    div.className='ncb-text-item';
+    div.contentEditable='true';
+    div.style.whiteSpace='pre-wrap';
+    div.textContent=text;
+    div.onfocus=()=>{
+      ncbFocusedBi=bi;
+      // 全ブロックの背景をリセット、このブロックだけハイライト
+      wrap.querySelectorAll('.note-card-block').forEach((el,i)=>{
+        el.style.background=i===bi?'var(--accent-l)':'';
+      });
+      // 右ペインの対応タイトルをハイライト
+      document.querySelectorAll('.ncb-margin-title').forEach((el,i)=>{
+        el.style.background=i===bi?'var(--accent-l)':'';
+        el.style.borderRadius=i===bi?'4px':'';
+      });
+    };
+    div.onblur=()=>{
+      block.editedText=div.textContent;
+      n.updatedAt=Date.now();
+      clearTimeout(div._t);div._t=setTimeout(()=>save(),800);
+    };
+    body.appendChild(div);
     blockEl.appendChild(body);
 
-    // ── 右：マージンノート（カードタイトル＋付箋）
+    // ── 右：マージン（タイトルのみ、リンクなし）
     const margin=document.createElement('div');
     margin.className='note-card-block-margin';
 
-    // カードタイトル
     const titleEl=document.createElement('div');
-    titleEl.className='note-card-block-margin-title';
+    titleEl.className='note-card-block-margin-title ncb-margin-title';
     titleEl.textContent=title;
-    titleEl.onclick=()=>switchMain('think')&&setTimeout(()=>wfOpen(ol?.id),50);
+    titleEl.style.padding='2px 4px';
+    if(ncbFocusedBi===bi){titleEl.style.background='var(--accent-l)';titleEl.style.borderRadius='4px';}
     margin.appendChild(titleEl);
 
     // 操作ボタン
@@ -3878,13 +3880,13 @@ function renderCardBlockEditor(){
 
     // 付箋
     stickies.forEach((s,si)=>{
+      const wrapper=document.createElement('div');
+      wrapper.style.cssText='position:relative;';
       const sDiv=document.createElement('div');
       sDiv.className='note-card-block-sticky';
       sDiv.contentEditable='true';
       sDiv.textContent=s.text||'';
       sDiv.onblur=()=>saveCardBlockSticky(bi,si,sDiv.textContent);
-      const wrapper=document.createElement('div');
-      wrapper.style.cssText='position:relative;';
       const del2=document.createElement('button');
       del2.style.cssText='position:absolute;top:2px;right:2px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:9px;';
       del2.textContent='✕';del2.onclick=()=>removeCardBlockSticky(bi,si);
@@ -3892,7 +3894,6 @@ function renderCardBlockEditor(){
       margin.appendChild(wrapper);
     });
 
-    // 付箋追加
     const addS=document.createElement('button');
     addS.className='note-card-block-sticky-add';
     addS.textContent='＋ 付箋';
@@ -3904,14 +3905,14 @@ function renderCardBlockEditor(){
   });
 
   // カード追加ボタン
-  const addEl=document.createElement('div');
-  addEl.style.cssText='grid-column:1;padding:1rem 0;';
-  const addBtn2=document.createElement('button');
-  addBtn2.style.cssText='padding:6px 18px;background:none;border:1.5px dashed var(--border2);border-radius:8px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:12px;color:var(--text3);cursor:pointer;';
-  addBtn2.textContent='＋ カードを追加';
-  addBtn2.onclick=()=>openNoteCardPicker();
-  addEl.appendChild(addBtn2);
-  wrap.appendChild(addEl);
+  const addWrap=document.createElement('div');
+  addWrap.style.cssText='grid-column:1/3;padding:1rem 0;display:flex;justify-content:flex-start;';
+  const addBtn=document.createElement('button');
+  addBtn.style.cssText='padding:6px 18px;background:none;border:1.5px dashed var(--border2);border-radius:8px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:12px;color:var(--text3);cursor:pointer;';
+  addBtn.textContent='＋ カードを追加';
+  addBtn.onclick=()=>openNoteCardPicker();
+  addWrap.appendChild(addBtn);
+  wrap.appendChild(addWrap);
 }
 
 function removeCardBlock(bi){
