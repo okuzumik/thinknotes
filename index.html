@@ -761,7 +761,7 @@ body {
 .card-grid-count { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); }
 .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; padding:1.25rem 1.5rem 3rem; overflow-y:auto; align-content:start; flex:1; }
 .card-grid-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; text-align:center; line-height:1.8; }
-.card-cell { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--r); padding:14px; cursor:pointer; transition:all .15s; display:flex; flex-direction:column; gap:6px; min-height:130px; max-height:200px; overflow:hidden; position:relative; }
+.card-cell { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--r); padding:14px; cursor:pointer; transition:all .15s; display:flex; flex-direction:column; gap:6px; height:220px; overflow:hidden; position:relative; }
 .card-cell:hover { border-color:var(--accent-m); box-shadow:0 3px 14px rgba(0,0,0,.09); transform:translateY(-1px); }
 .card-cell-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:700; color:var(--text); line-height:1.4; flex-shrink:0; }
 .card-cell-body { flex:1; overflow:hidden; }
@@ -794,6 +794,15 @@ body {
 .card-label-in { flex:1; padding:5px 10px; border:0.5px solid var(--border2); border-radius:20px; font-size:12px; font-family:inherit; color:var(--text); background:var(--bg3); outline:none; }
 .card-img-upload-btn { padding:5px 12px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text2); cursor:pointer; }
 .card-img-upload-btn:hover { background:var(--surface); }
+
+/* 関連カードサイドバー */
+.card-related { width:200px; flex-shrink:0; border-left:0.5px solid var(--border); background:var(--bg3); overflow-y:auto; padding:.75rem .5rem; display:flex; flex-direction:column; gap:8px; }
+.card-related-hd { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); letter-spacing:.08em; padding:0 6px 4px; border-bottom:0.5px solid var(--border); flex-shrink:0; }
+.card-related-thumb { background:var(--bg2); border:0.5px solid var(--border); border-radius:8px; padding:10px; cursor:pointer; transition:all .12s; overflow:hidden; flex-shrink:0; }
+.card-related-thumb:hover { border-color:var(--accent-m); box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.card-related-thumb img { width:100%; height:70px; object-fit:cover; border-radius:4px; margin-bottom:6px; }
+.card-related-thumb-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; font-weight:600; color:var(--text); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card-related-thumb-meta { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--text3); margin-top:2px; }
 .card-export-btn { padding:5px 14px; background:var(--teal); color:#fff; border:none; border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; cursor:pointer; }
 .card-export-btn:hover { opacity:.85; }
 .card-copy-btn { padding:5px 14px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text2); cursor:pointer; }
@@ -963,11 +972,14 @@ body {
           <div class="wf-doc-foot">
             <button class="wf-foot-btn" onclick="wfSave()">💾 保存</button>
             <button class="wf-foot-btn" onclick="wfTogglePicker()" id="wfPickerBtn">📥 つぶやきから追加</button>
+            <button class="wf-foot-btn" onclick="openImgPickerFor('outline')">🖼️ 画像を追加</button>
             <button class="wf-foot-btn teal" onclick="goToNote()">ノートを書く →</button>
             <button class="wf-foot-btn" onclick="wfDelete()" style="color:var(--red);">削除</button>
             <span style="margin-left:auto;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">Tab/Shift+Tab: 階層　Ctrl+↑↓: 並び替え　Enter: 新規行</span>
           </div>
-          <input class="wf-title" id="wfTitle" placeholder="タイトル…" oninput="wfSaveTitle()" onkeydown="if(event.key==='Enter'){event.preventDefault();wfFocusItem(0);}">
+          <input class="wf-title" id="wfTitle" placeholder="タイトル…" oninput="wfSaveTitle()" onkeydown="if(event.key==='Enter'&&!event.isComposing&&event.keyCode!==229){event.preventDefault();wfFocusItem(0);}">
+          <!-- アウトラインの画像サムネ -->
+          <div id="wfImgStrip" style="display:none;flex-wrap:wrap;gap:6px;padding:8px 2rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;"></div>
           <div class="wf-items" id="wfItems"></div>
         </div>
       </div>
@@ -1139,7 +1151,10 @@ body {
         <button class="card-export-btn" onclick="exportCardText()">↓ 書き出し</button>
         <button class="card-copy-btn" onclick="wfOpenFromCard(currentCardOutlineId)">✏️ 編集</button>
       </div>
-      <div class="card-detail-body" id="cardDetailBody"></div>
+      <div style="display:flex;flex:1;overflow:hidden;">
+        <div class="card-detail-body" id="cardDetailBody" style="flex:1;"></div>
+        <div class="card-related" id="cardRelated" style="display:none;"></div>
+      </div>
     </div>
   </div>
 
@@ -1174,6 +1189,35 @@ body {
         <button class="compose-btn" style="padding:8px 24px;font-size:14px;" onclick="submitMobileDayPost()">投稿</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- 画像ライブラリモーダル -->
+<div id="imgLibraryModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border-radius:var(--r);width:min(680px,96vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;padding:14px 18px;border-bottom:0.5px solid var(--border);">
+      <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px;font-weight:700;color:var(--text);flex:1;">📂 画像ライブラリ</span>
+      <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);margin-right:12px;">クリックで選択</span>
+      <button onclick="closeImgLibrary()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);">✕</button>
+    </div>
+    <div id="imgLibraryGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;padding:14px;overflow-y:auto;flex:1;"></div>
+    <div id="imgLibraryEmpty" style="display:none;padding:2rem;text-align:center;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;color:var(--text3);">投稿に画像がありません</div>
+  </div>
+</div>
+
+<!-- 画像ピッカーモーダル -->
+<div id="imgPickerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border-radius:var(--r);width:90vw;max-width:640px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+      <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px;font-weight:700;color:var(--text);">画像を選択</span>
+      <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('imgPickerFileInput').click()" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;cursor:pointer;">📤 新規アップロード</button>
+        <button onclick="closeImgPicker()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);">✕</button>
+      </div>
+    </div>
+    <input type="file" id="imgPickerFileInput" accept="image/*" multiple style="display:none" onchange="onImgPickerFileSelected(event)">
+    <div style="padding:8px 12px;border-bottom:0.5px solid var(--border);flex-shrink:0;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">タップで選択・再利用できます</div>
+    <div id="imgPickerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;padding:12px;overflow-y:auto;flex:1;"></div>
   </div>
 </div>
 
@@ -1616,6 +1660,175 @@ async function postToBsky(text, replyRef=null, imageUrls=[]){
   const err=await res.json().catch(()=>({message:res.status}));
   return{ok:false,error:err.message||res.status};
 }
+// ─── アウトライン画像 ────────────────────────────────────
+function wfRenderImgStrip(){
+  const ol=wfGetOl();
+  const strip=document.getElementById('wfImgStrip');if(!strip)return;
+  const imgs=ol?.images||[];
+  if(!imgs.length){strip.style.display='none';return;}
+  strip.style.display='flex';
+  strip.innerHTML=imgs.map((src,i)=>`
+    <div style="position:relative;display:inline-block;">
+      <img src="${src}" onclick="openLightbox('${src}')" style="width:80px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer;border:0.5px solid var(--border);" loading="lazy">
+      <button onclick="wfRemoveImg(${i})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:16px;height:16px;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;padding:0;">✕</button>
+    </div>`).join('');
+}
+
+async function onWfImageSelected(e){
+  const files=[...e.target.files];e.target.value='';
+  const ol=wfGetOl();if(!ol)return;
+  if(!ol.images)ol.images=[];
+  for(const file of files){
+    const dataUrl=await resizeImage(file,1200,0.85);
+    ol.images.push(dataUrl);
+  }
+  ol.updatedAt=Date.now();save();wfRenderImgStrip();
+  if(currentUser){
+    const localImgs=ol.images.filter(u=>u.startsWith('data:')).map(u=>({dataUrl:u}));
+    if(localImgs.length){
+      const urls=await uploadImagesToStorage(localImgs);
+      ol.images=ol.images.filter(u=>!u.startsWith('data:')).concat(urls);
+      ol.updatedAt=Date.now();save();wfRenderImgStrip();
+    }
+  }
+}
+
+function wfRemoveImg(idx){
+  const ol=wfGetOl();if(!ol||!ol.images)return;
+  ol.images.splice(idx,1);ol.updatedAt=Date.now();save();wfRenderImgStrip();
+}
+
+// ─── 画像ライブラリ ──────────────────────────────────────
+let imgLibraryTarget='outline'; // 'outline' | 'card'
+
+function openImgLibrary(target){
+  imgLibraryTarget=target;
+  // すべての投稿の画像を収集（重複除去）
+  const seen=new Set();
+  const all=[];
+  posts.forEach(p=>{
+    (p.images||[]).forEach(src=>{if(!seen.has(src)){seen.add(src);all.push({src,from:cleanText(p.content).slice(0,30)});}});
+    (p.replies||[]).forEach(r=>(r.images||[]).forEach(src=>{if(!seen.has(src)){seen.add(src);all.push({src,from:cleanText(r.content).slice(0,30)});}}));
+  });
+  // カード・アウトラインの画像も追加
+  outlines.forEach(ol=>(ol.images||[]).forEach(src=>{if(!seen.has(src)){seen.add(src);all.push({src,from:ol.title?.slice(0,30)||'アウトライン'});}}));
+
+  const modal=document.getElementById('imgLibraryModal');
+  const grid=document.getElementById('imgLibraryGrid');
+  const empty=document.getElementById('imgLibraryEmpty');
+  if(!all.length){grid.innerHTML='';if(empty)empty.style.display='block';}
+  else{
+    if(empty)empty.style.display='none';
+    grid.innerHTML=all.map(({src,from})=>`
+      <div onclick="selectLibraryImg('${src}')" style="cursor:pointer;border-radius:8px;overflow:hidden;border:0.5px solid var(--border);background:var(--bg3);transition:all .12s;" onmouseover="this.style.borderColor='var(--accent-m)'" onmouseout="this.style.borderColor='var(--border)'">
+        <img src="${src}" style="width:100%;height:100px;object-fit:cover;display:block;" loading="lazy">
+        <div style="padding:4px 6px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(from)}</div>
+      </div>`).join('');
+  }
+  modal.style.display='flex';
+}
+
+function closeImgLibrary(){
+  document.getElementById('imgLibraryModal').style.display='none';
+}
+
+function selectLibraryImg(src){
+  closeImgLibrary();
+  if(imgLibraryTarget==='outline'){
+    const ol=wfGetOl();if(!ol)return;
+    if(!ol.images)ol.images=[];
+    if(!ol.images.includes(src))ol.images.push(src);
+    ol.updatedAt=Date.now();save();wfRenderImgStrip();
+  } else if(imgLibraryTarget==='card'){
+    const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+    if(!ol.images)ol.images=[];
+    if(!ol.images.includes(src))ol.images.push(src);
+    ol.updatedAt=Date.now();save();
+    openCardDetail(currentCardOutlineId);
+  }
+}
+
+
+// ─── 画像ピッカー ────────────────────────────────────────
+let imgPickerTarget=null;
+
+function openImgPickerFor(target){
+  imgPickerTarget=target;
+  const modal=document.getElementById('imgPickerModal');
+  if(modal){modal.style.display='flex';renderImgPickerGrid();}
+}
+function closeImgPicker(){
+  const modal=document.getElementById('imgPickerModal');
+  if(modal)modal.style.display='none';
+}
+function collectAllImages(){
+  const imgs=[];const seen=new Set();
+  posts.forEach(p=>{
+    (p.images||[]).forEach(url=>{if(!seen.has(url)&&!url.startsWith('data:')){seen.add(url);imgs.push({url,source:'ログ',title:cleanText(p.content).slice(0,30)});}});
+    (p.replies||[]).forEach(r=>(r.images||[]).forEach(url=>{if(!seen.has(url)&&!url.startsWith('data:')){seen.add(url);imgs.push({url,source:'返信',title:cleanText(r.content).slice(0,30)});}}));
+  });
+  outlines.forEach(ol=>{
+    (ol.images||[]).forEach(url=>{if(!seen.has(url)&&!url.startsWith('data:')){seen.add(url);imgs.push({url,source:'カード',title:ol.title||'無題'});}});
+  });
+  return imgs;
+}
+function renderImgPickerGrid(){
+  const grid=document.getElementById('imgPickerGrid');if(!grid)return;
+  const imgs=collectAllImages();
+  if(!imgs.length){grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:2rem;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;color:var(--text3);">まだ画像がありません。新規アップロードしてください。</div>`;return;}
+  grid.innerHTML=imgs.map(({url,source,title})=>`
+    <div onclick="selectImgFromPicker('${url}')" style="cursor:pointer;border-radius:8px;overflow:hidden;border:0.5px solid var(--border);background:var(--bg3);transition:border-color .12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <img src="${url}" style="width:100%;height:100px;object-fit:cover;" loading="lazy">
+      <div style="padding:5px 7px;">
+        <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">${esc(source)}</div>
+        <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</div>
+      </div>
+    </div>`).join('');
+}
+async function selectImgFromPicker(url){
+  closeImgPicker();
+  if(imgPickerTarget==='outline'){
+    const ol=wfGetOl();if(!ol)return;
+    if(!ol.images)ol.images=[];
+    if(!ol.images.includes(url))ol.images.push(url);
+    ol.updatedAt=Date.now();save();wfRenderImgStrip();
+  } else if(imgPickerTarget==='card'){
+    const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+    if(!ol.images)ol.images=[];
+    if(!ol.images.includes(url))ol.images.push(url);
+    ol.updatedAt=Date.now();save();openCardDetail(currentCardOutlineId);renderCardGrid();
+  }
+}
+async function onImgPickerFileSelected(e){
+  const files=[...e.target.files];e.target.value='';
+  const localImgs=[];
+  for(const file of files){const dataUrl=await resizeImage(file,1200,0.85);localImgs.push({dataUrl});}
+  let urls=currentUser?await uploadImagesToStorage(localImgs):localImgs.map(i=>i.dataUrl);
+  closeImgPicker();
+  if(imgPickerTarget==='outline'){
+    const ol=wfGetOl();if(!ol)return;
+    if(!ol.images)ol.images=[];ol.images.push(...urls);ol.updatedAt=Date.now();save();wfRenderImgStrip();
+  } else if(imgPickerTarget==='card'){
+    const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+    if(!ol.images)ol.images=[];ol.images.push(...urls);ol.updatedAt=Date.now();save();openCardDetail(currentCardOutlineId);renderCardGrid();
+  }
+}
+function wfRenderImgStrip(){
+  const ol=wfGetOl();
+  const strip=document.getElementById('wfImgStrip');if(!strip)return;
+  const imgs=ol?.images||[];
+  strip.style.display=imgs.length?'flex':'none';
+  strip.innerHTML=imgs.map((src,i)=>`
+    <div style="position:relative;display:inline-block;">
+      <img src="${src}" onclick="openLightbox('${src}')" style="height:64px;width:auto;max-width:120px;object-fit:cover;border-radius:6px;cursor:pointer;border:0.5px solid var(--border);" loading="lazy">
+      <button onclick="wfRemoveImg(${i})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:16px;height:16px;cursor:pointer;font-size:9px;line-height:1;padding:0;">✕</button>
+    </div>`).join('');
+}
+function wfRemoveImg(idx){
+  const ol=wfGetOl();if(!ol||!ol.images)return;
+  ol.images.splice(idx,1);ol.updatedAt=Date.now();save();wfRenderImgStrip();
+}
+
 // ─── WF Picker ───────────────────────────────────────────
 let wfPickerTag=null;
 
@@ -1796,24 +2009,47 @@ function openCardDetail(outlineId){
       <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">${ol.items.length}項目 · ${fmtDate(ol.updatedAt)}</span>
       ${labels.map((lb,i)=>`<span class="card-label-tag" style="cursor:pointer;" onclick="removeCardLabel(${i})" title="クリックで削除">${esc(lb)} ✕</span>`).join('')}
     </div>
-    ${cardImgsHtml}
     <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
       <div class="card-label-input-wrap" style="flex:1;min-width:180px;">
-        <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" onkeydown="if(event.key==='Enter'){event.preventDefault();addCardLabel();}">
+        <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
         <button class="card-img-upload-btn" onclick="addCardLabel()">＋ ラベル</button>
       </div>
       <button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()">🖼️ 画像を追加</button>
+      <button class="card-img-upload-btn" onclick="openImgLibrary('card')">📂 ライブラリ</button>
       <input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)">
     </div>
+    ${cardImgsHtml}
     <div class="card-detail-card-content">${itemsHtml||'<div style="color:var(--text3);font-size:13px;">項目がありません</div>'}</div>
   </div>`;
 
   if(detail)detail.style.display='flex';
+
+  // 関連カード（同じラベルのもの）
+  const related=document.getElementById('cardRelated');
+  if(related){
+    const labels=ol.labels||[];
+    const relatedOls=labels.length
+      ? outlines.filter(x=>x.id!==outlineId&&(x.labels||[]).some(l=>labels.includes(l))).slice(0,20)
+      : [];
+    if(relatedOls.length){
+      related.style.display='flex';
+      related.innerHTML=`<div class="card-related-hd">同じラベル</div>`
+        +relatedOls.map(ro=>{
+          const img=ro.images?.[0]||null;
+          return`<div class="card-related-thumb" onclick="openCardDetail('${ro.id}')">
+            ${img?`<img src="${img}" loading="lazy">`:''}
+            <div class="card-related-thumb-title">${esc(ro.title||'無題')}</div>
+            <div class="card-related-thumb-meta">${ro.items.length}項目</div>
+          </div>`;
+        }).join('');
+    } else {
+      related.style.display='none';
+    }
+  }
 }
 
 function addCardLabel(){
   const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
-  const input=document.getElementById('cardLabelIn');if(!input)return;
   const val=input.value.trim();if(!val)return;
   if(!ol.labels)ol.labels=[];
   if(!ol.labels.includes(val))ol.labels.push(val);
@@ -2833,6 +3069,7 @@ function wfOpen(id){
   document.getElementById('wfEmpty').style.display='none';
   const doc=document.getElementById('wfDoc');doc.style.display='flex';
   document.getElementById('wfTitle').value=ol.title||'';
+  wfRenderImgStrip();
   wfRenderItems();
 }
 
