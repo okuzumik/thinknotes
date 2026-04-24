@@ -1131,7 +1131,7 @@ body {
               <!-- シンプルエディタ（段落・カードブロック統合） -->
               <div id="noteTextWrap" style="flex:1;display:flex;flex-direction:row;overflow:hidden;">
                 <!-- 行番号カラム -->
-                <div id="lineNumbers" style="display:none;padding:1.75rem 0.5rem 4rem 1rem;font-family:monospace;font-size:13px;line-height:1.9;color:var(--text3);text-align:right;user-select:none;flex-shrink:0;border-right:0.5px solid var(--border);background:var(--bg3);min-width:40px;overflow:hidden;"></div>
+                <div id="lineNumbers" style="display:none;padding:1.75rem 0.5rem 4rem 1rem;font-family:monospace;font-size:15px;line-height:1.9;color:var(--text3);text-align:right;user-select:none;flex-shrink:0;border-right:0.5px solid var(--border);background:var(--bg3);min-width:44px;overflow-y:hidden;pointer-events:none;"></div>
                 <!-- テキスト本体 -->
                 <div style="flex:1;display:flex;justify-content:center;overflow-y:auto;" id="noteEditorOuter">
                   <div id="noteTextEditor"
@@ -3818,6 +3818,7 @@ function openNote(id){
   ed.textContent=text;
   loadNoteEditorSettings(n);
   renderStickyPane();
+  initLineNumberSync();
   setTimeout(()=>ed.focus(),30);
 }
 
@@ -3853,14 +3854,33 @@ function toggleNoteLineNumbers(){
 }
 
 function updateLineNumbers(){
-  if(!noteShowLineNumbers)return;
-  const ed=document.getElementById('noteTextEditor');
   const col=document.getElementById('lineNumbers');
-  if(!ed||!col)return;
+  if(!col||col.style.display==='none')return;
+  const ed=document.getElementById('noteTextEditor');if(!ed)return;
   const lines=ed.textContent.split('\n');
+  const lineH=15*1.9; // font-size * line-height
   col.innerHTML=lines.map((_,i)=>
-    `<div style="line-height:1.9;font-size:13px;color:var(--text3);">${i+1}</div>`
+    `<div style="height:${lineH}px;display:flex;align-items:center;justify-content:flex-end;font-size:12px;">${i+1}</div>`
   ).join('');
+  // 高さをエディタに合わせる
+  col.style.minHeight=(lines.length*lineH+1.75*16*2)+'px';
+  // スクロール同期
+  syncLineNumberScroll();
+}
+
+function syncLineNumberScroll(){
+  const outer=document.getElementById('noteEditorOuter');
+  const col=document.getElementById('lineNumbers');
+  if(!outer||!col)return;
+  col.scrollTop=outer.scrollTop;
+}
+
+// スクロールイベント登録（openNote時に呼ぶ）
+function initLineNumberSync(){
+  const outer=document.getElementById('noteEditorOuter');
+  if(!outer)return;
+  outer.removeEventListener('scroll',syncLineNumberScroll);
+  outer.addEventListener('scroll',syncLineNumberScroll);
 }
 
 function loadNoteEditorSettings(n){
