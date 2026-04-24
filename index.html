@@ -800,20 +800,22 @@ body {
 .card-sel-badge { position:absolute; top:8px; left:8px; width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; z-index:2; }
 
 /* ノート：カードブロックモード */
-.note-card-blocks { display:flex; flex-direction:column; gap:1.5rem; padding:1.5rem 2rem 4rem; flex:1; overflow-y:auto; }
-.note-card-block { border:0.5px solid var(--border); border-radius:10px; background:var(--bg2); overflow:hidden; position:relative; }
-.note-card-block-header { display:flex; align-items:center; gap:8px; padding:10px 16px; background:var(--bg3); border-bottom:0.5px solid var(--border); cursor:grab; }
-.note-card-block-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:700; color:var(--accent); flex:1; }
-.note-card-block-del { background:none; border:none; cursor:pointer; font-size:12px; color:var(--text3); padding:2px 6px; border-radius:4px; }
+.note-card-blocks { display:flex; flex-direction:column; padding:2rem 2rem 4rem; flex:1; overflow-y:auto; max-width:780px; margin:0 auto; width:100%; }
+.note-card-block { position:relative; }
+.note-card-block+.note-card-block { border-top:1px dashed var(--border2); margin-top:.5rem; padding-top:.5rem; }
+.note-card-block-header { display:flex; align-items:center; gap:6px; padding:4px 0 6px; }
+.note-card-block-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); flex:1; letter-spacing:.05em; }
+.note-card-block-del { background:none; border:none; cursor:pointer; font-size:11px; color:var(--text3); padding:1px 4px; border-radius:3px; opacity:0; }
+.note-card-block:hover .note-card-block-del { opacity:1; }
 .note-card-block-del:hover { color:var(--red); }
-.note-card-block-body { padding:12px 16px; }
-.note-card-block-item { display:flex; gap:6px; padding:2px 0; line-height:1.7; }
-.note-card-block-bullet { color:var(--accent-m); flex-shrink:0; font-size:12px; padding-top:2px; }
-.note-card-block-text { font-size:13.5px; color:var(--text); white-space:pre-wrap; word-break:break-word; }
-.note-card-block-stickies { border-top:0.5px dashed var(--border); padding:8px 16px; background:var(--bg3); }
-.note-card-block-sticky-add { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--accent); cursor:pointer; background:none; border:none; padding:0; }
+.note-card-block-body { padding-bottom:.5rem; }
+.note-card-block-stickies { border-top:0.5px solid var(--border); padding:8px 0 6px; margin-top:6px; }
+.note-card-block-sticky-add { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--accent); cursor:pointer; background:none; border:none; padding:0; opacity:0; }
+.note-card-block:hover .note-card-block-sticky-add { opacity:1; }
 .note-card-block-sticky-item { display:flex; gap:8px; align-items:flex-start; padding:4px 0; }
-.note-card-block-sticky-text { font-size:12px; line-height:1.6; color:var(--text); background:var(--sticky); border-radius:4px; padding:4px 8px; flex:1; }
+.note-card-block-sticky-text { font-size:12px; line-height:1.6; color:var(--text); background:var(--sticky); border-radius:4px; padding:4px 8px; flex:1; min-height:1em; }
+.note-card-block-move { background:none; border:none; cursor:pointer; font-size:11px; color:var(--text3); padding:1px 4px; opacity:0; }
+.note-card-block:hover .note-card-block-move { opacity:1; }
 .card-related { width:200px; flex-shrink:0; border-left:0.5px solid var(--border); background:var(--bg3); overflow-y:auto; padding:.75rem .5rem; display:flex; flex-direction:column; gap:8px; }
 .card-related-hd { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); letter-spacing:.08em; padding:0 6px 4px; border-bottom:0.5px solid var(--border); flex-shrink:0; }
 .card-related-thumb { background:var(--bg2); border:0.5px solid var(--border); border-radius:8px; padding:10px; cursor:pointer; transition:all .12s; overflow:hidden; flex-shrink:0; height:160px; display:flex; flex-direction:column; gap:2px; }
@@ -1118,6 +1120,7 @@ body {
             <div class="et-sep"></div>
             <button class="et-btn primary" onclick="exportObsidian()">Obsidian MD</button>
             <button class="et-btn" onclick="exportPlain()">テキスト</button>
+            <button class="et-btn" onclick="openNoteCardPicker()">🗂️ カードから作成</button>
             <button class="et-btn danger" onclick="deleteCurrentNote()">削除</button>
           </div>
           <div class="editor-stats-bar">
@@ -1159,7 +1162,7 @@ body {
         <span class="card-grid-count" id="cardGridCount"></span>
       </div>
       <!-- カード選択バー -->
-      <div id="cardSelBar" style="display:none;align-items:center;gap:10px;padding:8px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--accent-l);flex-shrink:0;">
+      <div id="cardSelBar" style="display:none;">
         <span id="cardSelLabel" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;color:var(--accent-d);font-weight:600;"></span>
         <button onclick="cardSelClear()" style="padding:3px 10px;background:none;border:0.5px solid var(--accent-m);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--accent);cursor:pointer;">選択解除</button>
         <button onclick="createNoteFromCards()" style="padding:5px 16px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto;">📝 このカードでノートを作成 →</button>
@@ -1217,6 +1220,25 @@ body {
       <div style="display:flex;justify-content:flex-end;padding:8px 12px;border-top:0.5px solid var(--border);">
         <button class="compose-btn" style="padding:8px 24px;font-size:14px;" onclick="submitMobileDayPost()">投稿</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ノートのカードピッカーモーダル -->
+<div id="noteCardPickerModal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border-radius:var(--r);width:min(760px,96vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+      <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px;font-weight:700;color:var(--text);flex:1;">🗂️ カードを選択してノートを作成</span>
+      <span id="noteCardPickerCount" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--accent);"></span>
+      <button onclick="closeNoteCardPicker()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);">✕</button>
+    </div>
+    <div style="padding:8px 14px;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+      <input id="noteCardPickerSearch" placeholder="検索…" oninput="renderNoteCardPicker()" style="width:100%;padding:6px 12px;border:0.5px solid var(--border2);border-radius:20px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg3);outline:none;">
+    </div>
+    <div id="noteCardPickerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;padding:12px 14px;overflow-y:auto;flex:1;align-content:start;"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 18px;border-top:0.5px solid var(--border);flex-shrink:0;background:var(--bg3);">
+      <button onclick="closeNoteCardPicker()" style="padding:6px 16px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;color:var(--text2);cursor:pointer;">キャンセル</button>
+      <button onclick="confirmNoteCardPicker()" style="padding:6px 20px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-left:auto;">📝 このカードでノートを作成</button>
     </div>
   </div>
 </div>
@@ -1858,7 +1880,60 @@ function wfRemoveImg(idx){
   ol.images.splice(idx,1);ol.updatedAt=Date.now();save();wfRenderImgStrip();
 }
 
-// ─── カード選択 ──────────────────────────────────────────
+// ─── ノート用カードピッカー ───────────────────────────────
+const notePickerSel=new Set();
+
+function openNoteCardPicker(){
+  notePickerSel.clear();
+  renderNoteCardPicker();
+  document.getElementById('noteCardPickerSearch').value='';
+  document.getElementById('noteCardPickerModal').style.display='flex';
+}
+function closeNoteCardPicker(){
+  document.getElementById('noteCardPickerModal').style.display='none';
+}
+function renderNoteCardPicker(){
+  const q=(document.getElementById('noteCardPickerSearch')?.value||'').toLowerCase();
+  const pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt)
+    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q));
+  const grid=document.getElementById('noteCardPickerGrid');if(!grid)return;
+  const count=document.getElementById('noteCardPickerCount');
+  if(count)count.textContent=notePickerSel.size?`${notePickerSel.size}件選択中`:'';
+  grid.innerHTML=pool.map(ol=>{
+    const sel=notePickerSel.has(ol.id);
+    const selIdx=sel?[...notePickerSel].indexOf(ol.id)+1:0;
+    return`<div onclick="notePickerToggle('${ol.id}')"
+      style="background:${sel?'var(--accent-l)':'var(--bg3)'};border:${sel?'1.5px solid var(--accent)':'0.5px solid var(--border)'};border-radius:8px;padding:10px;cursor:pointer;position:relative;min-height:80px;display:flex;flex-direction:column;gap:4px;transition:all .12s;">
+      ${sel?`<div style="position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">${selIdx}</div>`:''}
+      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;color:var(--text);padding-right:${sel?'22px':'0'};">${esc(ol.title||'無題')}</div>
+      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">${ol.items.length}項目 · ${fmtDate(ol.updatedAt)}</div>
+      ${(ol.labels||[]).map(l=>`<span style="display:inline-block;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent);color:#fff;">${esc(l)}</span>`).join('')}
+    </div>`;
+  }).join('');
+}
+function notePickerToggle(id){
+  if(notePickerSel.has(id))notePickerSel.delete(id);
+  else notePickerSel.add(id);
+  renderNoteCardPicker();
+}
+function confirmNoteCardPicker(){
+  if(!notePickerSel.size)return;
+  closeNoteCardPicker();
+  const ordered=[...notePickerSel].map(id=>outlines.find(x=>x.id===id)).filter(Boolean);
+  // 現在のノートをカードブロックモードに変換、または新規作成
+  let n=notes.find(x=>x.id===currentNoteId);
+  if(!n){
+    n={id:uid(),title:ordered.map(ol=>ol.title||'無題').join('・').slice(0,40),body:'',paragraphs:[],items:[],stickies:[],createdAt:Date.now(),updatedAt:Date.now()};
+    notes.push(n);currentNoteId=n.id;
+  }
+  n.cardBlocks=ordered.map(ol=>({outlineId:ol.id,stickies:[]}));
+  if(!n.title||n.title==='無題のノート')n.title=ordered.map(ol=>ol.title||'無題').join('・').slice(0,40);
+  n.updatedAt=Date.now();
+  notePickerSel.clear();
+  save();openNote(currentNoteId);renderNotesList();
+}
+
+
 const selectedCardIds=new Set();
 
 function cardToggleSel(id,e){
@@ -2028,10 +2103,8 @@ function renderCardGrid(){
     const labels=(ol.labels||[]).map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 7px;border-radius:20px;background:var(--accent);color:#fff;">${esc(l)}</span>`).join('');
     // タイムラインのタグは表示しない（ラベルのみ）
     const hasImg=ol.images?.length;
-    const isSel=selectedCardIds.has(ol.id);
-    return`<div class="card-cell${isSel?' selected':''}" data-id="${ol.id}" onclick="cardToggleSel('${ol.id}',event)">
-      ${isSel?`<div class="card-sel-badge">${[...selectedCardIds].indexOf(ol.id)+1}</div>`:''}
-      <div class="card-cell-title" onclick="event.stopPropagation();openCardDetail('${ol.id}')" style="cursor:pointer;text-decoration:underline;">${esc(ol.title||'無題')}</div>
+    return`<div class="card-cell" onclick="openCardDetail('${ol.id}')">
+      <div class="card-cell-title">${esc(ol.title||'無題')}</div>
       <div class="card-cell-body" style="flex:1;">${previewLines}</div>
       ${hasImg?`<img src="${ol.images[0]}" style="width:100%;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`:''}
       ${labels?`<div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${labels}</div>`:''}
@@ -3739,36 +3812,28 @@ function renderCardBlockEditor(){
     blockEl.className='note-card-block';
     blockEl.dataset.bi=bi;
 
-    // ヘッダー
+    // ヘッダー（うっすらカード名）
     const hdr=document.createElement('div');
     hdr.className='note-card-block-header';
-    hdr.innerHTML=`<span class="note-card-block-title">📄 ${esc(title)}</span>
-      <button class="note-card-block-del" onclick="removeCardBlock(${bi})" title="このブロックを削除">✕</button>`;
-    if(bi>0){
-      const up=document.createElement('button');
-      up.className='note-card-block-del';up.title='上へ';up.textContent='↑';
-      up.onclick=()=>moveCardBlock(bi,-1);
-      hdr.insertBefore(up,hdr.querySelector('.note-card-block-del'));
-    }
-    if(bi<n.cardBlocks.length-1){
-      const dn=document.createElement('button');
-      dn.className='note-card-block-del';dn.title='下へ';dn.textContent='↓';
-      dn.onclick=()=>moveCardBlock(bi,1);
-      hdr.insertBefore(dn,hdr.querySelector('.note-card-block-del'));
-    }
+    hdr.innerHTML=`<span class="note-card-block-title">${esc(title)}</span>
+      ${bi>0?`<button class="note-card-block-move" onclick="moveCardBlock(${bi},-1)">↑</button>`:''}
+      ${bi<n.cardBlocks.length-1?`<button class="note-card-block-move" onclick="moveCardBlock(${bi},1)">↓</button>`:''}
+      <button class="note-card-block-del" onclick="removeCardBlock(${bi})" title="削除">✕</button>`;
     blockEl.appendChild(hdr);
 
-    // 本文（カードの内容）
+    // 本文（カードの内容を段落スタイルで）
     const body=document.createElement('div');
     body.className='note-card-block-body';
+    let prevLevel=null;
     const itemsHtml=items.map(it=>{
       let text=it.text||'';
       if(!text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
       if(!text.trim())return'';
-      return`<div class="note-card-block-item" style="padding-left:${(it.level||0)*16}px;">
-        <span class="note-card-block-bullet">•</span>
-        <span class="note-card-block-text">${esc(text)}</span>
-      </div>`;
+      const lvl=it.level||0;
+      // レベル0（最上位）かつ直前に内容があれば空行
+      const spacer=(lvl===0&&prevLevel!==null)?'<div style="height:0.75em;"></div>':'';
+      prevLevel=lvl;
+      return`${spacer}<div style="font-size:14.5px;line-height:1.85;color:var(--text);white-space:pre-wrap;word-break:break-word;">${esc(text)}</div>`;
     }).filter(Boolean).join('');
     body.innerHTML=itemsHtml||'<div style="color:var(--text3);font-size:12px;">（カードの内容が空です）</div>';
     blockEl.appendChild(body);
