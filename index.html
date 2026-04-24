@@ -2028,18 +2028,37 @@ function openCardDetail(outlineId){
   const related=document.getElementById('cardRelated');
   if(related){
     const labels=ol.labels||[];
-    const relatedOls=labels.length
-      ? outlines.filter(x=>x.id!==outlineId&&(x.labels||[]).some(l=>labels.includes(l))).slice(0,20)
+    // 関連カードとその一致ラベルを収集
+    const relatedItems=labels.length
+      ? outlines.filter(x=>x.id!==outlineId)
+          .map(x=>{
+            const matchLabels=(x.labels||[]).filter(l=>labels.includes(l));
+            return matchLabels.length?{ol:x,matchLabels}:null;
+          })
+          .filter(Boolean)
+          .sort((a,b)=>b.matchLabels.length-a.matchLabels.length) // 一致数が多い順
+          .slice(0,20)
       : [];
-    if(relatedOls.length){
+    if(relatedItems.length){
       related.style.display='flex';
-      related.innerHTML=`<div class="card-related-hd">同じラベル</div>`
-        +relatedOls.map(ro=>{
+      related.innerHTML=`<div class="card-related-hd">関連カード</div>`
+        +relatedItems.map(({ol:ro,matchLabels})=>{
           const img=ro.images?.[0]||null;
+          // テキストプレビュー（最初の2行）
+          const previewLines=ro.items.slice(0,3).map(it=>{
+            let text=it.text||'';
+            if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
+            return text.split('\n')[0].slice(0,40);
+          }).filter(Boolean).slice(0,2);
           return`<div class="card-related-thumb" onclick="openCardDetail('${ro.id}')">
-            ${img?`<img src="${img}" loading="lazy">`:''}
+            ${img
+              ?`<img src="${img}" loading="lazy">`
+              :`<div style="width:100%;height:70px;background:var(--bg3);border-radius:4px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;"><span style="font-size:20px;opacity:.3;">🗂️</span></div>`}
             <div class="card-related-thumb-title">${esc(ro.title||'無題')}</div>
-            <div class="card-related-thumb-meta">${ro.items.length}項目</div>
+            ${previewLines.map(l=>`<div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text2);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(l)}</div>`).join('')}
+            <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;">
+              ${matchLabels.map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent);color:#fff;">${esc(l)}</span>`).join('')}
+            </div>
           </div>`;
         }).join('');
     } else {
