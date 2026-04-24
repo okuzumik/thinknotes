@@ -800,10 +800,23 @@ body {
 .card-sel-badge { position:absolute; top:8px; left:8px; width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; z-index:2; }
 
 /* ノート：カードブロックモード */
-.note-card-blocks { display:flex; flex-direction:column; padding:2rem 2rem 4rem; flex:1; overflow-y:auto; max-width:780px; margin:0 auto; width:100%; }
-.note-card-block { position:relative; }
-.note-card-block-body { padding-bottom:.25rem; }
-.note-card-block-stickies { display:none; } /* 右ペインに移動したので非表示 */
+.note-card-blocks { display:flex; flex-direction:column; padding:2rem 1rem 4rem 2rem; flex:1; overflow-y:auto; }
+.note-card-block { position:relative; display:grid; grid-template-columns:1fr 160px; gap:0 1.5rem; margin-bottom:.25rem; }
+.note-card-block-body { grid-column:1; padding-bottom:.25rem; }
+.note-card-block-margin { grid-column:2; padding-top:2px; display:flex; flex-direction:column; gap:5px; align-self:start; }
+.note-card-block-margin-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; font-weight:700; color:var(--accent); cursor:pointer; line-height:1.4; }
+.note-card-block-margin-title:hover { opacity:.7; }
+.note-card-block-margin-controls { display:flex; gap:3px; opacity:0; transition:opacity .1s; }
+.note-card-block:hover .note-card-block-margin-controls { opacity:1; }
+.ncb-ctrl { background:none; border:none; cursor:pointer; font-size:10px; color:var(--text3); padding:1px 3px; }
+.ncb-ctrl:hover { color:var(--accent); }
+.note-card-block-sticky { background:var(--sticky); border-radius:4px; padding:5px 7px; font-size:11px; line-height:1.6; color:var(--text); word-break:break-word; outline:none; }
+.note-card-block-sticky-add { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--accent); background:none; border:none; cursor:pointer; padding:0; opacity:0; }
+.note-card-block:hover .note-card-block-sticky-add { opacity:1; }
+.note-card-block-stickies { display:none; } /* 旧スタイル無効 */
+/* テキストアイテム（編集可能） */
+.ncb-text-item { font-size:14.5px; line-height:1.85; color:var(--text); white-space:pre-wrap; word-break:break-word; outline:none; min-height:1.85em; }
+.ncb-text-item:focus { background:var(--bg3); border-radius:3px; }
 .card-related { width:200px; flex-shrink:0; border-left:0.5px solid var(--border); background:var(--bg3); overflow-y:auto; padding:.75rem .5rem; display:flex; flex-direction:column; gap:8px; }
 .card-related-hd { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); letter-spacing:.08em; padding:0 6px 4px; border-bottom:0.5px solid var(--border); flex-shrink:0; }
 .card-related-thumb { background:var(--bg2); border:0.5px solid var(--border); border-radius:8px; padding:10px; cursor:pointer; transition:all .12s; overflow:hidden; flex-shrink:0; height:160px; display:flex; flex-direction:column; gap:2px; }
@@ -3756,14 +3769,14 @@ function openNote(id){
   const ea=document.getElementById('editorActive');ea.style.display='flex';
   document.getElementById('editorTitle').value=n.title||'';
   if(n.cardBlocks?.length){
-    // カードブロックモード
     document.getElementById('paraModeWrap').style.display='none';
     document.getElementById('cardBlocksWrap').style.display='flex';
+    document.getElementById('stickyPaneB').style.display='none'; // カードブロックモードは右ペイン不要
     renderCardBlockEditor();
   } else {
-    // 通常の段落モード
     document.getElementById('paraModeWrap').style.display='';
     document.getElementById('cardBlocksWrap').style.display='none';
+    document.getElementById('stickyPaneB').style.display='';
     if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
     renderParaEditor();
     setupScrollSync();
@@ -3788,104 +3801,116 @@ function deleteCurrentNote(){
 function renderCardBlockEditor(){
   const n=notes.find(x=>x.id===currentNoteId);if(!n||!n.cardBlocks)return;
   const wrap=document.getElementById('cardBlocksWrap');if(!wrap)return;
+  wrap.innerHTML='';
 
-  // 右ペイン：カードタイトル＋付箋
+  // 右ペインのタイトルを戻す
   const paneTitle=document.getElementById('stickyPaneTitle');
   const addBtn=document.getElementById('stickyPaneAddBtn');
-  const feed=document.getElementById('stickyFeedB');
-  if(paneTitle)paneTitle.textContent='カード・付箋';
-  if(addBtn)addBtn.style.display='none'; // 段落付箋ボタンを非表示
+  if(paneTitle)paneTitle.textContent='付箋メモ';
+  if(addBtn)addBtn.style.display='';
 
-  // 右ペインのカードリスト描画
-  if(feed){
-    feed.innerHTML='';
-    n.cardBlocks.forEach((block,bi)=>{
-      const ol=outlines.find(x=>x.id===block.outlineId);
-      const title=ol?ol.title||'無題':'（削除済み）';
-      const stickies=block.stickies||[];
-
-      const cardSection=document.createElement('div');
-      cardSection.style.cssText='border-bottom:0.5px solid var(--border);padding:8px 10px;';
-
-      // カードタイトル（クリックでその位置にスクロール）
-      const titleEl=document.createElement('div');
-      titleEl.style.cssText='font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px;cursor:pointer;display:flex;align-items:center;gap:4px;';
-      titleEl.innerHTML=`<span style="flex:1;">${esc(title)}</span>
-        ${bi>0?`<button onclick="moveCardBlock(${bi},-1)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;">↑</button>`:''}
-        ${bi<n.cardBlocks.length-1?`<button onclick="moveCardBlock(${bi},1)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;">↓</button>`:''}
-        <button onclick="removeCardBlock(${bi})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;" title="削除">✕</button>`;
-      titleEl.querySelector('span').onclick=()=>{
-        const target=wrap.querySelector(`[data-bi="${bi}"]`);
-        if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
-      };
-      cardSection.appendChild(titleEl);
-
-      // 付箋リスト
-      stickies.forEach((s,si)=>{
-        const sDiv=document.createElement('div');
-        sDiv.style.cssText='background:var(--sticky);border-radius:4px;padding:5px 7px;margin-bottom:4px;display:flex;gap:4px;align-items:flex-start;';
-        const ta=document.createElement('div');
-        ta.contentEditable='true';
-        ta.style.cssText='font-size:11px;line-height:1.6;color:var(--text);flex:1;outline:none;word-break:break-word;';
-        ta.textContent=s.text||'';
-        ta.onblur=()=>saveCardBlockSticky(bi,si,ta.textContent);
-        const del=document.createElement('button');
-        del.style.cssText='background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;flex-shrink:0;padding:0;';
-        del.textContent='✕';del.onclick=()=>removeCardBlockSticky(bi,si);
-        sDiv.appendChild(ta);sDiv.appendChild(del);
-        cardSection.appendChild(sDiv);
-      });
-
-      // 付箋追加ボタン
-      const addBtn2=document.createElement('button');
-      addBtn2.style.cssText='font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:10px;color:var(--accent);background:none;border:none;cursor:pointer;padding:2px 0;';
-      addBtn2.textContent='＋ 付箋';
-      addBtn2.onclick=()=>addCardBlockSticky(bi);
-      cardSection.appendChild(addBtn2);
-      feed.appendChild(cardSection);
-    });
-
-    // ブロック追加
-    const addCardBtn=document.createElement('button');
-    addCardBtn.style.cssText='display:block;width:100%;padding:8px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;text-align:center;';
-    addCardBtn.textContent='＋ カードを追加';
-    addCardBtn.onclick=()=>openNoteCardPicker();
-    feed.appendChild(addCardBtn);
-  }
-
-  // 左：本文（境目なし、テキストのみ）
-  wrap.innerHTML='';
   n.cardBlocks.forEach((block,bi)=>{
     const ol=outlines.find(x=>x.id===block.outlineId);
+    const title=ol?ol.title||'無題':'（削除済み）';
     const items=ol?ol.items:[];
+    const stickies=block.stickies||[];
+    // 編集済みテキストがあれば使う、なければ元の内容
+    const editedItems=block.editedItems||{};
 
     const blockEl=document.createElement('div');
     blockEl.className='note-card-block';
     blockEl.dataset.bi=bi;
 
-    // 本文（・なし、インデントなし、レベル0は空行で区切る）
+    // ── 左：テキスト本文（編集可能）
     const body=document.createElement('div');
     body.className='note-card-block-body';
     let prevLevel=null;
-    const itemsHtml=items.map(it=>{
-      let text=it.text||'';
-      if(!text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
-      if(!text.trim())return'';
+    items.forEach((it,ii)=>{
+      let defaultText=it.text||'';
+      if(!defaultText&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);defaultText=p?cleanText(p.content):'';}
+      if(!defaultText.trim())return;
       const lvl=it.level||0;
-      const spacer=(lvl===0&&prevLevel!==null)?'<div style="height:0.75em;"></div>':'';
+      // レベル0（最上位）の前に空行
+      if(lvl===0&&prevLevel!==null){
+        const sp=document.createElement('div');sp.style.height='.75em';body.appendChild(sp);
+      }
       prevLevel=lvl;
-      return`${spacer}<div style="font-size:14.5px;line-height:1.85;color:var(--text);white-space:pre-wrap;word-break:break-word;">${linkify(text)}</div>`;
-    }).filter(Boolean).join('');
-    body.innerHTML=itemsHtml||'<div style="color:var(--text3);font-size:12px;">（空）</div>';
+      const text=editedItems[ii]!==undefined?editedItems[ii]:defaultText;
+      const div=document.createElement('div');
+      div.className='ncb-text-item';
+      div.contentEditable='true';
+      div.textContent=text;
+      div.dataset.ii=ii;
+      div.oninput=()=>{
+        if(!block.editedItems)block.editedItems={};
+        block.editedItems[ii]=div.textContent;
+        n.updatedAt=Date.now();
+        clearTimeout(div._t);div._t=setTimeout(()=>save(),800);
+      };
+      body.appendChild(div);
+    });
+    if(!body.children.length){
+      const ph=document.createElement('div');
+      ph.style.cssText='color:var(--text3);font-size:12px;';
+      ph.textContent='（空）';body.appendChild(ph);
+    }
     blockEl.appendChild(body);
+
+    // ── 右：マージンノート（カードタイトル＋付箋）
+    const margin=document.createElement('div');
+    margin.className='note-card-block-margin';
+
+    // カードタイトル
+    const titleEl=document.createElement('div');
+    titleEl.className='note-card-block-margin-title';
+    titleEl.textContent=title;
+    titleEl.onclick=()=>switchMain('think')&&setTimeout(()=>wfOpen(ol?.id),50);
+    margin.appendChild(titleEl);
+
+    // 操作ボタン
+    const ctrl=document.createElement('div');
+    ctrl.className='note-card-block-margin-controls';
+    if(bi>0){const b=document.createElement('button');b.className='ncb-ctrl';b.textContent='↑';b.onclick=()=>moveCardBlock(bi,-1);ctrl.appendChild(b);}
+    if(bi<n.cardBlocks.length-1){const b=document.createElement('button');b.className='ncb-ctrl';b.textContent='↓';b.onclick=()=>moveCardBlock(bi,1);ctrl.appendChild(b);}
+    const del=document.createElement('button');del.className='ncb-ctrl';del.textContent='✕';del.title='削除';del.style.color='var(--red)';del.onclick=()=>removeCardBlock(bi);
+    ctrl.appendChild(del);
+    margin.appendChild(ctrl);
+
+    // 付箋
+    stickies.forEach((s,si)=>{
+      const sDiv=document.createElement('div');
+      sDiv.className='note-card-block-sticky';
+      sDiv.contentEditable='true';
+      sDiv.textContent=s.text||'';
+      sDiv.onblur=()=>saveCardBlockSticky(bi,si,sDiv.textContent);
+      const wrapper=document.createElement('div');
+      wrapper.style.cssText='position:relative;';
+      const del2=document.createElement('button');
+      del2.style.cssText='position:absolute;top:2px;right:2px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:9px;';
+      del2.textContent='✕';del2.onclick=()=>removeCardBlockSticky(bi,si);
+      wrapper.appendChild(sDiv);wrapper.appendChild(del2);
+      margin.appendChild(wrapper);
+    });
+
+    // 付箋追加
+    const addS=document.createElement('button');
+    addS.className='note-card-block-sticky-add';
+    addS.textContent='＋ 付箋';
+    addS.onclick=()=>addCardBlockSticky(bi);
+    margin.appendChild(addS);
+
+    blockEl.appendChild(margin);
     wrap.appendChild(blockEl);
   });
 
-  // 末尾に追加ボタン
-  const addEl=document.createElement('button');
-  addEl.style.cssText='padding:8px 20px;background:none;border:1.5px dashed var(--border2);border-radius:8px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:13px;color:var(--text3);cursor:pointer;align-self:center;margin-top:1rem;';
-  addEl.textContent='＋ カードを追加';
-  addEl.onclick=()=>openNoteCardPicker();
+  // カード追加ボタン
+  const addEl=document.createElement('div');
+  addEl.style.cssText='grid-column:1;padding:1rem 0;';
+  const addBtn2=document.createElement('button');
+  addBtn2.style.cssText='padding:6px 18px;background:none;border:1.5px dashed var(--border2);border-radius:8px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:12px;color:var(--text3);cursor:pointer;';
+  addBtn2.textContent='＋ カードを追加';
+  addBtn2.onclick=()=>openNoteCardPicker();
+  addEl.appendChild(addBtn2);
   wrap.appendChild(addEl);
 }
 
