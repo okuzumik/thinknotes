@@ -1117,18 +1117,29 @@ body {
           <div class="editor-stats-bar">
             <div class="stat-pill"><span>文字数</span><span class="stat-pill-val" id="statChars">0</span></div>
             <div class="stat-pill"><span>段落数</span><span class="stat-pill-val" id="statParas">0</span></div>
-            <div class="stat-pill"><span>1行</span><input class="stat-line-in" id="lineWidthIn" type="number" value="40" min="10" max="200" step="5"><span>字</span></div>
-            <div class="stat-pill"><span>≈</span><span class="stat-pill-val" id="statLines">0</span><span>行</span></div>
+            <div class="stat-pill" title="1行あたりの文字数（0=制限なし）">
+              <span>行幅</span>
+              <input class="stat-line-in" id="lineWidthIn" type="number" value="0" min="0" max="120" step="5" oninput="applyNoteEditorSettings()">
+              <span>字</span>
+            </div>
+            <div class="stat-pill" style="cursor:pointer;" onclick="toggleNoteLineNumbers()" title="行番号の表示切替">
+              <span id="lineNumToggleLabel" style="user-select:none;">行番号 OFF</span>
+            </div>
           </div>
           <div class="editor-split">
             <div class="editor-main" style="position:relative;">
               <!-- シンプルエディタ（段落・カードブロック統合） -->
-              <div id="noteTextWrap" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-                <div id="noteTextEditor"
-                  contenteditable="true"
-                  style="flex:1;overflow-y:auto;padding:1.75rem 2rem 4rem;font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:15px;line-height:1.9;color:var(--text);outline:none;white-space:pre-wrap;word-break:break-word;caret-color:var(--accent);"
-                  oninput="onNoteTextInput()"
-                  onkeydown="onNoteTextKey(event)">
+              <div id="noteTextWrap" style="flex:1;display:flex;flex-direction:row;overflow:hidden;">
+                <!-- 行番号カラム -->
+                <div id="lineNumbers" style="display:none;padding:1.75rem 0.5rem 4rem 1rem;font-family:monospace;font-size:13px;line-height:1.9;color:var(--text3);text-align:right;user-select:none;flex-shrink:0;border-right:0.5px solid var(--border);background:var(--bg3);min-width:40px;overflow:hidden;"></div>
+                <!-- テキスト本体 -->
+                <div style="flex:1;display:flex;justify-content:center;overflow-y:auto;" id="noteEditorOuter">
+                  <div id="noteTextEditor"
+                    contenteditable="true"
+                    style="width:100%;padding:1.75rem 2rem 4rem;font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:15px;line-height:1.9;color:var(--text);outline:none;white-space:pre-wrap;word-break:break-word;caret-color:var(--accent);"
+                    oninput="onNoteTextInput()"
+                    onkeydown="onNoteTextKey(event)">
+                  </div>
                 </div>
               </div>
             </div>
@@ -3805,8 +3816,58 @@ function openNote(id){
 
   const ed=document.getElementById('noteTextEditor');
   ed.textContent=text;
+  loadNoteEditorSettings(n);
   renderStickyPane();
   setTimeout(()=>ed.focus(),30);
+}
+
+// ─── ノートエディタ設定 ───────────────────────────────────
+let noteShowLineNumbers=false;
+
+function applyNoteEditorSettings(){
+  const n=notes.find(x=>x.id===currentNoteId);
+  const ed=document.getElementById('noteTextEditor');
+  if(!ed)return;
+
+  // 行幅設定（0=制限なし）
+  const wIn=document.getElementById('lineWidthIn');
+  const w=parseInt(wIn?.value)||0;
+  if(n){n.editorWidth=w;n.updatedAt=Date.now();clearTimeout(applyNoteEditorSettings._t);applyNoteEditorSettings._t=setTimeout(()=>save(),600);}
+  if(w>0){
+    // 1文字≒0.6em（日本語で0.98em程度）→ em換算
+    ed.style.maxWidth=(w*1.0)+'em';
+  } else {
+    ed.style.maxWidth='';
+  }
+
+  updateLineNumbers();
+}
+
+function toggleNoteLineNumbers(){
+  noteShowLineNumbers=!noteShowLineNumbers;
+  const lbl=document.getElementById('lineNumToggleLabel');
+  const col=document.getElementById('lineNumbers');
+  if(lbl)lbl.textContent='行番号 '+(noteShowLineNumbers?'ON':'OFF');
+  if(col)col.style.display=noteShowLineNumbers?'block':'none';
+  updateLineNumbers();
+}
+
+function updateLineNumbers(){
+  if(!noteShowLineNumbers)return;
+  const ed=document.getElementById('noteTextEditor');
+  const col=document.getElementById('lineNumbers');
+  if(!ed||!col)return;
+  const lines=ed.textContent.split('\n');
+  col.innerHTML=lines.map((_,i)=>
+    `<div style="line-height:1.9;font-size:13px;color:var(--text3);">${i+1}</div>`
+  ).join('');
+}
+
+function loadNoteEditorSettings(n){
+  const w=n?.editorWidth||0;
+  const wIn=document.getElementById('lineWidthIn');
+  if(wIn)wIn.value=w;
+  applyNoteEditorSettings();
 }
 
 function onNoteTextInput(){
@@ -3814,6 +3875,7 @@ function onNoteTextInput(){
   const ed=document.getElementById('noteTextEditor');
   n.mergedText=ed.textContent;
   n.updatedAt=Date.now();
+  updateLineNumbers();
   clearTimeout(onNoteTextInput._t);
   onNoteTextInput._t=setTimeout(()=>save(),800);
 }
