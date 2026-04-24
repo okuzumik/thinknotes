@@ -944,15 +944,15 @@ body {
           左から選ぶか＋で新規作成
         </div>
         <div class="wf-doc" id="wfDoc" style="display:none;">
-          <input class="wf-title" id="wfTitle" placeholder="タイトル…" oninput="wfSaveTitle()" onkeydown="if(event.key==='Enter'){event.preventDefault();wfFocusItem(0);}">
-          <div class="wf-items" id="wfItems"></div>
           <div class="wf-doc-foot">
             <button class="wf-foot-btn" onclick="wfSave()">💾 保存</button>
             <button class="wf-foot-btn" onclick="wfTogglePicker()" id="wfPickerBtn">📥 つぶやきから追加</button>
-            <button class="wf-foot-btn" onclick="wfDelete()" style="color:var(--red);">削除</button>
             <button class="wf-foot-btn teal" onclick="goToNote()">ノートを書く →</button>
+            <button class="wf-foot-btn" onclick="wfDelete()" style="color:var(--red);">削除</button>
             <span style="margin-left:auto;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">Tab/Shift+Tab: 階層　Ctrl+↑↓: 並び替え　Enter: 新規行</span>
           </div>
+          <input class="wf-title" id="wfTitle" placeholder="タイトル…" oninput="wfSaveTitle()" onkeydown="if(event.key==='Enter'){event.preventDefault();wfFocusItem(0);}">
+          <div class="wf-items" id="wfItems"></div>
         </div>
       </div>
       <!-- つぶやきピッカードロワー -->
@@ -1120,6 +1120,7 @@ body {
         <div class="card-detail-title" id="cardDetailTitle"></div>
         <button class="card-copy-btn" onclick="copyCardText()" style="flex-shrink:0;">📋 コピー</button>
         <button class="card-export-btn" onclick="exportCardText()" style="flex-shrink:0;">↓ 書き出し</button>
+        <button class="card-copy-btn" onclick="wfOpenFromCard(currentCardOutlineId)" style="flex-shrink:0;">✏️ 編集</button>
       </div>
       <div class="card-detail-body" id="cardDetailBody"></div>
     </div>
@@ -1698,11 +1699,20 @@ function renderCardGrid(){
       let text=it.text||'';
       if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
       if(!text.trim())return'';
-      return`<div class="card-cell-line${lvl?' indent'+Math.min(lvl,3):''}" style="padding-left:${lvl*8}px;">${esc(text.split('\n')[0].slice(0,60))}</div>`;
+      return`<div class="card-cell-line" style="padding-left:${lvl*8}px;">${esc(text.split('\n')[0].slice(0,60))}</div>`;
     }).filter(Boolean).join('');
+    // タグ収集
+    const tagSet=new Set();
+    ol.items.forEach(it=>{
+      let text=it.text||'';
+      if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?p.content:'';}
+      extractTags(text).forEach(t=>tagSet.add(t));
+    });
+    const tagsHtml=[...tagSet].slice(0,3).map(t=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent-l);color:var(--accent);border:0.5px solid var(--accent-m);">#${esc(t)}</span>`).join('');
     return`<div class="card-cell" onclick="openCardDetail('${ol.id}')">
       <div class="card-cell-title">${esc(ol.title||'無題')}</div>
       <div class="card-cell-body">${previewLines}</div>
+      ${tagsHtml?`<div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${tagsHtml}</div>`:''}
       <div class="card-cell-foot">${ol.items.length}項目 · ${fmtDate(ol.updatedAt)}</div>
       <div class="card-cell-fade"></div>
     </div>`;
@@ -1717,18 +1727,34 @@ function openCardDetail(outlineId){
   const body=document.getElementById('cardDetailBody');
   if(title)title.textContent=ol.title||'無題';
   if(body){
-    body.innerHTML=ol.items.map(it=>{
+    body.innerHTML=ol.items.map((it,i)=>{
       const lvl=it.level||0;
       let text=it.text||'';
       if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
       if(!text.trim())return'';
-      return`<div class="card-detail-item" style="padding-left:${lvl*24}px;">
-        <span class="card-detail-bullet">•</span>
-        <div class="card-detail-text">${esc(text)}</div>
+      // 画像（元のpostに画像があれば表示）
+      let imgsHtml='';
+      if(it.id&&!it.id.startsWith('reply:')){
+        const p=posts.find(x=>x.id===it.id);
+        if(p?.images?.length){
+          imgsHtml=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${p.images.map(src=>`<img src="${src}" onclick="openLightbox('${src}')" style="max-width:200px;max-height:140px;border-radius:var(--rsm);cursor:pointer;object-fit:cover;border:0.5px solid var(--border);" loading="lazy">`).join('')}</div>`;
+        }
+      }
+      return`<div class="card-detail-item" style="padding-left:${lvl*24}px;" data-idx="${i}">
+        <span class="card-detail-bullet" style="cursor:pointer;" onclick="wfOpenFromCard('${outlineId}')">•</span>
+        <div style="flex:1;">
+          <div class="card-detail-text">${esc(text)}</div>
+          ${imgsHtml}
+        </div>
       </div>`;
     }).filter(Boolean).join('');
   }
   if(detail)detail.style.display='flex';
+}
+
+function wfOpenFromCard(outlineId){
+  switchMain('think');
+  setTimeout(()=>wfOpen(outlineId),50);
 }
 
 function closeCardDetail(){
@@ -1943,6 +1969,16 @@ function switchPhase(n){
   if(n===1){renderFeed();}
   if(n===2){
     renderCalendar();
+    // 初回またはデフォルトで今日を選択
+    if(!calSelectedDate){
+      const today=new Date();
+      const todayStr=calDateStr(today.getFullYear(),today.getMonth(),today.getDate());
+      selectCalDay(todayStr);
+    } else {
+      renderCalDayView(calSelectedDate);
+      const compose=document.getElementById('calDayCompose');
+      if(compose)compose.style.display='';
+    }
     if(window.innerWidth<=640){
       const mt=document.getElementById('mobileToolbar');
       const mb=document.getElementById('mobileBskyBar');
@@ -2513,14 +2549,21 @@ async function postExistingToBsky(pid){
   }
 }
 function showBskyPostStatus(pid,ok,mode,error){
-  const postEl=document.getElementById('post-'+pid);if(!postEl)return;
-  const existing=postEl.querySelector('.bsky-post-status');if(existing)existing.remove();
-  const status=document.createElement('span');
-  status.className='bsky-post-status '+(ok?'ok':'err');
-  const label=mode==='reply'?'🦋 返信投稿済':'🦋 Bsky投稿済';
-  status.textContent=ok?label:'🦋 失敗: '+(error||'');
-  const meta=postEl.querySelector('.post-meta');
-  if(meta)meta.appendChild(status);
+  // トースト表示（renderFeedによるDOM再描画後も消えない）
+  let toast=document.getElementById('bskyToast');
+  if(!toast){
+    toast=document.createElement('div');
+    toast.id='bskyToast';
+    toast.style.cssText='position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 16px;border-radius:var(--r);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.15);transition:opacity .3s;';
+    document.body.appendChild(toast);
+  }
+  const label=mode==='reply'?'🦋 返信をBskyに投稿':'🦋 Bskyに投稿';
+  toast.textContent=ok?label+'済':'🦋 Bsky失敗: '+(error||'');
+  toast.style.background=ok?'var(--teal)':'var(--red)';
+  toast.style.color='#fff';
+  toast.style.opacity='1';
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>{toast.style.opacity='0';},3000);
 }
 
 // ─── Reply (thread) ──────────────────────────────────────
@@ -2583,6 +2626,11 @@ async function submitReply(pid){
 
   // Bluesky投稿
   if(postToBskyFlag){
+    // セッションが切れていれば再取得
+    if(!bskySession){
+      const ok=await bskyRefreshSession();
+      if(!ok){showBskyPostStatus(pid,false,'reply','セッション切れ。Bsky設定を開き直してください');return;}
+    }
     let replyRef=null;
     if(p.bskyUri&&p.bskyCid){
       const root={uri:p.bskyUri,cid:p.bskyCid};
@@ -2592,8 +2640,13 @@ async function submitReply(pid){
       replyRef={root,parent};
     }
     const result=await postToBsky(text,replyRef,reply.images||[]);
-    if(result.ok){reply.bskyUri=result.uri;reply.bskyCid=result.cid;save();showBskyPostStatus(pid,true,'reply');}
-    else showBskyPostStatus(pid,false,'reply',result.error);
+    if(result.ok){
+      reply.bskyUri=result.uri;reply.bskyCid=result.cid;save();
+      showBskyPostStatus(pid,true,'reply');
+    } else {
+      console.error('Bsky reply error:',result.error);
+      showBskyPostStatus(pid,false,'reply',result.error);
+    }
   }
 }
 function deleteReply(pid,idx){
@@ -3123,24 +3176,8 @@ function onOutDrop(e,idx){
   renderOutlineFeed();renderAllPostsPanel();
 }
 
-function goToNote(){
-  if(!currentOutline.length){alert('アウトラインにメモを追加してください');return;}
-  const title=document.getElementById('outlineTitleIn').value.trim()||'無題のノート';
-  let n=notes.find(x=>x.id===currentNoteId);
-  if(!n){
-    n={id:uid(),title,body:'',paragraphs:[],items:[],stickies:[],createdAt:Date.now(),updatedAt:Date.now()};
-    notes.push(n);
-  } else {
-    n.title=title;
-  }
-  n.items=[...currentOutline];
-  const newParas=outlineToParas(currentOutline);
-  if(!n.paragraphs.length)n.paragraphs=newParas;
-  n.updatedAt=Date.now();
-  currentNoteId=n.id;
-  save();switchPhase(4);
-  setTimeout(()=>{openNote(n.id);},30);
-}
+// goToNote は WF版のみ使用（下部に定義）
+
 
 // アウトラインアイテム配列 → 段落テキスト配列（reply: も含む）
 function outlineToParas(items){
