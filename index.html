@@ -1121,19 +1121,21 @@ body {
             <div class="stat-pill"><span>≈</span><span class="stat-pill-val" id="statLines">0</span><span>行</span></div>
           </div>
           <div class="editor-split">
-            <div class="editor-main">
-              <!-- 通常の段落エディタ -->
-              <div id="paraModeWrap">
-                <div class="para-editor" id="paraEditor"></div>
-                <div class="editor-hint">段落ホバーで「＋ 付箋」 ← →：階層変更</div>
+            <div class="editor-main" style="position:relative;">
+              <!-- シンプルエディタ（段落・カードブロック統合） -->
+              <div id="noteTextWrap" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+                <div id="noteTextEditor"
+                  contenteditable="true"
+                  style="flex:1;overflow-y:auto;padding:1.75rem 2rem 4rem;font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:15px;line-height:1.9;color:var(--text);outline:none;white-space:pre-wrap;word-break:break-word;caret-color:var(--accent);"
+                  oninput="onNoteTextInput()"
+                  onkeydown="onNoteTextKey(event)">
+                </div>
               </div>
-              <!-- カードブロックモード -->
-              <div id="cardBlocksWrap" style="display:none;" class="note-card-blocks"></div>
             </div>
             <div class="sticky-pane-b" id="stickyPaneB">
               <div class="sticky-pane-b-hd">
-                <span id="stickyPaneTitle">付箋メモ</span>
-                <button class="new-note-btn" id="stickyPaneAddBtn" style="font-size:10px;padding:2px 7px" onclick="addStickyUnanchored()">＋</button>
+                <span>付箋メモ</span>
+                <button class="new-note-btn" style="font-size:10px;padding:2px 7px" onclick="addStickyUnanchored()">＋</button>
               </div>
               <div class="sticky-feed-b" id="stickyFeedB"></div>
             </div>
@@ -1913,13 +1915,26 @@ function confirmNoteCardPicker(){
   const ordered=[...notePickerSel].map(id=>outlines.find(x=>x.id===id)).filter(Boolean);
   let n=notes.find(x=>x.id===currentNoteId);
   if(!n){
-    n={id:uid(),title:ordered.map(ol=>ol.title||'無題').join('・').slice(0,40),body:'',paragraphs:[],items:[],stickies:[],createdAt:Date.now(),updatedAt:Date.now()};
+    n={id:uid(),title:'',body:'',paragraphs:[],items:[],stickies:[],createdAt:Date.now(),updatedAt:Date.now()};
     notes.push(n);currentNoteId=n.id;
   }
-  // 追加（置き換えではなく）
+  // 新規カードのテキストを生成
+  const newText=ordered.map(ol=>{
+    const title=ol.title||'無題';
+    const items=ol.items||[];
+    const body=items.map(it=>{
+      let t=it.text||'';
+      if(!t&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);t=p?cleanText(p.content):'';}
+      return t.trim();
+    }).filter(Boolean).join('\n');
+    return title+'\n\n'+body;
+  }).join('\n\n');
+  // 既存テキストに追加
+  const existing=(n.mergedText||'').trim();
+  n.mergedText=existing?existing+'\n\n'+newText:newText;
   if(!n.cardBlocks)n.cardBlocks=[];
   n.cardBlocks.push(...ordered.map(ol=>({outlineId:ol.id,stickies:[]})));
-  if(!n.title||n.title==='無題のノート')n.title=ordered.map(ol=>ol.title||'無題').join('・').slice(0,40);
+  if(!n.title)n.title=ordered[0]?.title||'無題のノート';
   n.updatedAt=Date.now();
   notePickerSel.clear();
   save();openNote(currentNoteId);renderNotesList();
@@ -3754,23 +3769,60 @@ function toggleNotesList(){
   if(btn)btn.textContent=panel.classList.contains('collapsed')?'▶':'◀';
 }
 function openNote(id){
-  currentNoteId=id;const n=notes.find(x=>x.id===id);if(!n)return;
+  currentNoteId=id;
+  const n=notes.find(x=>x.id===id);if(!n)return;
   renderNotesList();
   document.getElementById('editorEmpty').style.display='none';
-  const ea=document.getElementById('editorActive');ea.style.display='flex';
+  document.getElementById('editorActive').style.display='flex';
   document.getElementById('editorTitle').value=n.title||'';
-  if(n.cardBlocks?.length){
-    document.getElementById('paraModeWrap').style.display='none';
-    document.getElementById('cardBlocksWrap').style.display='flex';
-    document.getElementById('stickyPaneB').style.display='none'; // カードブロックモードは右ペイン不要
-    renderCardBlockEditor();
-  } else {
-    document.getElementById('paraModeWrap').style.display='';
-    document.getElementById('cardBlocksWrap').style.display='none';
-    document.getElementById('stickyPaneB').style.display='';
-    if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
-    renderParaEditor();
-    setupScrollSync();
+  document.getElementById('stickyPaneB').style.display='';
+
+  // テキスト取得（cardBlocks / mergedText / paragraphs すべて統合）
+  let text='';
+  if(n.mergedText!==undefined){
+    text=n.mergedText;
+  } else if(n.cardBlocks?.length){
+    // 初回：カードから結合テキストを生成
+    const parts=n.cardBlocks.map(block=>{
+      const ol=outlines.find(x=>x.id===block.outlineId);
+      const title=ol?ol.title||'無題':'（削除済み）';
+      const items=ol?ol.items:[];
+      const body=items.map(it=>{
+        let t=it.text||'';
+        if(!t&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);t=p?cleanText(p.content):'';}
+        return t.trim();
+      }).filter(Boolean).join('\n');
+      return title+'\n\n'+body;
+    });
+    text=parts.join('\n\n');
+    n.mergedText=text;
+    n.updatedAt=Date.now();save();
+  } else if(n.paragraphs?.length){
+    text=n.paragraphs.join('\n\n');
+  } else if(n.body){
+    text=n.body;
+  }
+
+  const ed=document.getElementById('noteTextEditor');
+  ed.textContent=text;
+  renderStickyPane();
+  setTimeout(()=>ed.focus(),30);
+}
+
+function onNoteTextInput(){
+  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
+  const ed=document.getElementById('noteTextEditor');
+  n.mergedText=ed.textContent;
+  n.updatedAt=Date.now();
+  clearTimeout(onNoteTextInput._t);
+  onNoteTextInput._t=setTimeout(()=>save(),800);
+}
+
+function onNoteTextKey(e){
+  // Tab → スペース2つ
+  if(e.key==='Tab'){
+    e.preventDefault();
+    document.execCommand('insertText',false,'  ');
   }
 }
 function showEditorEmpty(){
@@ -4061,50 +4113,19 @@ function scrollToAnchor(anchor){
 // ─── Export ──────────────────────────────────────────────
 function exportObsidian(){
   const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
-  let md=`---\ncreated: ${fmtDateISO(n.createdAt)}\nupdated: ${fmtDateISO(n.updatedAt)}\n---\n\n# ${n.title||'無題'}\n\n`;
-  if(n.cardBlocks?.length){
-    const body=n.mergedText||n.cardBlocks.map(block=>{
-      const ol=outlines.find(x=>x.id===block.outlineId);
-      const title=ol?.title||'無題';
-      const items=ol?.items||[];
-      const text=items.map(it=>{let t=it.text||'';if(!t&&it.id){const p=posts.find(x=>x.id===it.id);t=p?cleanText(p.content):'';}return t.trim();}).filter(Boolean).join('\n');
-      return title+'\n\n'+text;
-    }).join('\n\n');
-    md+=body+'\n\n';
-  } else {
-    (n.paragraphs||[]).forEach(para=>{
-      if(!para.trim())return;md+=para+'\n\n';
-      (n.stickies||[]).filter(s=>s.anchor===para&&s.text).forEach(s=>{md+=`> **[付箋]** ${s.text}\n\n`;});
-    });
-    const unanchored=(n.stickies||[]).filter(s=>!s.anchor&&s.text);
-    if(unanchored.length){md+=`---\n\n## 付箋\n\n`;unanchored.forEach(s=>{md+=`> ${s.text}\n\n`;});}
-  }
+  const text=n.mergedText||n.paragraphs?.join('\n\n')||n.body||'';
+  let md=`---\ncreated: ${fmtDateISO(n.createdAt)}\nupdated: ${fmtDateISO(n.updatedAt)}\n---\n\n# ${n.title||'無題'}\n\n${text}\n`;
+  if(n.stickies?.some(s=>s.text)){md+='\n---\n\n## 付箋\n\n';n.stickies.forEach(s=>{if(s.text)md+=`> ${s.text}\n\n`;});}
   dl(new Blob([md],{type:'text/markdown;charset=utf-8'}),(n.title||'note')+'.md');
 }
 
 function exportPlain(){
   const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
-  let t=`【${n.title||'無題'}】\n更新：${fmtDate(n.updatedAt)}\n\n`;
-  if(n.cardBlocks?.length){
-    n.cardBlocks.forEach(block=>{
-      const ol=outlines.find(x=>x.id===block.outlineId);
-      t+=`■ ${ol?.title||'（削除済み）'}\n\n`;
-      (ol?.items||[]).forEach(it=>{
-        let text=it.text||'';
-        if(!text&&it.id){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
-        if(text.trim())t+=`${'　'.repeat(it.level||0)}・${text}\n`;
-      });
-      t+='\n';
-      (block.stickies||[]).forEach(s=>{if(s.text)t+=`  [付箋] ${s.text}\n`;});
-      t+='\n';
-    });
-  } else {
-    (n.paragraphs||[]).forEach(para=>{if(para.trim())t+=para+'\n\n';});
-    if(n.stickies?.some(s=>s.text)){t+=`---\n付箋：\n\n`;n.stickies.forEach(s=>{if(s.text)t+=`・${s.text}\n\n`;});}
-  }
+  const text=n.mergedText||n.paragraphs?.join('\n\n')||n.body||'';
+  let t=`【${n.title||'無題'}】\n更新：${fmtDate(n.updatedAt)}\n\n${text}\n`;
+  if(n.stickies?.some(s=>s.text)){t+='\n---\n付箋：\n\n';n.stickies.forEach(s=>{if(s.text)t+=`・${s.text}\n\n`;});}
   dl(new Blob([t],{type:'text/plain;charset=utf-8'}),(n.title||'note')+'.txt');
 }
-
 // modal (phase 3 create from modal)
 function createNoteFromModal(){
   const title=document.getElementById('noteModalTitle').value.trim()||'無題のノート';
