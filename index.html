@@ -948,7 +948,7 @@ body {
     <div class="nav-group g-think">
       <div class="nav-group-label">束ねる・攪拌する</div>
       <div class="nav-group-tabs">
-        <button class="phase-step" id="ps-3" onclick="switchPhase(3)">アウトライナー</button>
+        <button class="phase-step" id="ps-3" onclick="switchPhase(3)">アウトライン</button>
         <button class="phase-step" id="ps-5" onclick="switchPhase(5)">カード</button>
       </div>
     </div>
@@ -1045,7 +1045,7 @@ body {
       <!-- 左：アウトライン一覧 -->
       <div class="wf-sidebar">
         <div class="wf-sidebar-hd">
-          <span>アウトライナー</span>
+          <span>アウトライン</span>
           <button class="wf-new-btn" onclick="wfNewOutline()">＋</button>
         </div>
         <div class="wf-sidebar-list" id="wfSidebarList"></div>
@@ -3404,7 +3404,7 @@ function renderCalDayView(dateStr){
           <span style="font-size:14px;flex-shrink:0;">📋</span>
           <div>
             <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:600;color:var(--text);">${esc(ol.title||'無題のアウトライン')}</div>
-            <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">アウトライナー · ${ol.items?.length||0}項目</div>
+            <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">アウトライン · ${ol.items?.length||0}項目</div>
           </div>
         </div>`).join('')}
       ${dayNotes.map(n=>`
