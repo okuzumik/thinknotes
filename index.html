@@ -45,25 +45,26 @@ body {
 .nav-group { display:flex; flex-direction:column; }
 .nav-group-label {
   font-family:'Hiragino Kaku Gothic ProN',sans-serif;
-  font-size:8.5px; letter-spacing:.1em; text-align:center;
-  padding:5px 8px 2px; line-height:1; font-weight:600;
+  font-size:8px; letter-spacing:.05em; text-align:center;
+  padding:4px 10px 3px; line-height:1; font-weight:700;
+  border-radius:3px 3px 0 0; margin:4px 4px 0;
 }
 .nav-group-tabs { display:flex; flex:1; align-items:flex-end; }
-.nav-divider { width:0.5px; background:var(--border); margin:8px 3px 4px; flex-shrink:0; }
+.nav-divider { width:0.5px; background:var(--border); margin:8px 2px 4px; flex-shrink:0; }
 
-/* ログ：青みグレー */
-.nav-group.g-log .nav-group-label { color:#6a8fa8; }
-.nav-group.g-log .phase-step.active { color:#3d7a9c; border-bottom-color:#3d7a9c; }
-.nav-group.g-log .phase-step:hover { color:#5a8fad; }
+/* 書きためる：青みグレー */
+.nav-group.g-log .nav-group-label { color:#fff; background:#4e7fa0; }
+.nav-group.g-log .phase-step.active { color:#4e7fa0; border-bottom-color:#4e7fa0; font-weight:700; }
+.nav-group.g-log .phase-step:hover { color:#4e7fa0; }
 
-/* 思考：アンバー */
-.nav-group.g-think .nav-group-label { color:var(--accent-d); }
-.nav-group.g-think .phase-step.active { color:var(--accent); border-bottom-color:var(--accent); }
+/* 束ねる：アンバー */
+.nav-group.g-think .nav-group-label { color:#fff; background:var(--accent); }
+.nav-group.g-think .phase-step.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:700; }
 .nav-group.g-think .phase-step:hover { color:var(--accent-d); }
 
-/* 執筆：テール */
-.nav-group.g-write .nav-group-label { color:var(--teal); }
-.nav-group.g-write .phase-step.active { color:var(--teal); border-bottom-color:var(--teal); }
+/* 執筆する：テール */
+.nav-group.g-write .nav-group-label { color:#fff; background:var(--teal); }
+.nav-group.g-write .phase-step.active { color:var(--teal); border-bottom-color:var(--teal); font-weight:700; }
 .nav-group.g-write .phase-step:hover { color:var(--teal); }
 
 .phase-step {
@@ -889,7 +890,7 @@ body {
   <div class="app-name">ThinkNotes</div>
   <div class="phase-steps" id="mainNav">
     <div class="nav-group g-log">
-      <div class="nav-group-label">ログ</div>
+      <div class="nav-group-label">書きためる・閲覧する</div>
       <div class="nav-group-tabs">
         <button class="phase-step active" id="ps-1" onclick="switchPhase(1)">タイムライン</button>
         <button class="phase-step" id="ps-2" onclick="switchPhase(2)">カレンダー</button>
@@ -897,7 +898,7 @@ body {
     </div>
     <div class="nav-divider"></div>
     <div class="nav-group g-think">
-      <div class="nav-group-label">思考</div>
+      <div class="nav-group-label">束ねる・攪拌する</div>
       <div class="nav-group-tabs">
         <button class="phase-step" id="ps-3" onclick="switchPhase(3)">アウトライン</button>
         <button class="phase-step" id="ps-5" onclick="switchPhase(5)">カード</button>
@@ -905,7 +906,7 @@ body {
     </div>
     <div class="nav-divider"></div>
     <div class="nav-group g-write">
-      <div class="nav-group-label">執筆</div>
+      <div class="nav-group-label">執筆する・整える</div>
       <div class="nav-group-tabs">
         <button class="phase-step" id="ps-4" onclick="switchPhase(4)">ノート</button>
       </div>
