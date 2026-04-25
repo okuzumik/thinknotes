@@ -73,7 +73,7 @@ body {
   background:none; border:none; border-bottom:3px solid transparent;
   cursor:pointer;
   font-family:'Hiragino Kaku Gothic ProN',sans-serif;
-  font-size:12px; font-weight:600; color:var(--text3);
+  font-size:11px; font-weight:600; color:var(--text3);
   transition:all .12s; white-space:nowrap; letter-spacing:.02em;
 }
 .phase-step:hover { color:var(--text2); }
@@ -900,7 +900,7 @@ body {
     <div class="nav-group g-think">
       <div class="nav-group-label">束ねる・攪拌する</div>
       <div class="nav-group-tabs">
-        <button class="phase-step" id="ps-3" onclick="switchPhase(3)">アウトライン</button>
+        <button class="phase-step" id="ps-3" onclick="switchPhase(3)">アウトライナー</button>
         <button class="phase-step" id="ps-5" onclick="switchPhase(5)">カード</button>
       </div>
     </div>
@@ -908,7 +908,7 @@ body {
     <div class="nav-group g-write">
       <div class="nav-group-label">執筆する・整える</div>
       <div class="nav-group-tabs">
-        <button class="phase-step" id="ps-4" onclick="switchPhase(4)">ノート</button>
+        <button class="phase-step" id="ps-4" onclick="switchPhase(4)">ノートエディター</button>
       </div>
     </div>
   </div>
@@ -996,7 +996,7 @@ body {
       <!-- 左：アウトライン一覧 -->
       <div class="wf-sidebar">
         <div class="wf-sidebar-hd">
-          <span>アウトライン</span>
+          <span>アウトライナー</span>
           <button class="wf-new-btn" onclick="wfNewOutline()">＋</button>
         </div>
         <div class="wf-sidebar-list" id="wfSidebarList"></div>
@@ -1116,7 +1116,7 @@ body {
       <!-- ノートリスト -->
       <div class="notes-list" id="notesListPanel">
         <div class="notes-list-hd">
-          <span>ノート</span>
+          <span>ノートエディター</span>
           <button class="new-note-btn" onclick="createBlankNote()">＋</button>
           <button class="panel-toggle-btn" onclick="toggleNotesList()" title="折りたたむ">◀</button>
         </div>
