@@ -2468,6 +2468,7 @@ function loadLocal(){
   });
   if(!posts.length)posts=DEMO_POSTS;
   if(!notes.length)notes=DEMO_NOTES;
+  if(!outlines.length)outlines=DEMO_OUTLINES;
 }
 // ─── State ────────────────────────────────────────────────
 const KP='tn_posts_v20', KN='tn_notes_v20', KO='tn_outlines_v20';
@@ -4311,6 +4312,44 @@ const DEMO_NOTES=[
     items:[{id:'d1',level:0},{id:'d5',level:1},{id:'d2',level:1},{id:'d4',level:0}],
     stickies:[{id:'s1',text:'冒頭フレーズの候補。「介入」という言葉が強すぎる？',anchor:'体験をデザインするということは、他者の認知に意図的に介入することだ。',color:'yellow',createdAt:Date.now()-1000*60*30}],
     createdAt:Date.now()-1000*3600*2,updatedAt:Date.now()-1000*60*20},
+];
+const DEMO_OUTLINES=[
+  {
+    id:'ol1',
+    title:'体験設計とは何か',
+    labels:['新書'],
+    items:[
+      {id:uid(),text:'体験をデザインするということは、他者の認知に意図的に介入することだ。',level:0},
+      {id:uid(),text:'活動と体験の違い：活動はやること、体験はそこで何が起きるか。',level:1},
+      {id:uid(),text:'体験設計の核心は「必然性」にある。動機が内側から生まれる瞬間をどう設計するか。',level:0},
+      {id:uid(),text:'ゲームデザインの「制約が創造性を生む」原理との接点。',level:1},
+    ],
+    images:[],createdAt:Date.now()-1000*3600*5,updatedAt:Date.now()-1000*3600*4,
+  },
+  {
+    id:'ol2',
+    title:'タスクベース言語指導の論点整理',
+    labels:['新書','SLA'],
+    items:[
+      {id:uid(),text:'「タスク」の定義が研究者によって大きく異なる背景を整理する。',level:0},
+      {id:uid(),text:'Ellis 2003：タスクとはワークプランであり、コミュニカティブな結果を目指すもの。',level:1},
+      {id:uid(),text:'インフォメーションギャップは「知りたい」欲求が前提。情報の非対称性だけでは不十分。',level:0},
+      {id:uid(),text:'「伝えたい」動機が先にあるとき、言語は道具になる。',level:1},
+    ],
+    images:[],createdAt:Date.now()-1000*3600*26,updatedAt:Date.now()-1000*3600*25,
+  },
+  {
+    id:'ol3',
+    title:'第１章の構成メモ',
+    labels:['新書'],
+    items:[
+      {id:uid(),text:'冒頭：「教師はデザイナーである」という宣言から入る。',level:0},
+      {id:uid(),text:'教師＝デザイナーという視点の確立。',level:1},
+      {id:uid(),text:'読者が自分のこととして読める入口を作ること。',level:1},
+      {id:uid(),text:'本章のゴール：活動と体験の違いを読者に腑に落とさせる。',level:0},
+    ],
+    images:[],createdAt:Date.now()-1000*3600*3,updatedAt:Date.now()-1000*3600*2,
+  },
 ];
 
 // ─── Init ────────────────────────────────────────────────
