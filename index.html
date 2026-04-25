@@ -221,7 +221,7 @@ body {
 .wf-row { flex:1; font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif; font-size:15px; line-height:1.75; color:var(--text); outline:none; min-height:1.75em; white-space:pre-wrap; word-break:break-word; padding:2px 0; caret-color:var(--accent); }
 .wf-row:empty::before { content:attr(data-placeholder); color:var(--text3); pointer-events:none; }
 .wf-doc-foot { display:flex; align-items:center; gap:8px; padding:10px 2rem; border-top:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
-.wf-foot-btn { padding:5px 14px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text2); cursor:pointer; }
+.wf-foot-btn { padding:4px 11px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text2); cursor:pointer; }
 .wf-foot-btn:hover { background:var(--surface); }
 .wf-foot-btn.teal { background:var(--teal); color:#fff; border-color:var(--teal); }
 .wf-foot-btn.teal:hover { opacity:.85; }
@@ -1012,7 +1012,6 @@ body {
             <button class="wf-foot-btn" onclick="wfSave()">💾 保存</button>
             <button class="wf-foot-btn" onclick="wfTogglePicker()" id="wfPickerBtn">📥 つぶやきから追加</button>
             <button class="wf-foot-btn" onclick="openImgPickerFor('outline')">🖼️ 画像を追加</button>
-            <button class="wf-foot-btn teal" onclick="goToNote()">ノートを書く →</button>
             <button class="wf-foot-btn" onclick="wfDelete()" style="color:var(--red);">削除</button>
             <span style="margin-left:auto;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">Tab/Shift+Tab: 階層　Ctrl+↑↓: 並び替え　Enter: 新規行</span>
           </div>
@@ -1089,7 +1088,7 @@ body {
           <button class="cal-day-nav" onclick="calPrevDay()">‹</button>
           <button class="cal-day-nav" onclick="calNextDay()">›</button>
           <div class="cal-day-title" id="calDayTitle">日付を選択してください</div>
-          <button class="cal-add-btn" id="calAddBtn" onclick="openMobileDayPanel(calSelectedDate)" style="display:none;">＋ 追加</button>
+          <button class="cal-add-btn" id="calAddBtn" style="display:none;"></button>
         </div>
         <div class="cal-day-compose" id="calDayCompose" style="display:none;">
           <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;">
@@ -2211,7 +2210,7 @@ function openCardDetail(outlineId){
   </div>
   <!-- ラベル・画像追加UIはカード外に -->
   <div style="max-width:720px;margin:.75rem auto 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <button class="card-img-upload-btn" onclick="wfOpenFromCard(currentCardOutlineId)">✏️ アウトラインを編集</button>
+    <button class="card-img-upload-btn" onclick="wfOpenFromCard(currentCardOutlineId)">✏️ 編集</button>
     <div class="card-label-input-wrap" style="flex:1;min-width:180px;">
       <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
       <button class="card-img-upload-btn" onclick="addCardLabel()">＋ ラベル</button>
@@ -2753,9 +2752,6 @@ function selectCalDay(dateStr){
   renderCalDayView(dateStr);
   const compose=document.getElementById('calDayCompose');
   if(compose)compose.style.display='';
-  // 「＋ 追加」ボタンを表示
-  const addBtn=document.getElementById('calAddBtn');
-  if(addBtn)addBtn.style.display='';
 }
 
 function openMobileDayPanel(dateStr){
@@ -3951,14 +3947,23 @@ function updateLineNumbers(){
   if(!col||col.style.display==='none')return;
   const ed=document.getElementById('noteTextEditor');if(!ed)return;
   const lines=ed.textContent.split('\n');
-  // エディタのpadding-top(1.75rem=28px)に合わせてtop paddingを設定
-  col.innerHTML='<div style="height:1.75rem;"></div>'
-    +lines.map((_,i)=>`<div style="line-height:1.9;">${i+1}</div>`).join('')
+  // エディタのfont-size:15px * line-height:1.9 = 28.5px に合わせる
+  const lineH='28.5px';
+  col.innerHTML='<div style="height:1.75rem;"></div>'  // padding-top分
+    +lines.map((_,i)=>`<div style="height:${lineH};display:flex;align-items:center;justify-content:flex-end;font-size:12px;">${i+1}</div>`).join('')
     +'<div style="height:4rem;"></div>';
 }
 
 function syncLineNumberScroll(){}   // 不要になったが呼出箇所のため残す
-function initLineNumberSync(){}
+function initLineNumberSync(){
+  // scrollイベントで行番号が切れて見えないようにnoteEditorOuterと連動
+  const outer=document.getElementById('noteEditorOuter');
+  if(outer)outer.addEventListener('scroll',()=>{
+    const col=document.getElementById('lineNumbers');
+    // 行番号はouterと同じコンテナ内にあるので自動スクロールされるが念のため同期
+    if(col)col.scrollTop=outer.scrollTop;
+  });
+}
 
 function loadNoteEditorSettings(n){
   const w=n?.editorWidth||0;
