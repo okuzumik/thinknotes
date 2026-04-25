@@ -2827,10 +2827,14 @@ function renderCalDayView(dateStr){
   // その日に作成したアウトライン・ノート
   const dayStart=new Date(dateStr+'T00:00:00').getTime();
   const dayEnd=new Date(dateStr+'T23:59:59').getTime();
-  const dayOutlines=outlines.filter(ol=>ol.createdAt>=dayStart&&ol.createdAt<=dayEnd)
-    .sort((a,b)=>a.createdAt-b.createdAt);
-  const dayNotes=notes.filter(n=>n.createdAt>=dayStart&&n.createdAt<=dayEnd)
-    .sort((a,b)=>a.createdAt-b.createdAt);
+  const dayOutlines=outlines.filter(ol=>
+    ol.createdAt>=dayStart&&ol.createdAt<=dayEnd&&
+    (ol.title||ol.items?.length)  // 空でないものだけ
+  ).sort((a,b)=>a.createdAt-b.createdAt);
+  const dayNotes=notes.filter(n=>
+    n.createdAt>=dayStart&&n.createdAt<=dayEnd&&
+    (n.title||(n.mergedText?.trim())||(n.paragraphs?.length))  // 空でないものだけ
+  ).sort((a,b)=>a.createdAt-b.createdAt);
 
   const docsSectionHtml=(dayOutlines.length||dayNotes.length)?`
     <div style="margin-top:1.5rem;padding-top:1rem;border-top:0.5px solid var(--border);">
