@@ -28,8 +28,8 @@ body {
    TOP BAR + PHASE STEPS
    ═══════════════════════════════ */
 .topbar {
-  display:flex; align-items:center;
-  padding:0 1.25rem; height:48px;
+  display:flex; align-items:stretch;
+  padding:0 1.25rem; height:56px;
   border-bottom:0.5px solid var(--border);
   flex-shrink:0; background:var(--bg3); gap:0;
 }
@@ -37,17 +37,38 @@ body {
   font-family:'Hiragino Kaku Gothic ProN',sans-serif;
   font-size:13px; font-weight:700; color:var(--accent);
   letter-spacing:.06em; margin-right:2rem; flex-shrink:0;
+  display:flex; align-items:center;
 }
 
 /* メインタブ */
 .phase-steps { display:flex; align-items:stretch; gap:0; flex:1; }
 .nav-group { display:flex; flex-direction:column; }
-.nav-group-label { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--text3); letter-spacing:.08em; text-align:center; padding:3px 4px 0; line-height:1; }
-.nav-group-tabs { display:flex; flex:1; }
-.nav-divider { width:0.5px; background:var(--border); margin:6px 2px; flex-shrink:0; }
+.nav-group-label {
+  font-family:'Hiragino Kaku Gothic ProN',sans-serif;
+  font-size:8.5px; letter-spacing:.1em; text-align:center;
+  padding:5px 8px 2px; line-height:1; font-weight:600;
+}
+.nav-group-tabs { display:flex; flex:1; align-items:flex-end; }
+.nav-divider { width:0.5px; background:var(--border); margin:8px 3px 4px; flex-shrink:0; }
+
+/* ログ：青みグレー */
+.nav-group.g-log .nav-group-label { color:#6a8fa8; }
+.nav-group.g-log .phase-step.active { color:#3d7a9c; border-bottom-color:#3d7a9c; }
+.nav-group.g-log .phase-step:hover { color:#5a8fad; }
+
+/* 思考：アンバー */
+.nav-group.g-think .nav-group-label { color:var(--accent-d); }
+.nav-group.g-think .phase-step.active { color:var(--accent); border-bottom-color:var(--accent); }
+.nav-group.g-think .phase-step:hover { color:var(--accent-d); }
+
+/* 執筆：テール */
+.nav-group.g-write .nav-group-label { color:var(--teal); }
+.nav-group.g-write .phase-step.active { color:var(--teal); border-bottom-color:var(--teal); }
+.nav-group.g-write .phase-step:hover { color:var(--teal); }
+
 .phase-step {
   display:flex; align-items:center; justify-content:center;
-  padding:0 14px; height:42px;
+  padding:0 14px; height:38px;
   background:none; border:none; border-bottom:3px solid transparent;
   cursor:pointer;
   font-family:'Hiragino Kaku Gothic ProN',sans-serif;
@@ -867,7 +888,7 @@ body {
 <div class="topbar">
   <div class="app-name">ThinkNotes</div>
   <div class="phase-steps" id="mainNav">
-    <div class="nav-group">
+    <div class="nav-group g-log">
       <div class="nav-group-label">ログ</div>
       <div class="nav-group-tabs">
         <button class="phase-step active" id="ps-1" onclick="switchPhase(1)">タイムライン</button>
@@ -875,7 +896,7 @@ body {
       </div>
     </div>
     <div class="nav-divider"></div>
-    <div class="nav-group">
+    <div class="nav-group g-think">
       <div class="nav-group-label">思考</div>
       <div class="nav-group-tabs">
         <button class="phase-step" id="ps-3" onclick="switchPhase(3)">アウトライン</button>
@@ -883,7 +904,7 @@ body {
       </div>
     </div>
     <div class="nav-divider"></div>
-    <div class="nav-group">
+    <div class="nav-group g-write">
       <div class="nav-group-label">執筆</div>
       <div class="nav-group-tabs">
         <button class="phase-step" id="ps-4" onclick="switchPhase(4)">ノート</button>
@@ -1190,7 +1211,6 @@ body {
         <div style="flex:1;"></div>
         <button class="card-copy-btn" onclick="copyCardText()">📋 コピー</button>
         <button class="card-export-btn" onclick="exportCardText()">↓ 書き出し</button>
-        <button class="card-copy-btn" onclick="wfOpenFromCard(currentCardOutlineId)">✏️ 編集</button>
       </div>
       <div style="display:flex;flex:1;overflow:hidden;">
         <div class="card-detail-body" id="cardDetailBody" style="flex:1;"></div>
@@ -2182,6 +2202,7 @@ function openCardDetail(outlineId){
   </div>
   <!-- ラベル・画像追加UIはカード外に -->
   <div style="max-width:720px;margin:.75rem auto 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <button class="card-img-upload-btn" onclick="wfOpenFromCard(currentCardOutlineId)">✏️ アウトラインを編集</button>
     <div class="card-label-input-wrap" style="flex:1;min-width:180px;">
       <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
       <button class="card-img-upload-btn" onclick="addCardLabel()">＋ ラベル</button>
