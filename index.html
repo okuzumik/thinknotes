@@ -844,6 +844,36 @@ body {
 .card-copy-btn { padding:5px 14px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text2); cursor:pointer; }
 .card-copy-btn:hover { background:var(--surface); }
 
+/* ═══ PHASE 6 — BOOK VIEW ═══ */
+.book-wrap { display:flex; flex:1; overflow:hidden; }
+.book-sidebar { width:220px; flex-shrink:0; border-right:0.5px solid var(--border); display:flex; flex-direction:column; overflow:hidden; background:var(--bg3); }
+.book-sidebar-hd { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:0.5px solid var(--border); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); letter-spacing:.08em; flex-shrink:0; }
+.book-new-btn { background:none; border:0.5px solid var(--border2); border-radius:20px; padding:1px 9px; font-size:14px; color:var(--teal); cursor:pointer; }
+.book-sidebar-list { flex:1; overflow-y:auto; }
+.book-sidebar-item { padding:9px 14px; cursor:pointer; border-bottom:0.5px solid var(--border); }
+.book-sidebar-item:hover { background:var(--surface); }
+.book-sidebar-item.active { background:rgba(0,128,100,.08); border-left:2px solid var(--teal); }
+.book-sidebar-item-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.book-sidebar-item-meta { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); margin-top:2px; }
+.book-main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.book-toolbar { display:flex; align-items:center; gap:8px; padding:8px 16px; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.book-title-in { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:14px; font-weight:700; color:var(--text); background:transparent; border:none; outline:none; flex:1; }
+.book-title-in::placeholder { color:var(--text3); }
+.book-toc-btn { padding:4px 12px; background:var(--teal); color:#fff; border:none; border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; cursor:pointer; }
+.book-toc-btn:hover { opacity:.85; }
+.book-del-btn { padding:4px 10px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--red); cursor:pointer; }
+.book-content { flex:1; overflow-y:auto; padding:1.5rem 2rem 3rem; }
+.book-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; gap:8px; }
+.book-toc-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:0.5px solid var(--border); }
+.book-toc-row:last-child { border-bottom:none; }
+.book-toc-text { font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif; font-size:14px; color:var(--text); flex:1; line-height:1.5; }
+.book-toc-row.lv0 .book-toc-text { font-weight:700; font-size:15px; }
+.book-toc-row.lv1 .book-toc-text { padding-left:1.2em; }
+.book-toc-row.lv2 .book-toc-text { padding-left:2.4em; font-size:13px; color:var(--text2); }
+.book-note-sel { padding:3px 8px; border:0.5px solid var(--border2); border-radius:var(--rsm); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text2); background:var(--bg2); cursor:pointer; max-width:200px; }
+.book-note-link { padding:3px 10px; background:rgba(0,128,100,.1); border:none; border-radius:var(--rsm); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--teal); cursor:pointer; white-space:nowrap; }
+.book-note-link:hover { background:rgba(0,128,100,.2); }
+
 .bsky-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; display:none; align-items:center; justify-content:center; }
 .bsky-modal-overlay.open { display:flex; }
 .bsky-modal { background:var(--bg2); border:0.5px solid var(--border2); border-radius:var(--r); width:400px; max-width:94vw; padding:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,.12); display:flex; flex-direction:column; gap:12px; }
@@ -912,9 +942,10 @@ body {
     </div>
     <div class="nav-divider"></div>
     <div class="nav-group g-write">
-      <div class="nav-group-label">執筆する・整える</div>
+      <div class="nav-group-label">執筆する・本にする</div>
       <div class="nav-group-tabs">
-        <button class="phase-step" id="ps-4" onclick="switchPhase(4)">ノートエディター</button>
+        <button class="phase-step" id="ps-4" onclick="switchPhase(4)">ノート</button>
+        <button class="phase-step" id="ps-6" onclick="switchPhase(6)">ブック</button>
       </div>
     </div>
   </div>
@@ -1123,13 +1154,13 @@ body {
   <div class="phase-screen" id="phase4">
     <div class="mobile-phase-msg">
       <div class="msg-icon">🖥️</div>
-      <div>ノートエディター機能はPC画面でご利用ください</div>
+      <div>ノート機能はPC画面でご利用ください</div>
     </div>
     <div class="note-editor-wrap">
       <!-- ノートリスト -->
       <div class="notes-list" id="notesListPanel">
         <div class="notes-list-hd">
-          <span>ノートエディター</span>
+          <span>ノート</span>
           <button class="new-note-btn" onclick="createBlankNote()">＋</button>
           <button class="panel-toggle-btn" onclick="toggleNotesList()" title="折りたたむ">◀</button>
         </div>
@@ -1233,6 +1264,35 @@ body {
     </div>
   </div>
 
+  <!-- ═══ PHASE 6 — BOOK ═══ -->
+  <div class="phase-screen" id="phase6">
+    <div class="book-wrap">
+      <!-- 左：本の一覧 -->
+      <div class="book-sidebar">
+        <div class="book-sidebar-hd">
+          <span>本・プロジェクト</span>
+          <button class="book-new-btn" onclick="bookNew()">＋</button>
+        </div>
+        <div class="book-sidebar-list" id="bookSidebarList"></div>
+      </div>
+      <!-- 右：目次エディタ -->
+      <div class="book-main">
+        <div id="bookEmpty" class="book-empty" style="flex:1;display:flex;">
+          <div style="font-size:28px;">📖</div>
+          左の「＋」で新しい本を作成
+        </div>
+        <div id="bookDoc" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+          <div class="book-toolbar">
+            <input class="book-title-in" id="bookTitleIn" placeholder="本のタイトル…" oninput="bookSaveTitle()">
+            <button class="book-toc-btn" onclick="openBookCardPicker()">🗂️ カードから目次を作成</button>
+            <button class="book-del-btn" onclick="bookDelete()">削除</button>
+          </div>
+          <div class="book-content" id="bookContent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div class="anchor-picker-popup" id="anchorPickerPopup" style="display:none"></div>
@@ -1263,6 +1323,24 @@ body {
       <div style="display:flex;justify-content:flex-end;padding:8px 12px;border-top:0.5px solid var(--border);">
         <button class="compose-btn" style="padding:8px 24px;font-size:14px;" onclick="submitMobileDayPost()">投稿</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ブック用カードピッカーモーダル -->
+<div id="bookCardPickerModal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border-radius:var(--r);width:min(760px,96vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+      <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px;font-weight:700;color:var(--text);flex:1;">📖 目次に使うカードを選択</span>
+      <button onclick="closeBookCardPicker()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);">✕</button>
+    </div>
+    <div style="padding:8px 14px;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+      <input id="bookCardPickerSearch" placeholder="検索…" oninput="renderBookCardPicker()" style="width:100%;padding:6px 12px;border:0.5px solid var(--border2);border-radius:20px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg3);outline:none;">
+    </div>
+    <div id="bookCardPickerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;padding:12px 14px;overflow-y:auto;flex:1;align-content:start;"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 18px;border-top:0.5px solid var(--border);flex-shrink:0;background:var(--bg3);">
+      <button onclick="closeBookCardPicker()" style="padding:6px 16px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;color:var(--text2);cursor:pointer;">キャンセル</button>
+      <button onclick="confirmBookCardPicker()" style="padding:6px 20px;background:var(--teal);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-left:auto;">📖 目次を作成</button>
     </div>
   </div>
 </div>
@@ -2491,6 +2569,153 @@ function exportCardText(fmt='txt'){
   }
 }
 
+// ─── BOOK VIEW ────────────────────────────────────────────
+let books=[];
+let currentBookId=null;
+const KB='tn_books_v20';
+
+function booksLoad(){books=JSON.parse(localStorage.getItem(KB)||'[]');}
+function booksSave(){localStorage.setItem(KB,JSON.stringify(books));}
+
+function renderBookView(){
+  booksLoad();renderBookSidebar();
+}
+
+function renderBookSidebar(){
+  const list=document.getElementById('bookSidebarList');if(!list)return;
+  if(!books.length){list.innerHTML=`<div style="padding:1rem;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text3);">本がありません</div>`;return;}
+  list.innerHTML=[...books].sort((a,b)=>b.updatedAt-a.updatedAt).map(bk=>`
+    <div class="book-sidebar-item${bk.id===currentBookId?' active':''}" onclick="bookOpen('${bk.id}')">
+      <div class="book-sidebar-item-title">${esc(bk.title||'無題の本')}</div>
+      <div class="book-sidebar-item-meta">${(bk.tocItems||[]).length}章/節 · ${fmtDate(bk.updatedAt)}</div>
+    </div>`).join('');
+}
+
+function bookNew(){
+  booksLoad();
+  const bk={id:uid(),title:'',tocItems:[],createdAt:Date.now(),updatedAt:Date.now()};
+  books.push(bk);booksSave();renderBookSidebar();bookOpen(bk.id);
+  setTimeout(()=>document.getElementById('bookTitleIn')?.focus(),50);
+}
+
+function bookOpen(id){
+  booksLoad();currentBookId=id;
+  const bk=books.find(x=>x.id===id);if(!bk)return;
+  renderBookSidebar();
+  document.getElementById('bookEmpty').style.display='none';
+  const doc=document.getElementById('bookDoc');doc.style.display='flex';
+  document.getElementById('bookTitleIn').value=bk.title||'';
+  renderBookToc();
+}
+
+function bookSaveTitle(){
+  booksLoad();
+  const bk=books.find(x=>x.id===currentBookId);if(!bk)return;
+  bk.title=document.getElementById('bookTitleIn').value;
+  bk.updatedAt=Date.now();booksSave();renderBookSidebar();
+}
+
+function bookDelete(){
+  if(!confirm('この本を削除しますか？'))return;
+  booksLoad();books=books.filter(x=>x.id!==currentBookId);currentBookId=null;
+  booksSave();renderBookSidebar();
+  document.getElementById('bookEmpty').style.display='flex';
+  document.getElementById('bookDoc').style.display='none';
+}
+
+function renderBookToc(){
+  booksLoad();
+  const bk=books.find(x=>x.id===currentBookId);if(!bk)return;
+  const content=document.getElementById('bookContent');if(!content)return;
+  if(!bk.tocItems.length){
+    content.innerHTML=`<div style="color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;padding:1rem 0;">「🗂️ カードから目次を作成」でカードの項目が目次になります。</div>`;return;
+  }
+  const noteOptions=[...notes].sort((a,b)=>b.updatedAt-a.updatedAt)
+    .map(n=>`<option value="${n.id}">${esc(n.title||'無題のノート')}</option>`).join('');
+  content.innerHTML=`<table style="width:100%;border-collapse:collapse;">
+    <thead><tr>
+      <th style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);text-align:left;padding:4px 8px;border-bottom:1px solid var(--border);font-weight:normal;letter-spacing:.08em;">章・節</th>
+      <th style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);text-align:left;padding:4px 8px;border-bottom:1px solid var(--border);font-weight:normal;letter-spacing:.08em;white-space:nowrap;">割り当てノート</th>
+    </tr></thead>
+    <tbody>${bk.tocItems.map((it,i)=>{
+      const lvlClass=['lv0','lv1','lv2'][Math.min(it.level||0,2)];
+      const n=notes.find(x=>x.id===it.noteId);
+      return`<tr class="book-toc-row ${lvlClass}">
+        <td style="padding:6px 8px;"><div class="book-toc-text">${esc(it.text)}</div></td>
+        <td style="padding:6px 8px;white-space:nowrap;">${n
+          ?`<button class="book-note-link" onclick="bookGoToNote('${it.noteId}')">${esc(n.title||'無題')} →</button>
+             <button onclick="bookUnassignNote(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;" title="解除">✕</button>`
+          :`<select class="book-note-sel" onchange="bookAssignNote(${i},this.value)">
+             <option value="">ノートを割り当て…</option>${noteOptions}
+           </select>`}
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function bookAssignNote(idx,noteId){
+  booksLoad();const bk=books.find(x=>x.id===currentBookId);if(!bk||!noteId)return;
+  bk.tocItems[idx].noteId=noteId;bk.updatedAt=Date.now();booksSave();renderBookToc();
+}
+function bookUnassignNote(idx){
+  booksLoad();const bk=books.find(x=>x.id===currentBookId);if(!bk)return;
+  delete bk.tocItems[idx].noteId;bk.updatedAt=Date.now();booksSave();renderBookToc();
+}
+function bookGoToNote(noteId){switchPhase(4);setTimeout(()=>openNote(noteId),50);}
+
+// ─── ブック用カードピッカー ───────────────────────────────
+const bookPickerSel=new Set();
+
+function openBookCardPicker(){
+  bookPickerSel.clear();
+  document.getElementById('bookCardPickerSearch').value='';
+  renderBookCardPicker();
+  document.getElementById('bookCardPickerModal').style.display='flex';
+}
+function closeBookCardPicker(){document.getElementById('bookCardPickerModal').style.display='none';}
+
+function renderBookCardPicker(){
+  const q=(document.getElementById('bookCardPickerSearch')?.value||'').toLowerCase();
+  const pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt).filter(ol=>!q||(ol.title||'').toLowerCase().includes(q));
+  const grid=document.getElementById('bookCardPickerGrid');if(!grid)return;
+  grid.innerHTML=pool.map(ol=>{
+    const sel=bookPickerSel.has(ol.id);
+    return`<div onclick="bookPickerToggle('${ol.id}')"
+      style="background:${sel?'rgba(0,128,100,.08)':'var(--bg3)'};border:${sel?'1.5px solid var(--teal)':'0.5px solid var(--border)'};border-radius:8px;padding:10px;cursor:pointer;position:relative;min-height:80px;display:flex;flex-direction:column;gap:4px;">
+      ${sel?`<div style="position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">${[...bookPickerSel].indexOf(ol.id)+1}</div>`:''}
+      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;color:var(--text);">${esc(ol.title||'無題')}</div>
+      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">${ol.items.length}項目</div>
+    </div>`;
+  }).join('');
+}
+
+function bookPickerToggle(id){
+  if(bookPickerSel.has(id))bookPickerSel.delete(id);else bookPickerSel.add(id);
+  renderBookCardPicker();
+}
+
+function confirmBookCardPicker(){
+  if(!bookPickerSel.size)return;
+  closeBookCardPicker();
+  booksLoad();const bk=books.find(x=>x.id===currentBookId);if(!bk)return;
+  const tocItems=[];
+  bookPickerSel.forEach(olId=>{
+    const ol=outlines.find(x=>x.id===olId);if(!ol)return;
+    ol.items.forEach(it=>{
+      let text=it.text||'';
+      if(!text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
+      if(text.trim())tocItems.push({text:text.split('\n')[0].slice(0,80),level:it.level||0,noteId:null});
+    });
+  });
+  bk.tocItems=tocItems;
+  if(!bk.title&&bookPickerSel.size===1){
+    const ol=outlines.find(x=>x.id===[...bookPickerSel][0]);
+    if(ol?.title){bk.title=ol.title;document.getElementById('bookTitleIn').value=bk.title;}
+  }
+  bookPickerSel.clear();bk.updatedAt=Date.now();booksSave();renderBookSidebar();renderBookToc();
+}
+
 function exportBackup(){
   const data={version:20,exportedAt:new Date().toISOString(),posts,notes,outlines};
   const date=new Date().toISOString().slice(0,10);
@@ -2610,7 +2835,7 @@ function switchMain(main){
 
 function switchPhase(n){
   currentPhase=n;
-  [1,2,3,4,5].forEach(i=>{
+  [1,2,3,4,5,6].forEach(i=>{
     document.getElementById('ps-'+i)?.classList.toggle('active',i===n);
     document.getElementById('phase'+i)?.classList.toggle('active',i===n);
   });
@@ -2639,6 +2864,7 @@ function switchPhase(n){
   if(n===3){wfRenderSidebar();}
   if(n===4){renderNotesList();}
   if(n===5){renderCardView();}
+  if(n===6){renderBookView();}
 }
 
 // ─── 画像 ────────────────────────────────────────────────
@@ -2953,7 +3179,7 @@ function renderCalDayView(dateStr){
           <span style="font-size:14px;flex-shrink:0;">📝</span>
           <div>
             <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:600;color:var(--text);">${esc(n.title||'無題のノート')}</div>
-            <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">ノートエディター</div>
+            <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">ノート</div>
           </div>
         </div>`).join('')}
     </div>`:''
