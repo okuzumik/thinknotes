@@ -2092,11 +2092,14 @@ function wfRenderPicker(){
   }).join('');
 }
 
+let _lastParentLevel=0; // 直前に追加した親ツイのレベル
+
 function wfInsertPost(pid){
   const ol=wfGetOl();if(!ol)return;
   const p=posts.find(x=>x.id===pid);if(!p)return;
   const text=cleanText(p.content);
   const lvl=ol.items[wfCurrentFocus]?.level||0;
+  _lastParentLevel=lvl; // 親ツイのレベルを記憶
   ol.items.splice(wfCurrentFocus+1,0,{id:uid(),text,level:lvl});
   ol.updatedAt=Date.now();save();wfRenderItems();wfFocusItem(wfCurrentFocus+1);
 }
@@ -2106,7 +2109,13 @@ function wfInsertReply(btn){
   const ri=parseInt(btn.dataset.ri);
   const p=posts.find(x=>x.id===pid);
   if(!p||!p.replies||!p.replies[ri])return;
-  wfInsertText(p.replies[ri].content,1);
+  const ol=wfGetOl();if(!ol)return;
+  // 親ツイがアウトラインにあればそのレベル+1、なければ現在フォーカスのレベル+1
+  const parentIdx=ol.items.findIndex(it=>it.text===cleanText(p.content));
+  const baseLvl=parentIdx>=0?(ol.items[parentIdx].level||0):(ol.items[wfCurrentFocus]?.level||0);
+  const insertAt=wfCurrentFocus+1;
+  ol.items.splice(insertAt,0,{id:uid(),text:p.replies[ri].content,level:Math.min(6,baseLvl+1)});
+  ol.updatedAt=Date.now();save();wfRenderItems();wfFocusItem(insertAt);
 }
 
 function wfInsertText(text,extraLevel=0){
