@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThinkNotes — 知的生産のための思考ツール</title>
+<style>
+:root {
+  --bg:#f5f3ee; --bg2:#ffffff; --bg3:#f0ede6; --surface:#e8e4db;
+  --border:#dbd6ca; --border2:#c8c2b4;
+  --text:#1c1a14; --text2:#5a5446; --text3:#9a9080;
+  --accent:#7a5c1e; --accent-d:#5a4214; --accent-l:#f5edda;
+  --teal:#2a7a58; --teal-l:#e8f5ee;
+  --log:#4e7fa0; --log-l:#e8f0f5;
+  --r:9px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:15px;line-height:1.8;}
+
+/* ── ヘッダー ── */
+header{background:var(--bg3);border-bottom:0.5px solid var(--border);padding:0 2rem;}
+.header-inner{max-width:860px;margin:0 auto;display:flex;align-items:center;gap:16px;height:56px;}
+.logo{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:16px;font-weight:700;color:var(--accent);letter-spacing:.06em;}
+.header-nav{display:flex;gap:0;margin-left:auto;}
+.header-nav a{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text3);text-decoration:none;padding:0 14px;height:56px;display:flex;align-items:center;border-bottom:2px solid transparent;transition:all .12s;}
+.header-nav a:hover{color:var(--text);}
+.header-nav a.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ── メインレイアウト ── */
+main{max-width:860px;margin:0 auto;padding:3rem 2rem 5rem;}
+
+/* ── Hero ── */
+.hero{text-align:center;padding:3rem 0 2.5rem;}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-l);color:var(--accent-d);border:0.5px solid #c8a860;border-radius:20px;padding:4px 14px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;margin-bottom:1.2rem;}
+.hero h1{font-size:2.2rem;font-weight:700;color:var(--text);letter-spacing:.04em;line-height:1.3;margin-bottom:.8rem;}
+.hero h1 span{color:var(--accent);}
+.hero-sub{font-size:1rem;color:var(--text2);max-width:480px;margin:0 auto 2rem;line-height:1.9;}
+.hero-cta{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;text-decoration:none;padding:10px 28px;border-radius:30px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;font-weight:700;letter-spacing:.04em;transition:opacity .15s;}
+.hero-cta:hover{opacity:.88;}
+
+/* ── フェーズ説明 ── */
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:2.5rem 0;}
+.phase-card{border-radius:var(--r);padding:1.4rem 1.2rem;border:0.5px solid var(--border);}
+.phase-card.log{background:var(--log-l);border-color:#aac8e0;}
+.phase-card.think{background:var(--accent-l);border-color:#c8a860;}
+.phase-card.write{background:var(--teal-l);border-color:#8cc8a8;}
+.phase-label{display:inline-block;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;font-weight:700;letter-spacing:.08em;color:#fff;border-radius:3px;padding:2px 8px;margin-bottom:.7rem;}
+.phase-card.log .phase-label{background:var(--log);}
+.phase-card.think .phase-label{background:var(--accent);}
+.phase-card.write .phase-label{background:var(--teal);}
+.phase-title{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:.5rem;line-height:1.4;}
+.phase-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:.7rem;}
+.phase-tab{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text2);background:rgba(255,255,255,.6);border:0.5px solid var(--border2);border-radius:20px;padding:2px 9px;}
+.phase-desc{font-size:13px;color:var(--text2);line-height:1.7;}
+
+/* ── セクション共通 ── */
+.section{margin:3rem 0;}
+.section-head{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--text3);margin-bottom:1.2rem;padding-bottom:.5rem;border-bottom:0.5px solid var(--border);}
+
+/* ── 機能リスト ── */
+.features{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.feature-item{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem;}
+.feature-icon{font-size:18px;margin-bottom:.4rem;}
+.feature-title{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;color:var(--text);margin-bottom:.3rem;}
+.feature-desc{font-size:12px;color:var(--text2);line-height:1.65;}
+
+/* ── 更新履歴 ── */
+.changelog{display:flex;flex-direction:column;gap:0;}
+.changelog-item{display:flex;gap:1.5rem;padding:1rem 0;border-bottom:0.5px solid var(--border);}
+.changelog-item:last-child{border-bottom:none;}
+.changelog-date{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);white-space:nowrap;padding-top:2px;min-width:80px;}
+.changelog-body{}
+.changelog-tag{display:inline-block;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;font-weight:700;border-radius:3px;padding:1px 6px;margin-right:4px;vertical-align:middle;}
+.tag-new{background:var(--teal-l);color:var(--teal);border:0.5px solid #8cc8a8;}
+.tag-fix{background:var(--accent-l);color:var(--accent-d);border:0.5px solid #c8a860;}
+.tag-change{background:#e8e8f5;color:#446;border:0.5px solid #a8a8c8;}
+.changelog-title{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:.3rem;}
+.changelog-desc{font-size:13px;color:var(--text2);line-height:1.7;}
+
+/* ── フッター ── */
+footer{background:var(--bg3);border-top:0.5px solid var(--border);padding:1.5rem 2rem;text-align:center;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);}
+
+@media(max-width:640px){
+  main{padding:2rem 1rem 4rem;}
+  .phases{grid-template-columns:1fr;}
+  .features{grid-template-columns:1fr;}
+  .hero h1{font-size:1.6rem;}
+  .changelog-item{flex-direction:column;gap:.3rem;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">ThinkNotes</div>
+    <nav class="header-nav">
+      <a href="info.html" class="active">概要</a>
+      <a href="info.html#features">機能</a>
+      <a href="info.html#changelog">更新履歴</a>
+      <a href="guide.html">使い方</a><a href="https://okuzumik.github.io/thinknotes/" target="_blank" style="color:var(--teal);font-weight:700;">アプリを開く →</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- Hero -->
+  <section class="hero" id="about">
+    <div class="hero-badge">🪄 個人用知的生産ツール</div>
+    <h1>思考を<span>書きためる</span>、<br>束ねる、本にする</h1>
+    <p class="hero-sub">
+      タイムラインに断片を流し、アウトラインで整理し、カードに蓄積し、ノートに書き、本にまとめる。
+      書き手のための一気通貫の思考ワークスペース。
+    </p>
+    <a class="hero-cta" href="https://okuzumik.github.io/thinknotes/" target="_blank">
+      ThinkNotes を開く
+    </a>
+  </section>
+
+  <!-- 3フェーズ -->
+  <div class="phases">
+    <div class="phase-card log">
+      <div class="phase-label">書きためる・閲覧する</div>
+      <div class="phase-title">思考の断片を<br>流し続ける</div>
+      <div class="phase-tabs">
+        <span class="phase-tab">タイムライン</span>
+        <span class="phase-tab">カレンダー</span>
+      </div>
+      <p class="phase-desc">Twitterライクな投稿欄でつぶやきを記録。タグで分類し、カレンダーで日ごとに振り返る。</p>
+    </div>
+    <div class="phase-card think">
+      <div class="phase-label">束ねる・攪拌する</div>
+      <div class="phase-title">アイデアを<br>かたちにする</div>
+      <div class="phase-tabs">
+        <span class="phase-tab">アウトライン</span>
+        <span class="phase-tab">カード</span>
+      </div>
+      <p class="phase-desc">WorkFlowy風のアウトラインでつぶやきを束ねる。カードに昇華し、ラベルで管理する。</p>
+    </div>
+    <div class="phase-card write">
+      <div class="phase-label">執筆する・本にする</div>
+      <div class="phase-title">書いて、<br>まとめる</div>
+      <div class="phase-tabs">
+        <span class="phase-tab">ノート</span>
+        <span class="phase-tab">ブック</span>
+      </div>
+      <p class="phase-desc">カードからノートを作成して原稿を書く。ブックで目次を組み、ノートを章に割り当てる。</p>
+    </div>
+  </div>
+
+  <!-- 機能 -->
+  <section class="section" id="features">
+    <div class="section-head">FEATURES</div>
+    <div class="features">
+      <div class="feature-item">
+        <div class="feature-icon">🦋</div>
+        <div class="feature-title">Bluesky連携</div>
+        <p class="feature-desc">投稿をそのままBlueskyに送信。スレッドも画像も対応。</p>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📅</div>
+        <div class="feature-title">カレンダービュー</div>
+        <p class="feature-desc">投稿をカテゴリ・タグで分類し、月・日単位で俯瞰する。カテゴリ名と色は自由に設定できる。</p>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📋</div>
+        <div class="feature-title">アウトライン編集</div>
+        <p class="feature-desc">Tab・Ctrl+↑↓でリアルタイム編集。つぶやきやスレッドをワンクリックで取り込む。</p>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🗂️</div>
+        <div class="feature-title">カード管理</div>
+        <p class="feature-desc">アウトラインをカード化し、ラベルで整理。使用済みのカードは「成仏」ステータスで管理。</p>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📝</div>
+        <div class="feature-title">ノートエディタ</div>
+        <p class="feature-desc">カードから本文を生成。行番号・行幅などエディタ設定はノートごとに保存。</p>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📖</div>
+        <div class="feature-title">ブック機能</div>
+        <p class="feature-desc">カードの項目から目次を生成し、ノートを章・節に割り当てて本の構成を管理する。</p>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">☁️</div>
+        <div class="feature-title">Supabase同期</div>
+        <p class="feature-desc">メール認証でログインし、Supabaseでデータをクラウド同期。複数デバイスからアクセス可能。</p>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🔍</div>
+        <div class="feature-title">全文検索・タグ絞り込み</div>
+        <p class="feature-desc">タイムラインをリアルタイム検索。タグフィルターでカテゴリを素早く絞り込む。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 更新履歴 -->
+  <section class="section" id="changelog">
+    <div class="section-head">RECENT UPDATES</div>
+    <div class="changelog">
+
+      <div class="changelog-item">
+        <div class="changelog-date">2026-04-26</div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            <span class="changelog-tag tag-new">NEW</span>ブックビュー追加
+          </div>
+          <p class="changelog-desc">カードの項目から目次を自動生成。各章・節にノートを割り当て、クリックで本文をプレビュー。目次はWorkFlowy風に直接編集・並び替え・階層変更が可能。</p>
+        </div>
+      </div>
+
+      <div class="changelog-item">
+        <div class="changelog-date">2026-04-26</div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            <span class="changelog-tag tag-new">NEW</span>カード「成仏」機能
+          </div>
+          <p class="changelog-desc">使用済みのカードにメモ（例：「連載2026-06」）を添えて成仏マークを付与。グリッドで暗めの背景色になり、未使用カードと視覚的に区別できる。</p>
+        </div>
+      </div>
+
+      <div class="changelog-item">
+        <div class="changelog-date">2026-04-26</div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            <span class="changelog-tag tag-change">CHANGE</span>ナビゲーション刷新
+          </div>
+          <p class="changelog-desc">タブを2段階操作から1クリックに変更。「書きためる・閲覧する」「束ねる・攪拌する」「執筆する・本にする」の3フェーズを色付きバッジで差別化。</p>
+        </div>
+      </div>
+
+      <div class="changelog-item">
+        <div class="changelog-date">2026-04-26</div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            <span class="changelog-tag tag-new">NEW</span>カレンダー カテゴリのカスタマイズ
+          </div>
+          <p class="changelog-desc">カテゴリ名・絵文字・紐付けタグを自由に設定できるように。最大3カテゴリ＋その他。設定はSupabaseに保存されデバイス間で同期される。</p>
+        </div>
+      </div>
+
+      <div class="changelog-item">
+        <div class="changelog-date">2026-04-25</div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            <span class="changelog-tag tag-new">NEW</span>カレンダーに作成済みドキュメントを表示
+          </div>
+          <p class="changelog-desc">カレンダーの日ビュー下部に、その日に作成したアウトラインとノートを表示。クリックで対応タブに直接ジャンプできる。</p>
+        </div>
+      </div>
+
+      <div class="changelog-item">
+        <div class="changelog-date">2026-04-25</div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            <span class="changelog-tag tag-fix">FIX</span>アウトラインへの連ツイ取り込み改善
+          </div>
+          <p class="changelog-desc">子ツイを追加するたびにインデントが深くなる問題を修正。「＋ スレッドごと」ボタンで親ツイ＋全リプライを階層を維持して一括挿入できるようになった。</p>
+        </div>
+      </div>
+
+      <div class="changelog-item">
+        <div class="changelog-date">2026-04-25</div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            <span class="changelog-tag tag-fix">FIX</span>ログアウト時のデータ混在を修正
+          </div>
+          <p class="changelog-desc">別のメールアドレスで新規登録した際に前のユーザーのデータが表示される問題を修正。ログアウト時にlocalStorageのアプリデータを削除するよう変更。</p>
+        </div>
+      </div>
+
+      <div class="changelog-item">
+        <div class="changelog-date">2026-04-24</div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            <span class="changelog-tag tag-new">NEW</span>ノートエディタ：行番号・行幅設定
+          </div>
+          <p class="changelog-desc">行番号の表示ON/OFFと1行あたりの文字数（行幅）をノートごとに設定・保存できるように。</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  ThinkNotes — 個人用知的生産ツール &nbsp;·&nbsp; Supabase + Vanilla JS &nbsp;·&nbsp; 2024–2026
+</footer>
+
+</body>
+</html>
