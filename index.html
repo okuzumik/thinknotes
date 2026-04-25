@@ -1325,6 +1325,7 @@ body {
                 <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;">
                   <div id="bookNoteTitle" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;font-weight:700;color:var(--text);flex:1;"></div>
                   <button onclick="bookGoToNote(currentBookNoteId)" style="padding:4px 12px;background:var(--teal);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;cursor:pointer;">→ 編集</button>
+                  <button onclick="bookUnassignCurrentNote()" style="padding:4px 10px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);cursor:pointer;" title="割り当てを解除">✕ 解除</button>
                 </div>
                 <div id="bookNoteContent" style="flex:1;overflow-y:auto;padding:1.25rem 1.5rem;font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:14px;line-height:1.9;color:var(--text);white-space:pre-wrap;word-break:break-word;"></div>
               </div>
@@ -2692,17 +2693,21 @@ function renderBookTocEditor(){
     const lvl=Math.min(it.level||0,2);
     const indent=lvl*20;
     const note=notes.find(n=>n.id===it.noteId);
+    const isActive=currentBookNoteId&&it.noteId===currentBookNoteId;
     return`<div class="book-toc-item lv${lvl}" data-idx="${i}">
-      <div class="book-toc-row-div${currentBookNoteId&&it.noteId===currentBookNoteId?' active-note':''}"
-        style="padding-left:${8+indent}px;"
+      <div class="book-toc-row-div${isActive?' active-note':''}"
+        style="padding-left:${8+indent}px;${note?'cursor:pointer;':''}"
         onclick="bookTocRowClick(${i},event)">
         <div class="book-toc-editable" contenteditable="true" data-idx="${i}"
           onkeydown="bookTocKey(event,${i})" oninput="bookTocInput(${i},this)"
           onfocus="bookTocFocus(${i})" onblur="bookTocBlur(${i},this)">${esc(it.text)}</div>
-        ${note?`<div class="book-toc-note-dot" title="${esc(note.title||'無題')}"></div>`:''}
-        <select class="book-toc-note-sel" onchange="bookAssignNote(${i},this.value)" onclick="event.stopPropagation()">
-          ${noteOptions.replace(`value="${it.noteId}"`,`value="${it.noteId}" selected`)}
-        </select>
+        ${note
+          ?`<button onclick="event.stopPropagation();showBookNote('${it.noteId}')"
+              style="flex-shrink:0;padding:2px 9px;background:${isActive?'var(--teal)':'rgba(0,128,100,.12)'};color:${isActive?'#fff':'var(--teal)'};border:1px solid ${isActive?'var(--teal)':'rgba(0,128,100,.3)'};border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;cursor:pointer;white-space:nowrap;"
+              title="${esc(note.title||'無題')}">📝 ${esc((note.title||'無題').slice(0,12))}</button>`
+          :`<select class="book-toc-note-sel" onchange="bookAssignNote(${i},this.value)" onclick="event.stopPropagation()" title="ノートを割り当て">
+              ${noteOptions.replace(`value="${it.noteId||''}"`,`value="${it.noteId||''}" selected`)}
+            </select>`}
       </div>
     </div>`;
   }).join('');
@@ -2778,7 +2783,8 @@ function bookTocFocusAt(i){
 }
 
 function bookTocRowClick(i,e){
-  if(e.target.classList.contains('book-toc-editable')||e.target.classList.contains('book-toc-note-sel'))return;
+  if(e.target.classList.contains('book-toc-editable'))return;
+  if(e.target.tagName==='SELECT'||e.target.tagName==='BUTTON')return;
   booksLoad();
   const bk=books.find(x=>x.id===currentBookId);if(!bk)return;
   const it=bk.tocItems[i];
@@ -2808,6 +2814,16 @@ function bookAssignNote(idx,noteId){
   booksLoad();const bk=books.find(x=>x.id===currentBookId);if(!bk)return;
   bk.tocItems[idx].noteId=noteId||null;
   bk.updatedAt=Date.now();booksSave();renderBookTocEditor();
+}
+
+function bookUnassignCurrentNote(){
+  if(!currentBookNoteId)return;
+  booksLoad();
+  const bk=books.find(x=>x.id===currentBookId);if(!bk)return;
+  const it=bk.tocItems.find(x=>x.noteId===currentBookNoteId);
+  if(it){delete it.noteId;bk.updatedAt=Date.now();booksSave();}
+  showBookNoteEmpty();
+  renderBookTocEditor();
 }
 
 function bookGoToNote(noteId){switchPhase(4);setTimeout(()=>openNote(noteId),50);}
