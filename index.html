@@ -1388,6 +1388,20 @@ body {
   </div>
 </div>
 
+<!-- ブック：ノート割り当てポップオーバー -->
+<div id="bookNoteAssignPop" style="display:none;position:fixed;z-index:9999;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);box-shadow:0 4px 20px rgba(0,0,0,.15);width:260px;padding:10px;">
+  <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:700;color:var(--text);margin-bottom:8px;">ノートを割り当て</div>
+  <input id="bookNoteAssignSearch" placeholder="ノートを検索…" oninput="renderBookNoteAssignList()"
+    style="width:100%;padding:5px 10px;border:0.5px solid var(--border2);border-radius:20px;font-size:12px;font-family:inherit;color:var(--text);background:var(--bg3);outline:none;margin-bottom:6px;">
+  <div id="bookNoteAssignList" style="max-height:180px;overflow-y:auto;"></div>
+  <div style="border-top:0.5px solid var(--border);margin-top:8px;padding-top:8px;">
+    <button onclick="bookCreateAndAssign()"
+      style="width:100%;padding:6px;background:var(--teal);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;cursor:pointer;">
+      ＋ 新規ノートを作成して割り当て
+    </button>
+  </div>
+</div>
+
 <!-- ノートのカードピッカーモーダル -->
 <div id="noteCardPickerModal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
   <div style="background:var(--bg2);border-radius:var(--r);width:min(760px,96vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.2);">
@@ -2705,9 +2719,9 @@ function renderBookTocEditor(){
           ?`<button onclick="event.stopPropagation();showBookNote('${it.noteId}')"
               style="flex-shrink:0;padding:2px 9px;background:${isActive?'var(--teal)':'rgba(0,128,100,.12)'};color:${isActive?'#fff':'var(--teal)'};border:1px solid ${isActive?'var(--teal)':'rgba(0,128,100,.3)'};border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;cursor:pointer;white-space:nowrap;"
               title="${esc(note.title||'無題')}">📝 ${esc((note.title||'無題').slice(0,12))}</button>`
-          :`<select class="book-toc-note-sel" onchange="bookAssignNote(${i},this.value)" onclick="event.stopPropagation()" title="ノートを割り当て">
-              ${noteOptions.replace(`value="${it.noteId||''}"`,`value="${it.noteId||''}" selected`)}
-            </select>`}
+          :`<button onclick="event.stopPropagation();openBookNoteAssign(${i},this)"
+              style="flex-shrink:0;padding:2px 9px;background:none;color:var(--text3);border:0.5px dashed var(--border2);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;cursor:pointer;white-space:nowrap;"
+              >＋ ノートを割り当て</button>`}
       </div>
     </div>`;
   }).join('');
@@ -2816,6 +2830,66 @@ function bookAssignNote(idx,noteId){
   bk.updatedAt=Date.now();booksSave();renderBookTocEditor();
 }
 
+// ─ ノート割り当てポップオーバー ─
+let bookAssignTargetIdx=null;
+
+function openBookNoteAssign(idx,btn){
+  bookAssignTargetIdx=idx;
+  const pop=document.getElementById('bookNoteAssignPop');
+  // ボタンの位置に合わせて表示
+  const rect=btn.getBoundingClientRect();
+  pop.style.display='block';
+  pop.style.top=(rect.bottom+4)+'px';
+  pop.style.left=Math.min(rect.left,window.innerWidth-270)+'px';
+  document.getElementById('bookNoteAssignSearch').value='';
+  renderBookNoteAssignList();
+  setTimeout(()=>document.getElementById('bookNoteAssignSearch').focus(),50);
+  // 外側クリックで閉じる
+  setTimeout(()=>{
+    const close=(e)=>{
+      if(!pop.contains(e.target)){pop.style.display='none';document.removeEventListener('click',close);}
+    };
+    document.addEventListener('click',close);
+  },10);
+}
+
+function renderBookNoteAssignList(){
+  const q=(document.getElementById('bookNoteAssignSearch')?.value||'').toLowerCase();
+  const pool=[...notes].sort((a,b)=>b.updatedAt-a.updatedAt)
+    .filter(n=>!q||(n.title||'').toLowerCase().includes(q));
+  const list=document.getElementById('bookNoteAssignList');if(!list)return;
+  if(!pool.length){
+    list.innerHTML=`<div style="padding:6px 4px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">ノートが見つかりません</div>`;
+    return;
+  }
+  list.innerHTML=pool.map(n=>`
+    <div onclick="bookAssignNote(bookAssignTargetIdx,'${n.id}');document.getElementById('bookNoteAssignPop').style.display='none';"
+      style="padding:6px 8px;border-radius:4px;cursor:pointer;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text);"
+      onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
+      ${esc(n.title||'無題のノート')}
+      <span style="font-size:10px;color:var(--text3);margin-left:4px;">${fmtDate(n.updatedAt)}</span>
+    </div>`).join('');
+}
+
+function bookCreateAndAssign(){
+  document.getElementById('bookNoteAssignPop').style.display='none';
+  // 新規ノートを作成してブックに割り当て
+  const bk=books.find(x=>x.id===currentBookId);
+  const tocItem=bk?.tocItems[bookAssignTargetIdx];
+  const title=tocItem?.text||'新規ノート';
+  const n={id:uid(),title,body:'',paragraphs:[],items:[],stickies:[],mergedText:'',createdAt:Date.now(),updatedAt:Date.now()};
+  notes.push(n);save();
+  if(bk&&bookAssignTargetIdx!==null){
+    booksLoad();
+    const bk2=books.find(x=>x.id===currentBookId);
+    if(bk2?.tocItems[bookAssignTargetIdx])bk2.tocItems[bookAssignTargetIdx].noteId=n.id;
+    bk2.updatedAt=Date.now();booksSave();
+    renderBookTocEditor();
+    showBookNote(n.id);
+  }
+  // ノートエディタに移動して編集
+  setTimeout(()=>{switchPhase(4);setTimeout(()=>openNote(n.id),50);},300);
+}
 function bookUnassignCurrentNote(){
   if(!currentBookNoteId)return;
   booksLoad();
