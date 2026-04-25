@@ -41,26 +41,23 @@ body {
 
 /* メインタブ */
 .phase-steps { display:flex; align-items:stretch; gap:0; flex:1; }
+.nav-group { display:flex; flex-direction:column; }
+.nav-group-label { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--text3); letter-spacing:.08em; text-align:center; padding:3px 4px 0; line-height:1; }
+.nav-group-tabs { display:flex; flex:1; }
+.nav-divider { width:0.5px; background:var(--border); margin:6px 2px; flex-shrink:0; }
 .phase-step {
   display:flex; align-items:center; justify-content:center;
-  padding:0 20px; height:48px;
+  padding:0 14px; height:42px;
   background:none; border:none; border-bottom:3px solid transparent;
   cursor:pointer;
   font-family:'Hiragino Kaku Gothic ProN',sans-serif;
-  font-size:13px; font-weight:600; color:var(--text3);
+  font-size:12px; font-weight:600; color:var(--text3);
   transition:all .12s; white-space:nowrap; letter-spacing:.02em;
 }
 .phase-step:hover { color:var(--text2); }
 .phase-step.active { color:var(--accent); border-bottom-color:var(--accent); }
 .phase-num { display:none; }
 .phase-arrow { display:none; }
-
-/* サブタブバー */
-.sub-tabs { display:none; align-items:center; gap:0; padding:0 1.25rem; border-bottom:0.5px solid var(--border); background:var(--bg2); flex-shrink:0; }
-.sub-tabs.visible { display:flex; }
-.sub-tab { padding:6px 16px; background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text3); transition:all .1s; white-space:nowrap; }
-.sub-tab:hover { color:var(--text2); }
-.sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
 
 .topbar-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
 .search-wrap { position:relative; width:180px; }
@@ -869,10 +866,29 @@ body {
 <!-- ── Topbar ── -->
 <div class="topbar">
   <div class="app-name">ThinkNotes</div>
-  <div class="phase-steps">
-    <button class="phase-step active" id="main-log" onclick="switchMain('log')">ログ</button>
-    <button class="phase-step" id="main-think" onclick="switchMain('think')">思考</button>
-    <button class="phase-step" id="main-note" onclick="switchMain('note')">ノート</button>
+  <div class="phase-steps" id="mainNav">
+    <div class="nav-group">
+      <div class="nav-group-label">ログ</div>
+      <div class="nav-group-tabs">
+        <button class="phase-step active" id="ps-1" onclick="switchPhase(1)">タイムライン</button>
+        <button class="phase-step" id="ps-2" onclick="switchPhase(2)">カレンダー</button>
+      </div>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-group">
+      <div class="nav-group-label">思考</div>
+      <div class="nav-group-tabs">
+        <button class="phase-step" id="ps-3" onclick="switchPhase(3)">アウトライン</button>
+        <button class="phase-step" id="ps-5" onclick="switchPhase(5)">カード</button>
+      </div>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-group">
+      <div class="nav-group-label">執筆</div>
+      <div class="nav-group-tabs">
+        <button class="phase-step" id="ps-4" onclick="switchPhase(4)">ノート</button>
+      </div>
+    </div>
   </div>
   <div class="topbar-right">
     <div class="sync-dot" id="syncDot" title="保存状態"></div>
@@ -889,16 +905,6 @@ body {
       <input class="search-in" id="searchIn" placeholder="検索…" oninput="onSearch(this.value)">
     </div>
   </div>
-</div>
-
-<!-- サブタブバー -->
-<div class="sub-tabs" id="subTabsLog">
-  <button class="sub-tab active" id="sub-timeline" onclick="switchPhase(1)">タイムライン</button>
-  <button class="sub-tab" id="sub-calendar" onclick="switchPhase(2)">カレンダー</button>
-</div>
-<div class="sub-tabs" id="subTabsThink">
-  <button class="sub-tab active" id="sub-outline" onclick="switchPhase(3)">アウトライン</button>
-  <button class="sub-tab" id="sub-card" onclick="switchPhase(5)">カード</button>
 </div>
 
 <div class="main">
@@ -2171,17 +2177,18 @@ function openCardDetail(outlineId){
       <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">${ol.items.length}項目 · ${fmtDate(ol.updatedAt)}</span>
       ${labels.map((lb,i)=>`<span class="card-label-tag" style="cursor:pointer;" onclick="removeCardLabel(${i})" title="クリックで削除">${esc(lb)} ✕</span>`).join('')}
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
-      <div class="card-label-input-wrap" style="flex:1;min-width:180px;">
-        <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
-        <button class="card-img-upload-btn" onclick="addCardLabel()">＋ ラベル</button>
-      </div>
-      <button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()">🖼️ 画像を追加</button>
-      <button class="card-img-upload-btn" onclick="openImgLibrary('card')">📂 ライブラリ</button>
-      <input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)">
-    </div>
     ${cardImgsHtml}
     <div class="card-detail-card-content">${itemsHtml||'<div style="color:var(--text3);font-size:13px;">項目がありません</div>'}</div>
+  </div>
+  <!-- ラベル・画像追加UIはカード外に -->
+  <div style="max-width:720px;margin:.75rem auto 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <div class="card-label-input-wrap" style="flex:1;min-width:180px;">
+      <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
+      <button class="card-img-upload-btn" onclick="addCardLabel()">＋ ラベル</button>
+    </div>
+    <button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()">🖼️ 画像を追加</button>
+    <button class="card-img-upload-btn" onclick="openImgLibrary('card')">📂 ライブラリ</button>
+    <input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)">
   </div>`;
 
   if(detail)detail.style.display='flex';
@@ -2464,22 +2471,11 @@ function cleanText(content){
 }
 
 // ─── Phase switching ─────────────────────────────────────
-// ─── Main/Sub tab switching ──────────────────────────────
-let currentMain='log'; // 'log' | 'think' | 'note'
-
 function switchMain(main){
-  currentMain=main;
-  // メインタブのactive
-  ['log','think','note'].forEach(m=>{
-    document.getElementById('main-'+m)?.classList.toggle('active',m===main);
-  });
-  // サブタブバーの表示切替
-  document.getElementById('subTabsLog').classList.toggle('visible',main==='log');
-  document.getElementById('subTabsThink').classList.toggle('visible',main==='think');
-  // デフォルトphaseへ
-  if(main==='log') switchPhase(1);
-  if(main==='think') switchPhase(3);
-  if(main==='note') switchPhase(4);
+  // 後方互換のため残す
+  if(main==='log')switchPhase(1);
+  else if(main==='think')switchPhase(3);
+  else if(main==='note')switchPhase(4);
 }
 
 function switchPhase(n){
@@ -2488,40 +2484,27 @@ function switchPhase(n){
     document.getElementById('ps-'+i)?.classList.toggle('active',i===n);
     document.getElementById('phase'+i)?.classList.toggle('active',i===n);
   });
-  // サブタブのactive
-  document.getElementById('sub-timeline')?.classList.toggle('active',n===1);
-  document.getElementById('sub-calendar')?.classList.toggle('active',n===2);
-  document.getElementById('sub-outline')?.classList.toggle('active',n===3);
-  document.getElementById('sub-card')?.classList.toggle('active',n===5);
-
-  // サイドバー・検索はタイムラインのみ
   document.getElementById('tagSidebar').style.display=n===1?'':'none';
   document.getElementById('searchWrap').style.display=n===1?'':'none';
   if(n===1){renderFeed();}
   if(n===2){
     renderCalendar();
-    // 初回またはデフォルトで今日を選択
     if(!calSelectedDate){
       const today=new Date();
-      const todayStr=calDateStr(today.getFullYear(),today.getMonth(),today.getDate());
-      selectCalDay(todayStr);
+      selectCalDay(calDateStr(today.getFullYear(),today.getMonth(),today.getDate()));
     } else {
       renderCalDayView(calSelectedDate);
       const compose=document.getElementById('calDayCompose');
       if(compose)compose.style.display='';
     }
     if(window.innerWidth<=640){
-      const mt=document.getElementById('mobileToolbar');
-      const mb=document.getElementById('mobileBskyBar');
-      if(mt)mt.style.display='none';
-      if(mb)mb.style.display='none';
+      document.getElementById('mobileToolbar')?.style && (document.getElementById('mobileToolbar').style.display='none');
+      document.getElementById('mobileBskyBar')?.style && (document.getElementById('mobileBskyBar').style.display='none');
     }
   }
   if(n===1&&window.innerWidth<=640){
-    const mt=document.getElementById('mobileToolbar');
-    const mb=document.getElementById('mobileBskyBar');
-    if(mt)mt.style.display='';
-    if(mb)mb.style.display='';
+    document.getElementById('mobileToolbar')?.style && (document.getElementById('mobileToolbar').style.display='');
+    document.getElementById('mobileBskyBar')?.style && (document.getElementById('mobileBskyBar').style.display='');
   }
   if(n===3){wfRenderSidebar();}
   if(n===4){renderNotesList();}
@@ -3857,9 +3840,10 @@ function updateLineNumbers(){
   if(!col||col.style.display==='none')return;
   const ed=document.getElementById('noteTextEditor');if(!ed)return;
   const lines=ed.textContent.split('\n');
-  col.innerHTML=lines.map((_,i)=>
-    `<div style="line-height:1.9;">${i+1}</div>`
-  ).join('');
+  // エディタのpadding-top(1.75rem=28px)に合わせてtop paddingを設定
+  col.innerHTML='<div style="height:1.75rem;"></div>'
+    +lines.map((_,i)=>`<div style="line-height:1.9;">${i+1}</div>`).join('')
+    +'<div style="height:4rem;"></div>';
 }
 
 function syncLineNumberScroll(){}   // 不要になったが呼出箇所のため残す
@@ -4222,8 +4206,6 @@ const DEMO_NOTES=[
 // ─── Init ────────────────────────────────────────────────
 initAuth();
 initBsky();
-// サブタブバー初期表示
-document.getElementById('subTabsLog').classList.add('visible');
 // モバイルで入力欄を最初は折りたたむ
 if(window.innerWidth<=640){
   const ta=document.getElementById('composeTA');
