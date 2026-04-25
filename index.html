@@ -782,6 +782,11 @@ body {
 .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; padding:1.25rem 1.5rem 3rem; overflow-y:auto; align-content:start; flex:1; }
 .card-grid-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; text-align:center; line-height:1.8; }
 .card-cell { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--r); padding:14px; cursor:pointer; transition:all .15s; display:flex; flex-direction:column; gap:6px; height:220px; overflow:hidden; position:relative; }
+.card-cell.used { background:#eae8e2; border-color:#c8c4bc; opacity:.82; }
+.card-cell.used .card-cell-title { color:var(--text2); }
+.card-used-badge { display:inline-flex; align-items:center; gap:4px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:#888; background:#dedad3; border:0.5px solid #c4c0b8; border-radius:20px; padding:1px 7px; flex-shrink:0; }
+.card-used-badge.in-detail { font-size:11px; padding:3px 10px; cursor:pointer; }
+.card-used-badge.in-detail:hover { background:#d0ccc4; }
 .card-cell:hover { border-color:var(--accent-m); box-shadow:0 3px 14px rgba(0,0,0,.09); transform:translateY(-1px); }
 .card-cell-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:700; color:var(--text); line-height:1.4; flex-shrink:0; }
 .card-cell-body { flex:1; overflow:hidden; }
@@ -2086,6 +2091,7 @@ function wfRenderPicker(){
       <div class="wf-picker-post-meta">
         <span class="wf-picker-post-time">${fmtDt(p.createdAt)}</span>
         ${replies.length?`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">↩ ${replies.length}件</span>`:''}
+        ${replies.length?`<button class="wf-picker-add" style="background:var(--teal);" onclick="wfInsertThread('${p.id}')">＋ スレッドごと</button>`:''}
         <button class="wf-picker-add" onclick="wfInsertPost('${p.id}')">＋ 追加</button>
       </div>
     </div>`;
@@ -2093,6 +2099,21 @@ function wfRenderPicker(){
 }
 
 let _lastParentLevel=0; // 直前に追加した親ツイのレベル
+
+function wfInsertThread(pid){
+  // 親ツイ＋全リプライを階層を維持してまとめて挿入
+  const ol=wfGetOl();if(!ol)return;
+  const p=posts.find(x=>x.id===pid);if(!p)return;
+  const baseLvl=ol.items[wfCurrentFocus]?.level||0;
+  _lastParentLevel=baseLvl;
+  const newItems=[
+    {id:uid(),text:cleanText(p.content),level:baseLvl},
+    ...(p.replies||[]).map(r=>({id:uid(),text:cleanText(r.content),level:baseLvl+1}))
+  ];
+  ol.items.splice(wfCurrentFocus+1,0,...newItems);
+  ol.updatedAt=Date.now();save();wfRenderItems();
+  wfFocusItem(wfCurrentFocus+newItems.length);
+}
 
 function wfInsertPost(pid){
   const ol=wfGetOl();if(!ol)return;
@@ -2172,11 +2193,14 @@ function renderCardGrid(){
     const labels=(ol.labels||[]).map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 7px;border-radius:20px;background:var(--accent);color:#fff;">${esc(l)}</span>`).join('');
     // タイムラインのタグは表示しない（ラベルのみ）
     const hasImg=ol.images?.length;
-    return`<div class="card-cell" onclick="openCardDetail('${ol.id}')">
+    const isUsed=!!(ol.usedAt);
+    const usedBadge=isUsed?`<div class="card-used-badge">✓ ${esc(ol.usedNote||'成仏済')}</div>`:'';
+    return`<div class="card-cell${isUsed?' used':''}" onclick="openCardDetail('${ol.id}')">
       <div class="card-cell-title">${esc(ol.title||'無題')}</div>
       <div class="card-cell-body" style="flex:1;">${previewLines}</div>
       ${hasImg?`<img src="${ol.images[0]}" style="width:100%;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`:''}
       ${labels?`<div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${labels}</div>`:''}
+      ${usedBadge}
       <div class="card-cell-foot">${ol.items.length}項目 · ${fmtDate(ol.updatedAt)}</div>
       <div class="card-cell-fade"></div>
     </div>`;
@@ -2222,6 +2246,7 @@ function openCardDetail(outlineId){
     <div class="card-detail-card-meta">
       <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">${ol.items.length}項目 · ${fmtDate(ol.updatedAt)}</span>
       ${labels.map((lb,i)=>`<span class="card-label-tag" style="cursor:pointer;" onclick="removeCardLabel(${i})" title="クリックで削除">${esc(lb)} ✕</span>`).join('')}
+      ${ol.usedAt?`<span class="card-used-badge in-detail" onclick="toggleCardUsed()" title="クリックで解除">✓ ${esc(ol.usedNote||'成仏済')} ✕</span>`:''}
     </div>
     ${cardImgsHtml}
     <div class="card-detail-card-content">${itemsHtml||'<div style="color:var(--text3);font-size:13px;">項目がありません</div>'}</div>
@@ -2229,6 +2254,10 @@ function openCardDetail(outlineId){
   <!-- ラベル・画像追加UIはカード外に -->
   <div style="max-width:720px;margin:.75rem auto 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
     <button class="card-img-upload-btn" onclick="wfOpenFromCard(currentCardOutlineId)">✏️ 編集</button>
+    ${!ol.usedAt?`<div style="display:flex;gap:4px;flex:1;min-width:200px;">
+      <input id="cardUsedNoteIn" placeholder="成仏メモ（例：連載2026-06）" style="flex:1;padding:5px 10px;border:0.5px solid var(--border2);border-radius:20px;font-size:12px;font-family:inherit;color:var(--text);background:var(--bg3);outline:none;" onkeydown="if(event.key==='Enter'&&!event.isComposing)toggleCardUsed()">
+      <button class="card-img-upload-btn" onclick="toggleCardUsed()" style="white-space:nowrap;">✓ 成仏させる</button>
+    </div>`:''}
     <div class="card-label-input-wrap" style="flex:1;min-width:180px;">
       <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
       <button class="card-img-upload-btn" onclick="addCardLabel()">＋ ラベル</button>
@@ -2288,6 +2317,21 @@ function openCardDetail(outlineId){
       related.style.display='none';
     }
   }
+}
+
+function toggleCardUsed(){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  if(ol.usedAt){
+    // 解除
+    delete ol.usedAt;delete ol.usedNote;
+  } else {
+    // 成仏
+    const note=document.getElementById('cardUsedNoteIn')?.value.trim()||'';
+    ol.usedAt=Date.now();
+    ol.usedNote=note;
+  }
+  ol.updatedAt=Date.now();save();
+  openCardDetail(currentCardOutlineId);renderCardGrid();
 }
 
 function addCardLabel(){
