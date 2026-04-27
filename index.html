@@ -512,20 +512,17 @@ body {
 @media (max-width: 640px) {
   body { font-size:16px; }
 
-  /* トップバー：メインタブ表示 */
-  .topbar { padding:0 .5rem; height:46px; }
-  .app-name { font-size:14px; margin-right:.25rem; flex-shrink:0; }
-  .phase-steps { display:flex; flex:1; }
-  .phase-step { padding:0 12px; font-size:12px; height:46px; }
-  .topbar-right { display:none; }
-  /* サブタブ */
-  .sub-tabs.visible { display:flex; }
-  .sub-tab { padding:5px 14px; font-size:11px; }
-  /* ログ以外のサブタブはモバイルでは簡略 */
-  #subTabsThink { display:none !important; } /* 思考・ノートはPCのみ */
+  /* ── モバイル：タイムライン専用レイアウト ── */
+  /* トップバー：アプリ名のみ、タブ全非表示 */
+  .topbar { padding:0 .75rem; height:44px; }
+  .app-name { font-size:15px; }
+  .phase-steps { display:none !important; }
+  .topbar-right { display:none !important; }
 
-  /* サイドバー非表示 */
+  /* サイドバー・検索・モバイルツールバー全非表示 */
   .tag-sidebar { display:none !important; }
+  .mobile-toolbar { display:none !important; }
+  .mobile-bsky-bar { display:none !important; }
 
   /* アウトライン・ノートはモバイルでは警告表示 */
   #phase3.active .outline-builder,
@@ -561,24 +558,22 @@ body {
   #calComposeTA { min-height:36px !important; font-size:15px; }
 
   /* フィード */
-  .feed { padding:.5rem .75rem 5rem; }
+  .feed { padding:.25rem .5rem 5rem; }
 
   /* 投稿 */
   .post { padding:13px 0; }
   .post-actions { opacity:1 !important; }
   .pa { width:32px; height:32px; font-size:14px; }
 
-  /* コンポーズ */
-  .compose-wrap { padding:.75rem .75rem .6rem; }
+  /* コンポーズ：全幅・シンプル */
+  .compose-wrap { padding:.5rem .5rem .4rem; }
   .compose-ta { font-size:16px; min-height:72px; }
   .post-text { font-size:16px; }
-  /* モバイル：入力欄は折りたたみ、フォーカスで展開 */
-  .compose-wrap { padding:.5rem .75rem .5rem; }
   .compose-ta.mobile-collapsed { min-height:42px; max-height:42px; overflow:hidden; }
   .compose-ta.mobile-expanded { min-height:120px; max-height:240px; }
   .compose-hint { display:none; }
   .compose-btn { padding:7px 20px; font-size:14px; }
-  .compose-footer { padding:7px 10px; }
+  .compose-footer { padding:7px 6px; }
 
   /* 選択バー */
   .sel-bar { padding:8px .75rem; }
@@ -589,10 +584,6 @@ body {
   .post-tags-row { padding-left:0; margin-top:8px; gap:6px; }
   .tag-pill { padding:3px 10px 3px 11px; font-size:11px; }
   .tag-add-btn { padding:3px 10px; font-size:11px; }
-
-  /* モバイルツールバー表示 */
-  .mobile-toolbar { display:flex !important; }
-  .mobile-bsky-bar { display:flex !important; }
 
   /* 編集 */
   .post-edit-ta { font-size:16px; }
@@ -3070,6 +3061,8 @@ function switchMain(main){
 }
 
 function switchPhase(n){
+  /* モバイルはタイムライン固定 */
+  if(window.innerWidth<=640) n=1;
   currentPhase=n;
   [1,2,3,4,5,6].forEach(i=>{
     document.getElementById('ps-'+i)?.classList.toggle('active',i===n);
@@ -3088,14 +3081,6 @@ function switchPhase(n){
       const compose=document.getElementById('calDayCompose');
       if(compose)compose.style.display='';
     }
-    if(window.innerWidth<=640){
-      document.getElementById('mobileToolbar')?.style && (document.getElementById('mobileToolbar').style.display='none');
-      document.getElementById('mobileBskyBar')?.style && (document.getElementById('mobileBskyBar').style.display='none');
-    }
-  }
-  if(n===1&&window.innerWidth<=640){
-    document.getElementById('mobileToolbar')?.style && (document.getElementById('mobileToolbar').style.display='');
-    document.getElementById('mobileBskyBar')?.style && (document.getElementById('mobileBskyBar').style.display='');
   }
   if(n===3){wfRenderSidebar();}
   if(n===4){renderNotesList();}
