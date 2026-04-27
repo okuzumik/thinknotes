@@ -519,6 +519,9 @@ body {
   .phase-steps { display:none !important; }
   .topbar-right { display:none !important; }
 
+  /* モバイル専用Bskyボタン（トップバー） */
+  #mobileBskyTopBtn { display:block !important; margin-left:auto; }
+
   /* サイドバー・検索・モバイルツールバー全非表示 */
   .tag-sidebar { display:none !important; }
   .mobile-toolbar { display:none !important; }
@@ -927,6 +930,8 @@ body {
 <!-- ── Topbar ── -->
 <div class="topbar">
   <div class="app-name">ThinkNotes</div>
+  <!-- モバイル専用：Bsky設定ボタン -->
+  <button id="mobileBskyTopBtn" onclick="openBskySettings()" style="display:none;padding:5px 10px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:12px;color:var(--text2);cursor:pointer;white-space:nowrap;">🦋</button>
   <div class="phase-steps" id="mainNav">
     <div class="nav-group g-log">
       <div class="nav-group-label">書きためる・閲覧する</div>
@@ -1758,15 +1763,10 @@ async function initBsky(){
 function updateBskyUI(connected){
   const wrap=document.getElementById('bskyCheckWrap');
   const btn=document.getElementById('bskySettingsBtn');
-  const mobileBar=document.getElementById('mobileBskyBar');
-  const mobileBtn=document.getElementById('mobileBskyBtn');
+  const topBtn=document.getElementById('mobileBskyTopBtn');
   if(wrap){wrap.style.display=connected?'flex':'none';wrap.className='bsky-check-wrap'+(connected?' connected':'');}
   if(btn){btn.textContent=connected?'🦋 Bsky接続中':'🦋 Bsky設定';btn.style.borderColor=connected?'var(--teal)':'var(--border2)';btn.style.color=connected?'var(--teal)':'var(--text3)';}
-  if(mobileBtn){
-    mobileBtn.textContent=connected?'🦋 Bsky接続中':'🦋 Bsky設定';
-    mobileBtn.style.borderColor=connected?'var(--teal)':'var(--border2)';
-    mobileBtn.style.color=connected?'var(--teal)':'var(--text2)';
-  }
+  if(topBtn){topBtn.textContent=connected?'🦋接続中':'🦋設定';topBtn.style.borderColor=connected?'var(--teal)':'var(--border2)';topBtn.style.color=connected?'var(--teal)':'var(--text2)';}
 }
 
 function openBskySettings(){
