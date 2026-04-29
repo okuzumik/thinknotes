@@ -895,12 +895,12 @@ body {
 .compose-source-sub { font-size:10px; color:var(--text2); font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
 .compose-source-dismiss { background:none; border:none; color:var(--text3); cursor:pointer; font-size:13px; flex-shrink:0; padding:0 2px; }
 /* 投稿のソースリンクカード */
-.post-source-card { display:flex; align-items:center; gap:8px; margin-top:8px; padding:7px 11px; background:var(--source-l); border:0.5px solid var(--source-m); border-left:3px solid var(--source); border-radius:var(--rsm); cursor:pointer; transition:background .15s; text-decoration:none; max-width:420px; }
-.post-source-card:hover { background:#e4e1f0; }
-.post-source-card-icon { font-size:14px; flex-shrink:0; }
+.post-source-card { display:inline-flex; align-items:center; gap:5px; margin-top:5px; margin-left:1.5rem; padding:3px 10px 3px 8px; background:var(--source-l); border:0.5px solid var(--source-m); border-left:2px solid var(--source); border-radius:20px; cursor:pointer; transition:background .15s; text-decoration:none; max-width:320px; }
+.post-source-card:hover { background:#e8eaed; }
+.post-source-card-icon { font-size:10px; flex-shrink:0; }
 .post-source-card-body { flex:1; min-width:0; }
-.post-source-card-title { font-size:12px; font-weight:600; color:var(--source); font-family:'Hiragino Kaku Gothic ProN',sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.post-source-card-sub { font-size:10px; color:var(--text2); font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
+.post-source-card-title { font-size:10px; font-weight:600; color:var(--source); font-family:'Hiragino Kaku Gothic ProN',sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.post-source-card-sub { font-size:9px; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
 /* ソースピッカーモーダル */
 .source-picker-modal { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:900; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s; }
 .source-picker-modal.open { opacity:1; pointer-events:all; }
@@ -3558,13 +3558,13 @@ function renderPostSourceCard(ref){
   if(!ref)return'';
   const ol=outlines.find(x=>x.id===ref.outlineId);
   const url=ref.url||(ol?.sourceUrl)||'';
+  const sub=ref.subLabel?` · ${esc(ref.subLabel)}`:'';
   return`<div class="post-source-card" onclick="event.stopPropagation();switchPhase(7);setTimeout(()=>{renderMatSourceGrid();openCardDetail('${ref.outlineId}');},50)">
     <span class="post-source-card-icon">📎</span>
     <div class="post-source-card-body">
-      <div class="post-source-card-title">${esc(ref.title)}</div>
-      ${ref.subLabel?`<div class="post-source-card-sub">${esc(ref.subLabel)}</div>`:''}
+      <div class="post-source-card-title">${esc(ref.title)}<span style="font-weight:400;color:var(--text3);">${sub}</span></div>
     </div>
-    ${url?`<a href="${esc(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11px;color:var(--source);padding:2px 4px;flex-shrink:0;" title="${esc(url)}">🔗</a>`:''}
+    ${url?`<a href="${esc(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;color:var(--source);flex-shrink:0;" title="${esc(url)}">↗</a>`:''}
   </div>`;
 }
 
