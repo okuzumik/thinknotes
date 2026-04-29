@@ -2705,15 +2705,14 @@ function openCardDetail(outlineId){
   const related=document.getElementById('cardRelated');
   if(related){
     const labels=ol.labels||[];
-    // 関連カードとその一致ラベルを収集
     const relatedItems=labels.length
-      ? outlines.filter(x=>x.id!==outlineId)
+      ? outlines.filter(x=>x.id!==outlineId&&!x.isSource&&!x.isScrap)
           .map(x=>{
             const matchLabels=(x.labels||[]).filter(l=>labels.includes(l));
             return matchLabels.length?{ol:x,matchLabels}:null;
           })
           .filter(Boolean)
-          .sort((a,b)=>b.matchLabels.length-a.matchLabels.length) // 一致数が多い順
+          .sort((a,b)=>b.matchLabels.length-a.matchLabels.length)
           .slice(0,20)
       : [];
     if(relatedItems.length){
@@ -2721,17 +2720,11 @@ function openCardDetail(outlineId){
       related.innerHTML=`<div class="card-related-hd">関連カード</div>`
         +relatedItems.map(({ol:ro,matchLabels})=>{
           const img=ro.images?.[0]||null;
-          // テキストプレビュー（最初の2行）
-          const previewLines=ro.items.slice(0,3).map(it=>{
-            let text=it.text||'';
-            if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
-            return text.split('\n')[0].slice(0,40);
-          }).filter(Boolean).slice(0,2);
-          // テキストプレビュー（画像あり:3行、なし:5行）
+          const items=ro.items||[];
           const maxLines=img?3:5;
-          const textLines=ro.items.slice(0,10).map(it=>{
+          const textLines=items.slice(0,10).map(it=>{
             let text=it.text||'';
-            if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
+            if(!text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
             return text.split('\n')[0].slice(0,38);
           }).filter(Boolean).slice(0,maxLines);
           return`<div class="card-related-thumb" onclick="openCardDetail('${ro.id}')">
