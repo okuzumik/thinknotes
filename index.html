@@ -857,6 +857,27 @@ body {
 .source-sub-del:hover { color:var(--red); }
 .source-sub-add-row { display:flex; gap:5px; flex-wrap:wrap; }
 .source-sub-in { flex:1; min-width:120px; padding:5px 9px; border:0.5px solid var(--source-m); border-radius:var(--rsm); font-size:12px; font-family:inherit; color:var(--text); background:#fff; outline:none; }
+/* ── 引用カード ── */
+.source-quotes-section { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+.source-quote-card { background:#fff; border:0.5px solid var(--source-m); border-left:3px solid var(--source); border-radius:var(--rsm); overflow:hidden; }
+.source-quote-card:hover .source-quote-actions { opacity:1; }
+.source-quote-body { padding:9px 12px; }
+.source-quote-episode { display:inline-block; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--source); background:var(--source-l); border:0.5px solid var(--source-m); border-radius:20px; padding:1px 7px; margin-bottom:5px; }
+.source-quote-text { font-size:12.5px; line-height:1.75; color:var(--text2); font-style:italic; white-space:pre-wrap; word-break:break-word; border-left:2px solid var(--source-m); padding-left:8px; margin:0 0 6px; }
+.source-quote-comment { font-size:12.5px; line-height:1.7; color:var(--text); white-space:pre-wrap; word-break:break-word; }
+.source-quote-meta { display:flex; align-items:center; gap:8px; padding:5px 12px; background:var(--source-l); border-top:0.5px solid var(--source-m); }
+.source-quote-date { font-size:9px; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; flex:1; }
+.source-quote-actions { display:flex; gap:4px; opacity:0; transition:opacity .15s; }
+.source-quote-btn { background:none; border:0.5px solid var(--source-m); border-radius:20px; font-size:10px; color:var(--source); font-family:'Hiragino Kaku Gothic ProN',sans-serif; padding:2px 8px; cursor:pointer; white-space:nowrap; }
+.source-quote-btn:hover { background:var(--source); color:#fff; }
+.source-quote-btn.del { color:var(--red); border-color:var(--red); }
+.source-quote-btn.del:hover { background:var(--red); color:#fff; }
+/* 引用追加フォーム */
+.source-quote-add-form { background:#fff; border:0.5px dashed var(--source-m); border-radius:var(--rsm); padding:10px 12px; display:flex; flex-direction:column; gap:7px; }
+.source-quote-add-ta { width:100%; padding:6px 9px; border:0.5px solid var(--source-m); border-radius:var(--rsm); font-size:12px; font-family:inherit; color:var(--text); background:var(--bg2); outline:none; resize:vertical; min-height:52px; box-sizing:border-box; }
+.source-quote-add-ta:focus { border-color:var(--source); background:#fff; }
+.source-quote-add-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.source-quote-ep-sel { flex:1; min-width:120px; padding:5px 9px; border:0.5px solid var(--source-m); border-radius:var(--rsm); font-size:11px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; color:var(--text2); background:#fff; outline:none; }
 /* コンポーズのソース引用プレビュー */
 .compose-source-wrap { padding:0 10px 6px; }
 .compose-source-card { display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--source-l); border:0.5px solid var(--source-m); border-radius:var(--rsm); position:relative; }
@@ -2519,6 +2540,10 @@ function openCardDetail(outlineId){
           <button class="card-img-upload-btn" onclick="addSourceSubItem()" style="white-space:nowrap;">＋ 追加</button>
         </div>
       </div>
+      <div class="source-detail-label" style="margin-top:8px;">💬 引用メモ</div>
+      <div class="source-quotes-section" id="sourceQuotesList">
+        ${renderSourceQuotesHTML(ol)}
+      </div>
     </div>`:''}
     ${cardImgsHtml}
     ${!ol.isSource?`<div class="card-detail-card-content">${itemsHtml||'<div style="color:var(--text3);font-size:13px;">項目がありません</div>'}</div>`:''}
@@ -3472,6 +3497,91 @@ function removeSourceSubItem(idx){
   const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol||!ol.sourceSubItems)return;
   ol.sourceSubItems.splice(idx,1);ol.updatedAt=Date.now();save();
   openCardDetail(currentCardOutlineId);
+}
+
+// ─── 引用カード ────────────────────────────────────────────
+function renderSourceQuotesHTML(ol){
+  const quotes=ol.sourceQuotes||[];
+  const subs=ol.sourceSubItems||[];
+  const subOpts=subs.map(s=>`<option value="${esc(s.id)}">${esc(s.label)}</option>`).join('');
+  const cards=quotes.map((q,i)=>{
+    const sub=subs.find(s=>s.id===q.subItemId);
+    return`<div class="source-quote-card" id="sqcard-${q.id}">
+      <div class="source-quote-body">
+        ${sub?`<span class="source-quote-episode">${esc(sub.label)}</span>`:''}
+        ${q.quoteText?`<p class="source-quote-text">${esc(q.quoteText)}</p>`:''}
+        ${q.comment?`<div class="source-quote-comment">${esc(q.comment)}</div>`:''}
+      </div>
+      <div class="source-quote-meta">
+        <span class="source-quote-date">${fmtDt(q.createdAt)}</span>
+        <div class="source-quote-actions">
+          <button class="source-quote-btn" onclick="sendQuoteToTimeline('${ol.id}','${q.id}')">→ タイムライン</button>
+          <button class="source-quote-btn del" onclick="deleteSourceQuote('${ol.id}','${q.id}')">削除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return cards+`
+    <div class="source-quote-add-form" id="sourceQuoteAddForm">
+      <div style="font-size:10px;color:var(--source);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-weight:600;">＋ 引用を追加</div>
+      <textarea class="source-quote-add-ta" id="sqQuoteText" placeholder="引用テキスト（省略可）" rows="2"></textarea>
+      <textarea class="source-quote-add-ta" id="sqComment" placeholder="コメント・感想（省略可）" rows="2"></textarea>
+      <div class="source-quote-add-row">
+        ${subs.length?`<select class="source-quote-ep-sel" id="sqEpisodeSel"><option value="">エピソード（省略可）</option>${subOpts}</select>`:''}
+        <button class="card-img-upload-btn" onclick="addSourceQuote()" style="white-space:nowrap;background:var(--source);color:#fff;border-color:var(--source);">追加</button>
+      </div>
+    </div>`;
+}
+
+function addSourceQuote(){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol||!ol.isSource)return;
+  const quoteText=(document.getElementById('sqQuoteText')?.value||'').trim();
+  const comment=(document.getElementById('sqComment')?.value||'').trim();
+  const subItemId=(document.getElementById('sqEpisodeSel')?.value||'').trim()||null;
+  if(!quoteText&&!comment)return;
+  if(!ol.sourceQuotes)ol.sourceQuotes=[];
+  ol.sourceQuotes.push({id:uid(),quoteText,comment,subItemId,createdAt:Date.now()});
+  ol.updatedAt=Date.now();save();
+  // フォームリセット
+  ['sqQuoteText','sqComment','sqEpisodeSel'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  // リスト再描画
+  const listEl=document.getElementById('sourceQuotesList');
+  if(listEl)listEl.innerHTML=renderSourceQuotesHTML(ol);
+}
+
+function deleteSourceQuote(outlineId,quoteId){
+  const ol=outlines.find(x=>x.id===outlineId);if(!ol||!ol.sourceQuotes)return;
+  ol.sourceQuotes=ol.sourceQuotes.filter(q=>q.id!==quoteId);
+  ol.updatedAt=Date.now();save();
+  const listEl=document.getElementById('sourceQuotesList');
+  if(listEl)listEl.innerHTML=renderSourceQuotesHTML(ol);
+}
+
+function sendQuoteToTimeline(outlineId,quoteId){
+  const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
+  const q=(ol.sourceQuotes||[]).find(x=>x.id===quoteId);if(!q)return;
+  const sub=(ol.sourceSubItems||[]).find(s=>s.id===q.subItemId);
+  // コンポーズに本文をセット
+  switchPhase(1);
+  setTimeout(()=>{
+    const ta=document.getElementById('composeTA');if(!ta)return;
+    let text='';
+    if(q.quoteText)text+=`「${q.quoteText}」\n\n`;
+    if(q.comment)text+=q.comment;
+    ta.value=text.trim();
+    ta.classList.remove('mobile-collapsed');ta.classList.add('mobile-expanded');
+    ta.focus();
+    // ソース引用をセット
+    pendingSourceRef={
+      outlineId,
+      title:ol.title||'無題',
+      subItemId:q.subItemId||null,
+      subLabel:sub?.label||'',
+      url:sub?.url||ol.sourceUrl||''
+    };
+    renderComposeSourceRef();
+  },100);
 }
 
 function saveCardTitle(el){
