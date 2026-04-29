@@ -2555,11 +2555,17 @@ function openCardDetail(outlineId){
           <button class="card-img-upload-btn" onclick="addSourceSubItem()" style="white-space:nowrap;">＋ 追加</button>
         </div>
       </div>
-      <div class="source-detail-label" style="margin-top:8px;">💬 引用メモ</div>
+    </div>`:''}\
+    ${ol.isSource?`
+    <div style="margin-top:16px;">
+      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+        <span>💬 引用メモ</span>
+        <span style="font-weight:400;color:var(--text3);">${(ol.sourceQuotes||[]).length}件</span>
+      </div>
       <div class="source-quotes-section" id="sourceQuotesList">
         ${renderSourceQuotesHTML(ol)}
       </div>
-    </div>`:''}
+    </div>`:''}\
     ${cardImgsHtml}
     ${!ol.isSource?`<div class="card-detail-card-content">${itemsHtml||'<div style="color:var(--text3);font-size:13px;">項目がありません</div>'}</div>`:''}
   </div>
@@ -3455,6 +3461,32 @@ function renderOgpCard(ogp){
 
 // ─── ソース引用 ────────────────────────────────────────────
 let pendingSourceRef=null; // {outlineId, title, subItemId?, subLabel?, url?}
+let pendingQuoteText='';   // 引用テキスト（コメントとは別保存）
+
+function renderComposeQuotePreview(){
+  // composeOgpWrapの上に引用プレビューを表示
+  let wrap=document.getElementById('composeQuoteWrap');
+  if(!wrap){
+    // 動的に挿入
+    const ogpWrap=document.getElementById('composeOgpWrap');
+    if(!ogpWrap)return;
+    wrap=document.createElement('div');
+    wrap.id='composeQuoteWrap';
+    ogpWrap.parentNode.insertBefore(wrap,ogpWrap);
+  }
+  if(!pendingQuoteText){wrap.style.display='none';wrap.innerHTML='';return;}
+  wrap.style.display='';
+  wrap.innerHTML=`<div style="margin:0 10px 6px;padding:7px 10px 7px 12px;border-left:3px solid var(--source-m);background:var(--source-l);border-radius:0 var(--rsm) var(--rsm) 0;position:relative;display:flex;gap:6px;align-items:flex-start;">
+    <div style="flex:1;font-size:11.5px;color:var(--text2);font-style:italic;line-height:1.6;font-family:inherit;white-space:pre-wrap;word-break:break-word;">${esc(pendingQuoteText.slice(0,200))}${pendingQuoteText.length>200?'…':''}</div>
+    <button onclick="dismissQuoteText()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;flex-shrink:0;padding:0 2px;">✕</button>
+  </div>`;
+}
+
+function dismissQuoteText(){
+  pendingQuoteText='';
+  const wrap=document.getElementById('composeQuoteWrap');
+  if(wrap){wrap.style.display='none';wrap.innerHTML='';}
+}
 
 function openSourcePicker(){
   _editingSourceForPostId=null;
@@ -3649,14 +3681,11 @@ function sendQuoteToTimeline(outlineId,quoteId){
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
   const q=(ol.sourceQuotes||[]).find(x=>x.id===quoteId);if(!q)return;
   const sub=(ol.sourceSubItems||[]).find(s=>s.id===q.subItemId);
-  // コンポーズに本文をセット
   switchPhase(1);
   setTimeout(()=>{
     const ta=document.getElementById('composeTA');if(!ta)return;
-    let text='';
-    if(q.quoteText)text+=`「${q.quoteText}」\n\n`;
-    if(q.comment)text+=q.comment;
-    ta.value=text.trim();
+    // コメントのみコンポーズにセット（引用はsourceQuoteとして別途保存）
+    ta.value=(q.comment||'').trim();
     ta.classList.remove('mobile-collapsed');ta.classList.add('mobile-expanded');
     ta.focus();
     // ソース引用をセット
@@ -3668,6 +3697,9 @@ function sendQuoteToTimeline(outlineId,quoteId){
       url:sub?.url||ol.sourceUrl||''
     };
     renderComposeSourceRef();
+    // 引用テキストをpendingQuoteとして保持（投稿時に添付）
+    pendingQuoteText=q.quoteText||'';
+    renderComposeQuotePreview();
   },100);
 }
 
@@ -4314,6 +4346,7 @@ function renderPost(p){
         ?`<span class="tag-input-wrap"><input class="tag-input" id="taginput-${p.id}" placeholder="タグ名" maxlength="20" onkeydown="onTagInputKey(event,'${p.id}')" onblur="cancelTagEdit('${p.id}')"></span>`
         :`<button class="tag-add-btn" onclick="startTagEdit('${p.id}')">＋ タグ</button>`}
     </div>
+    ${p.quoteText?`<div style="margin-top:7px;padding:7px 10px 7px 12px;border-left:3px solid var(--source-m);background:var(--source-l);border-radius:0 var(--rsm) var(--rsm) 0;font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText)}</div>`:''}
     ${(p.images&&p.images.length)?`<div class="post-images">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:''}
     ${p.ogp?renderOgpCard(p.ogp):''}
     ${p.sourceRef?renderPostSourceCard(p.sourceRef):''}
@@ -4354,15 +4387,18 @@ async function submitPost(){
   const localImgs=[...pendingImages];
   const ogpData=pendingOgp?{...pendingOgp}:null;
   const sourceRefData=pendingSourceRef?{...pendingSourceRef}:null;
+  const quoteData=pendingQuoteText?pendingQuoteText:null;
   const p={id:uid(),content:text,createdAt:Date.now(),updatedAt:Date.now(),starred:false,replies:[],
     images:localImgs.map(i=>i.dataUrl),
     ...(ogpData?{ogp:ogpData}:{}),
-    ...(sourceRefData?{sourceRef:sourceRefData}:{})};
+    ...(sourceRefData?{sourceRef:sourceRefData}:{}),
+    ...(quoteData?{quoteText:quoteData}:{})};
   posts.push(p);
   ta.value='';ta.style.height='';
   pendingImages=[];renderImgPreview();
   dismissOgp();
   dismissSourceRef();
+  dismissQuoteText();
   ta.classList.remove('mobile-expanded');ta.classList.add('mobile-collapsed');
   save();renderFeed();renderSidebar();
   // バックグラウンドでStorageにアップロードしてURLに差し替え
