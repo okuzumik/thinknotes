@@ -68,6 +68,15 @@ body {
 .nav-group.g-write .phase-step.active { color:var(--teal); border-bottom-color:var(--teal); font-weight:700; }
 .nav-group.g-write .phase-step:hover { color:var(--teal); }
 
+/* 集める：ローズブラウン */
+.nav-group.g-material .nav-group-label { color:#fff; background:#8a5c5c; }
+.nav-group.g-material .phase-step.active { color:#8a5c5c; border-bottom-color:#8a5c5c; font-weight:700; }
+.nav-group.g-material .phase-step:hover { color:#8a5c5c; }
+/* 素材タブ内サブタブ */
+.mat-tab { background:none; border:none; border-bottom:2px solid transparent; padding:10px 18px; font-size:12px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; color:var(--text3); cursor:pointer; transition:color .15s; }
+.mat-tab.active { color:#8a5c5c; border-bottom-color:#8a5c5c; font-weight:700; }
+.mat-tab:hover { color:#8a5c5c; }
+
 .phase-step {
   display:flex; align-items:center; justify-content:center;
   padding:0 14px; height:38px;
@@ -1050,6 +1059,13 @@ body {
         <button class="phase-step" id="ps-6" onclick="switchPhase(6)">ブック</button>
       </div>
     </div>
+    <div class="nav-divider"></div>
+    <div class="nav-group g-material">
+      <div class="nav-group-label">集める・蓄える</div>
+      <div class="nav-group-tabs">
+        <button class="phase-step" id="ps-7" onclick="switchPhase(7)">素材</button>
+      </div>
+    </div>
   </div>
   <div class="topbar-right">
     <div class="sync-dot" id="syncDot" title="保存状態"></div>
@@ -1368,6 +1384,32 @@ body {
       <div style="display:flex;flex:1;overflow:hidden;">
         <div class="card-detail-body" id="cardDetailBody" style="flex:1;"></div>
         <div class="card-related" id="cardRelated" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PHASE 7 — MATERIAL ═══ -->
+  <div class="phase-screen" id="phase7">
+    <div style="display:flex;height:100%;overflow:hidden;">
+      <!-- 左：タブ切り替え（ソース / 写真） -->
+      <div style="display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;">
+        <div style="display:flex;gap:0;border-bottom:0.5px solid var(--border);flex-shrink:0;background:var(--bg3);padding:0 1rem;">
+          <button id="mat-tab-source" class="mat-tab active" onclick="switchMatTab('source')">📎 ソースカード</button>
+          <button id="mat-tab-photo" class="mat-tab" onclick="switchMatTab('photo')">🖼️ 写真ライブラリ</button>
+        </div>
+        <!-- ソースカード一覧 -->
+        <div id="mat-source" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;">
+            <input id="matSourceSearch" class="card-grid-search" placeholder="ソースを検索…" oninput="renderMatSourceGrid()">
+            <button onclick="createSourceCard()" style="padding:5px 14px;background:#8a5c5c;color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📎 ソース＋</button>
+          </div>
+          <div class="card-grid" id="matSourceGrid" style="padding:1rem 1.5rem;"></div>
+        </div>
+        <!-- 写真ライブラリ -->
+        <div id="mat-photo" style="flex:1;overflow:hidden;display:none;flex-direction:column;">
+          <div style="padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">投稿やカードに添付した画像</div>
+          <div id="matPhotoGrid" style="display:flex;flex-wrap:wrap;gap:8px;padding:1rem 1.5rem;overflow-y:auto;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -2423,6 +2465,7 @@ function renderCardView(){
 function renderCardGrid(){
   const q=(document.getElementById('cardGridSearch')?.value||'').toLowerCase();
   let pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt)
+    .filter(ol=>!ol.isSource) // ソースカードは素材タブへ
     .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q))
     .filter(ol=>!activeCardLabel||(ol.labels||[]).includes(activeCardLabel));
   const grid=document.getElementById('cardGrid');
@@ -2826,6 +2869,80 @@ function booksLoad(){books=JSON.parse(localStorage.getItem(KB)||'[]');}
 function booksSave(){localStorage.setItem(KB,JSON.stringify(books));}
 
 function renderBookView(){booksLoad();renderBookSidebar();}
+
+// ─── 素材ビュー ────────────────────────────────────────────
+let matCurrentTab='source';
+
+function switchMatTab(tab){
+  matCurrentTab=tab;
+  ['source','photo'].forEach(t=>{
+    document.getElementById('mat-tab-'+t)?.classList.toggle('active',t===tab);
+    const el=document.getElementById('mat-'+t);
+    if(el)el.style.display=t===tab?'flex':'none';
+  });
+  if(tab==='source')renderMatSourceGrid();
+  if(tab==='photo')renderMatPhotoGrid();
+}
+
+function renderMatView(){
+  switchMatTab(matCurrentTab);
+}
+
+function renderMatSourceGrid(){
+  const q=(document.getElementById('matSourceSearch')?.value||'').toLowerCase();
+  const grid=document.getElementById('matSourceGrid');
+  if(!grid)return;
+  const pool=[...outlines]
+    .filter(ol=>ol.isSource)
+    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q))
+    .sort((a,b)=>b.updatedAt-a.updatedAt);
+
+  if(!pool.length){
+    grid.innerHTML=`<div style="padding:2rem;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;">ソースカードがまだありません<br><span style="font-size:11px;">「📎 ソース＋」ボタンで作成できます</span></div>`;
+    return;
+  }
+  grid.innerHTML=pool.map(ol=>{
+    const subs=ol.sourceSubItems||[];
+    const quotes=ol.sourceQuotes||[];
+    const domain=ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname.replace(/^www\./,'');}catch{return ol.sourceUrl.slice(0,30);}})():'';
+    return`<div class="card-cell source-card" onclick="openCardDetail('${ol.id}')">
+      <div class="card-cell-title">${esc(ol.title||'無題')}</div>
+      ${domain?`<div class="source-url-chip">🔗 ${esc(domain)}</div>`:''}
+      <div class="card-cell-body" style="flex:1;">${subs.slice(0,4).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||`<div style="color:var(--text3);font-size:11px;">${esc(ol.sourceMemo?.slice(0,80)||'')}</div>`}</div>
+      <div style="display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;">
+        ${subs.length?`<span class="source-badge">📋 ${subs.length}件</span>`:''}
+        ${quotes.length?`<span class="source-badge">💬 ${quotes.length}件</span>`:''}
+      </div>
+      <div class="card-cell-foot">${fmtDate(ol.updatedAt)}</div>
+      <div class="card-cell-fade" style="background:linear-gradient(transparent,var(--source-l))"></div>
+    </div>`;
+  }).join('');
+}
+
+function renderMatPhotoGrid(){
+  const grid=document.getElementById('matPhotoGrid');
+  if(!grid)return;
+  // 投稿の画像 + カードの画像を収集
+  const imgs=[];
+  posts.forEach(p=>{
+    (p.images||[]).forEach(src=>imgs.push({src,from:'投稿',date:p.createdAt,pid:p.id}));
+    (p.replies||[]).forEach(r=>(r.images||[]).forEach(src=>imgs.push({src,from:'返信',date:r.createdAt})));
+  });
+  outlines.forEach(ol=>{
+    (ol.images||[]).forEach(src=>imgs.push({src,from:ol.title||'カード',date:ol.updatedAt,oid:ol.id}));
+  });
+  imgs.sort((a,b)=>b.date-a.date);
+
+  if(!imgs.length){
+    grid.innerHTML=`<div style="padding:2rem;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;">添付画像がまだありません</div>`;
+    return;
+  }
+  grid.innerHTML=imgs.map(item=>`
+    <div style="position:relative;width:140px;flex-shrink:0;cursor:pointer;" onclick="openLightbox('${item.src}')" title="${esc(item.from)} · ${fmtDate(item.date)}">
+      <img src="${item.src}" style="width:140px;height:100px;object-fit:cover;border-radius:var(--rsm);border:0.5px solid var(--border);display:block;" loading="lazy">
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:3px 6px;background:rgba(0,0,0,.45);border-radius:0 0 var(--rsm) var(--rsm);font-size:9px;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.from)}</div>
+    </div>`).join('');
+}
 
 function bookToggleSidebar(){
   bookSidebarOpen=!bookSidebarOpen;
@@ -3261,7 +3378,7 @@ function switchPhase(n){
   /* モバイルはタイムライン固定 */
   if(window.innerWidth<=640) n=1;
   currentPhase=n;
-  [1,2,3,4,5,6].forEach(i=>{
+  [1,2,3,4,5,6,7].forEach(i=>{
     document.getElementById('ps-'+i)?.classList.toggle('active',i===n);
     document.getElementById('phase'+i)?.classList.toggle('active',i===n);
   });
@@ -3283,6 +3400,7 @@ function switchPhase(n){
   if(n===4){renderNotesList();}
   if(n===5){renderCardView();}
   if(n===6){renderBookView();}
+  if(n===7){renderMatView();}
 }
 
 // ─── 画像 ────────────────────────────────────────────────
@@ -3459,7 +3577,7 @@ function renderPostSourceCard(ref){
   if(!ref)return'';
   const ol=outlines.find(x=>x.id===ref.outlineId);
   const url=ref.url||(ol?.sourceUrl)||'';
-  return`<div class="post-source-card" onclick="event.stopPropagation();switchPhase(5);setTimeout(()=>openCardDetail('${ref.outlineId}'),50)">
+  return`<div class="post-source-card" onclick="event.stopPropagation();switchPhase(7);setTimeout(()=>{renderMatSourceGrid();openCardDetail('${ref.outlineId}');},50)">
     <span class="post-source-card-icon">📎</span>
     <div class="post-source-card-body">
       <div class="post-source-card-title">${esc(ref.title)}</div>
@@ -3474,8 +3592,10 @@ function createSourceCard(){
   const ol={id:uid(),title:'新しいソース',items:[],labels:[],images:[],
     isSource:true,sourceUrl:'',sourcePdfUrl:'',sourceMemo:'',sourceSubItems:[],
     createdAt:Date.now(),updatedAt:Date.now()};
-  outlines.unshift(ol);save();renderCardGrid();renderCardLabelFilters();
-  openCardDetail(ol.id);
+  outlines.unshift(ol);save();
+  // 素材タブに移動してカード詳細を開く
+  switchPhase(7);
+  setTimeout(()=>{renderMatSourceGrid();openCardDetail(ol.id);},50);
 }
 
 // ソースカード詳細のサブアイテム操作
