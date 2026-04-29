@@ -846,13 +846,13 @@ body {
 
 /* カード選択 */
 .card-cell.selected { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-m); }
-/* ── ソースカード ── */
+/* ── 媒体カード ── */
 .card-cell.source-card { background:var(--source-l); border-color:var(--source-m); border-left:3px solid var(--source); }
 .card-cell.source-card:hover { border-color:var(--source); box-shadow:0 3px 14px rgba(91,79,158,.13); }
 .card-cell.source-card .card-cell-title { color:var(--source); }
 .source-badge { display:inline-flex; align-items:center; gap:3px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--source); background:var(--source-l); border:0.5px solid var(--source-m); border-radius:20px; padding:1px 7px; flex-shrink:0; }
 .source-url-chip { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--source); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-/* ソースカード詳細 */
+/* 媒体カード詳細 */
 .source-detail-section { background:var(--source-l); border:0.5px solid var(--source-m); border-radius:var(--r); padding:12px 14px; margin-bottom:10px; display:flex; flex-direction:column; gap:8px; }
 .source-detail-label { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--source); font-weight:600; }
 .source-detail-input { width:100%; padding:6px 10px; border:0.5px solid var(--source-m); border-radius:var(--rsm); font-size:12px; font-family:inherit; color:var(--text); background:#fff; outline:none; box-sizing:border-box; }
@@ -1063,7 +1063,8 @@ body {
     <div class="nav-group g-material">
       <div class="nav-group-label">集める・蓄える</div>
       <div class="nav-group-tabs">
-        <button class="phase-step" id="ps-7" onclick="switchPhase(7)">素材</button>
+        <button class="phase-step" id="ps-7" onclick="switchPhase(7)">媒体</button>
+        <button class="phase-step" id="ps-8" onclick="switchPhase(8)">写真</button>
       </div>
     </div>
   </div>
@@ -1388,29 +1389,22 @@ body {
     </div>
   </div>
 
-  <!-- ═══ PHASE 7 — MATERIAL ═══ -->
+  <!-- ═══ PHASE 7 — 媒体 ═══ -->
   <div class="phase-screen" id="phase7">
-    <div style="display:flex;height:100%;overflow:hidden;">
-      <!-- 左：タブ切り替え（ソース / 写真） -->
-      <div style="display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;">
-        <div style="display:flex;gap:0;border-bottom:0.5px solid var(--border);flex-shrink:0;background:var(--bg3);padding:0 1rem;">
-          <button id="mat-tab-source" class="mat-tab active" onclick="switchMatTab('source')">📎 ソースカード</button>
-          <button id="mat-tab-photo" class="mat-tab" onclick="switchMatTab('photo')">🖼️ 写真ライブラリ</button>
-        </div>
-        <!-- ソースカード一覧 -->
-        <div id="mat-source" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;">
-            <input id="matSourceSearch" class="card-grid-search" placeholder="ソースを検索…" oninput="renderMatSourceGrid()">
-            <button onclick="createSourceCard()" style="padding:5px 14px;background:#8a5c5c;color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📎 ソース＋</button>
-          </div>
-          <div class="card-grid" id="matSourceGrid" style="padding:1rem 1.5rem;"></div>
-        </div>
-        <!-- 写真ライブラリ -->
-        <div id="mat-photo" style="flex:1;overflow:hidden;display:none;flex-direction:column;">
-          <div style="padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">投稿やカードに添付した画像</div>
-          <div id="matPhotoGrid" style="display:flex;flex-wrap:wrap;gap:8px;padding:1rem 1.5rem;overflow-y:auto;"></div>
-        </div>
+    <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;">
+        <input id="matSourceSearch" class="card-grid-search" placeholder="媒体を検索…" oninput="renderMatSourceGrid()">
+        <button onclick="createSourceCard()" style="padding:5px 14px;background:#8a5c5c;color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">＋ 媒体を追加</button>
       </div>
+      <div class="card-grid" id="matSourceGrid" style="padding:1rem 1.5rem;"></div>
+    </div>
+  </div>
+
+  <!-- ═══ PHASE 8 — 写真 ═══ -->
+  <div class="phase-screen" id="phase8">
+    <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+      <div style="padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">投稿・返信・カードに添付した画像</div>
+      <div id="matPhotoGrid" style="display:flex;flex-wrap:wrap;gap:8px;padding:1rem 1.5rem;overflow-y:auto;flex:1;"></div>
     </div>
   </div>
 
@@ -1592,8 +1586,8 @@ body {
 <div class="source-picker-modal" id="sourcePickerModal" onclick="if(event.target===this)closeSourcePicker()">
   <div class="source-picker-box">
     <div class="source-picker-head">
-      <span class="source-picker-title">📎 ソースを選択</span>
-      <input class="source-picker-search" id="sourcePickerSearch" placeholder="ソースを検索…" oninput="_editingSourceForPostId?renderSourcePickerListForEdit():renderSourcePickerList()">
+      <span class="source-picker-title">📎 媒体を選択</span>
+      <input class="source-picker-search" id="sourcePickerSearch" placeholder="媒体を検索…" oninput="_editingSourceForPostId?renderSourcePickerListForEdit():renderSourcePickerList()">
       <button onclick="closeSourcePicker()" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;padding:0 4px;">✕</button>
     </div>
     <div class="source-picker-list" id="sourcePickerList"></div>
@@ -2489,7 +2483,7 @@ function renderCardGrid(){
     const isUsed=!!(ol.usedAt);
     const isSource=!!(ol.isSource);
     const usedBadge=isUsed?`<div class="card-used-badge">✓ ${esc(ol.usedNote||'成仏済')}</div>`:'';
-    const sourceBadge=isSource?`<div class="source-badge">📎 ソース${(ol.sourceSubItems||[]).length?` · ${ol.sourceSubItems.length}件`:''}</div>`:'';
+    const sourceBadge=isSource?`<div class="source-badge">📎 媒体${(ol.sourceSubItems||[]).length?` · ${ol.sourceSubItems.length}件`:''}</div>`:'';
     const sourceDomain=isSource&&ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname;}catch{return'';}})():'';
     return`<div class="card-cell${isUsed?' used':''}${isSource?' source-card':''}" onclick="openCardDetail('${ol.id}')">
       <div class="card-cell-title">${esc(ol.title||'無題')}</div>
@@ -2548,13 +2542,13 @@ function openCardDetail(outlineId){
     >${esc(ol.title||'無題')}</div>
     <div class="card-detail-card-meta">
       <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">${ol.isSource?(ol.sourceSubItems||[]).length+'件のサブアイテム':ol.items.length+'項目'} · ${fmtDate(ol.updatedAt)}</span>
-      ${ol.isSource?`<span class="source-badge">📎 ソース</span>`:''}
+      ${ol.isSource?`<span class="source-badge">📎 媒体</span>`:''}
       ${labels.map((lb,i)=>`<span class="card-label-tag" style="cursor:pointer;" onclick="removeCardLabel(${i})" title="クリックで削除">${esc(lb)} ✕</span>`).join('')}
       ${ol.usedAt?`<span class="card-used-badge in-detail" onclick="toggleCardUsed()" title="クリックで解除">✓ ${esc(ol.usedNote||'成仏済')} ✕</span>`:''}
     </div>
     ${ol.isSource?`
     <div class="source-detail-section">
-      <div class="source-detail-label">📎 ソース情報</div>
+      <div class="source-detail-label">📎 媒体情報</div>
       <div style="display:grid;gap:6px;">
         <div>
           <div style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-bottom:2px;">サイト・配信URL</div>
@@ -2635,7 +2629,7 @@ function openCardDetail(outlineId){
           }).join('')}
         </div>`;
     } else {
-      linkedSection.innerHTML=`<div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);padding:6px 0;">このソースへの言及はまだありません</div>`;
+      linkedSection.innerHTML=`<div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);padding:6px 0;">この媒体への言及はまだありません</div>`;
     }
   }
   const related=document.getElementById('cardRelated');
@@ -2871,22 +2865,7 @@ function booksSave(){localStorage.setItem(KB,JSON.stringify(books));}
 function renderBookView(){booksLoad();renderBookSidebar();}
 
 // ─── 素材ビュー ────────────────────────────────────────────
-let matCurrentTab='source';
-
-function switchMatTab(tab){
-  matCurrentTab=tab;
-  ['source','photo'].forEach(t=>{
-    document.getElementById('mat-tab-'+t)?.classList.toggle('active',t===tab);
-    const el=document.getElementById('mat-'+t);
-    if(el)el.style.display=t===tab?'flex':'none';
-  });
-  if(tab==='source')renderMatSourceGrid();
-  if(tab==='photo')renderMatPhotoGrid();
-}
-
-function renderMatView(){
-  switchMatTab(matCurrentTab);
-}
+function renderMatView(){renderMatSourceGrid();}
 
 function renderMatSourceGrid(){
   const q=(document.getElementById('matSourceSearch')?.value||'').toLowerCase();
@@ -2898,7 +2877,7 @@ function renderMatSourceGrid(){
     .sort((a,b)=>b.updatedAt-a.updatedAt);
 
   if(!pool.length){
-    grid.innerHTML=`<div style="padding:2rem;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;">ソースカードがまだありません<br><span style="font-size:11px;">「📎 ソース＋」ボタンで作成できます</span></div>`;
+    grid.innerHTML=`<div style="padding:2rem;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;">媒体がまだありません<br><span style="font-size:11px;">「＋ 媒体を追加」ボタンで作成できます</span></div>`;
     return;
   }
   grid.innerHTML=pool.map(ol=>{
@@ -3378,7 +3357,7 @@ function switchPhase(n){
   /* モバイルはタイムライン固定 */
   if(window.innerWidth<=640) n=1;
   currentPhase=n;
-  [1,2,3,4,5,6,7].forEach(i=>{
+  [1,2,3,4,5,6,7,8].forEach(i=>{
     document.getElementById('ps-'+i)?.classList.toggle('active',i===n);
     document.getElementById('phase'+i)?.classList.toggle('active',i===n);
   });
@@ -3400,7 +3379,8 @@ function switchPhase(n){
   if(n===4){renderNotesList();}
   if(n===5){renderCardView();}
   if(n===6){renderBookView();}
-  if(n===7){renderMatView();}
+  if(n===7){renderMatSourceGrid();}
+  if(n===8){renderMatPhotoGrid();}
 }
 
 // ─── 画像 ────────────────────────────────────────────────
@@ -3510,7 +3490,7 @@ function renderSourcePickerList(){
     .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q))
     .sort((a,b)=>(a.title||'').localeCompare(b.title||'','ja'));
   if(!sources.length){
-    list.innerHTML=`<div class="source-picker-none">ソースカードがありません<br><span style="font-size:11px;color:var(--text3);">カードビューで「＋ ソース」から作成できます</span></div>`;
+    list.innerHTML=`<div class="source-picker-none">媒体カードがありません<br><span style="font-size:11px;color:var(--text3);">「集める・蓄える」タブから作成できます</span></div>`;
     return;
   }
   list.innerHTML=sources.map(ol=>{
@@ -3522,7 +3502,7 @@ function renderSourcePickerList(){
           <div class="source-picker-sub-item" onclick="event.stopPropagation();selectSourceRef('${ol.id}','${si.id}')">
             ${esc(si.label)}${si.url?`<span style="font-size:9px;color:var(--source);margin-left:6px;">🔗</span>`:''}
           </div>`).join('')}
-        <div class="source-picker-sub-item" style="color:var(--text3);font-style:italic;" onclick="event.stopPropagation();selectSourceRef('${ol.id}',null)">ソース全体として引用</div>
+        <div class="source-picker-sub-item" style="color:var(--text3);font-style:italic;" onclick="event.stopPropagation();selectSourceRef('${ol.id}',null)">この媒体全体として引用</div>
       </div>`:
       `<div style="padding:4px 8px 6px;"><div class="source-picker-sub-item" onclick="event.stopPropagation();selectSourceRef('${ol.id}',null)" style="color:var(--source);">引用する</div></div>`;
     const domain=ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname;}catch{return ol.sourceUrl.slice(0,30);}})():'';
@@ -3589,7 +3569,7 @@ function renderPostSourceCard(ref){
 
 // ソースカード新規作成
 function createSourceCard(){
-  const ol={id:uid(),title:'新しいソース',items:[],labels:[],images:[],
+  const ol={id:uid(),title:'新しい媒体',items:[],labels:[],images:[],
     isSource:true,sourceUrl:'',sourcePdfUrl:'',sourceMemo:'',sourceSubItems:[],
     createdAt:Date.now(),updatedAt:Date.now()};
   outlines.unshift(ol);save();
@@ -3722,7 +3702,7 @@ async function autoFetchSourceUrl(url){
 
   // タイトルが初期値・空の場合のみ補完
   const titleEl=document.querySelector('#cardDetailBody .card-detail-card-title');
-  const isDefaultTitle=!ol.title||ol.title==='新しいソース'||ol.title==='無題';
+  const isDefaultTitle=!ol.title||ol.title==='新しい媒体'||ol.title==='無題';
   // メモ欄にローディング表示
   const memoIn=document.getElementById('sourceMemoIn');
   const origPlaceholder=memoIn?.placeholder||'';
@@ -4583,13 +4563,13 @@ function renderSourcePickerListForEdit(){
   const sources=outlines.filter(ol=>ol.isSource)
     .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q))
     .sort((a,b)=>(a.title||'').localeCompare(b.title||'','ja'));
-  if(!sources.length){list.innerHTML=`<div class="source-picker-none">ソースカードがありません</div>`;return;}
+  if(!sources.length){list.innerHTML=`<div class="source-picker-none">媒体カードがありません</div>`;return;}
   list.innerHTML=sources.map(ol=>{
     const subs=ol.sourceSubItems||[];
     const subsHtml=subs.length?`
       <div class="source-picker-sub-list">
         ${subs.map(si=>`<div class="source-picker-sub-item" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}','${si.id}')">${esc(si.label)}</div>`).join('')}
-        <div class="source-picker-sub-item" style="color:var(--text3);font-style:italic;" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}',null)">ソース全体として引用</div>
+        <div class="source-picker-sub-item" style="color:var(--text3);font-style:italic;" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}',null)">この媒体全体として引用</div>
       </div>`:
       `<div style="padding:4px 8px 6px;"><div class="source-picker-sub-item" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}',null)" style="color:var(--source);">引用する</div></div>`;
     return`<div class="source-picker-item">
