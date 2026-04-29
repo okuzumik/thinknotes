@@ -14,7 +14,7 @@
   --accent:#7a5c1e; --accent-d:#5a4214; --accent-l:#f5edda; --accent-m:#c8960a;
   --red:#b03828; --red-l:#fdf0ee;
   --teal:#2a7a58; --teal-l:#e8f5ee;
-  --source:#5b4f9e; --source-l:#eeedf7; --source-m:#9d93d0;
+  --source:#5a6478; --source-l:#f0f1f4; --source-m:#b0b8c8;
   --sticky:#eae5d8; --sticky-b:#b8a880; --sticky2:#dce6df; --sticky2-b:#7a9e8c;
   --r:9px; --rsm:6px; --indent:22px;
 }
@@ -2854,14 +2854,25 @@ function renderMatSourceGrid(){
 function renderMatPhotoGrid(){
   const grid=document.getElementById('matPhotoGrid');
   if(!grid)return;
-  // 投稿の画像 + カードの画像を収集
   const imgs=[];
   posts.forEach(p=>{
-    (p.images||[]).forEach(src=>imgs.push({src,from:'投稿',date:p.createdAt,pid:p.id}));
-    (p.replies||[]).forEach(r=>(r.images||[]).forEach(src=>imgs.push({src,from:'返信',date:r.createdAt})));
+    (p.images||[]).forEach(src=>imgs.push({
+      src, date:p.createdAt,
+      label:cleanText(p.content).slice(0,30)||'投稿',
+      type:'post', pid:p.id
+    }));
+    (p.replies||[]).forEach((r,ri)=>(r.images||[]).forEach(src=>imgs.push({
+      src, date:r.createdAt,
+      label:cleanText(r.content).slice(0,30)||'返信',
+      type:'post', pid:p.id  // 親ポストにジャンプ
+    })));
   });
-  outlines.forEach(ol=>{
-    (ol.images||[]).forEach(src=>imgs.push({src,from:ol.title||'カード',date:ol.updatedAt,oid:ol.id}));
+  outlines.filter(ol=>!ol.isSource).forEach(ol=>{
+    (ol.images||[]).forEach(src=>imgs.push({
+      src, date:ol.updatedAt,
+      label:ol.title||'カード',
+      type:'card', oid:ol.id
+    }));
   });
   imgs.sort((a,b)=>b.date-a.date);
 
@@ -2869,11 +2880,15 @@ function renderMatPhotoGrid(){
     grid.innerHTML=`<div style="padding:2rem;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;">添付画像がまだありません</div>`;
     return;
   }
-  grid.innerHTML=imgs.map(item=>`
-    <div style="position:relative;width:140px;flex-shrink:0;cursor:pointer;" onclick="openLightbox('${item.src}')" title="${esc(item.from)} · ${fmtDate(item.date)}">
+  grid.innerHTML=imgs.map(item=>{
+    const onclick=item.type==='post'
+      ?`switchPhase(1);setTimeout(()=>{const el=document.getElementById('post-${item.pid}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100)`
+      :`openCardDetail('${item.oid}')`;
+    return`<div style="position:relative;width:140px;flex-shrink:0;cursor:pointer;" onclick="${onclick}" title="${esc(item.label)} · ${fmtDate(item.date)}">
       <img src="${item.src}" style="width:140px;height:100px;object-fit:cover;border-radius:var(--rsm);border:0.5px solid var(--border);display:block;" loading="lazy">
-      <div style="position:absolute;bottom:0;left:0;right:0;padding:3px 6px;background:rgba(0,0,0,.45);border-radius:0 0 var(--rsm) var(--rsm);font-size:9px;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.from)}</div>
-    </div>`).join('');
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:3px 6px;background:rgba(0,0,0,.45);border-radius:0 0 var(--rsm) var(--rsm);font-size:9px;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.label)}</div>
+    </div>`;
+  }).join('');
 }
 
 function bookToggleSidebar(){
@@ -3627,17 +3642,20 @@ function renderSourceUnifiedSection(outlineId){
       const p=item.p;
       const sub=p.sourceRef?.subLabel?`<span style="font-size:9px;color:var(--text3);background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;padding:1px 6px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">${esc(p.sourceRef.subLabel)}</span>`:'';
       const text=cleanText(p.content).slice(0,160);
+      const replies=p.replies||[];
+      const repliesHtml=replies.length?replies.map(r=>`<div style='margin-top:6px;padding-left:10px;border-left:2px solid var(--border2);'><div style='font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-word;font-family:Hiragino Kaku Gothic ProN,sans-serif;'>${esc(cleanText(r.content).slice(0,120))}${r.content.length>120?'…':''}</div><div style='font-size:9px;color:var(--text3);margin-top:1px;'>${fmtDt(r.createdAt)}</div></div>`).join(''):'';
       return`<div style="background:var(--bg);border:0.5px solid var(--border);border-left:3px solid var(--border2);border-radius:var(--rsm);padding:9px 12px;cursor:pointer;transition:background .12s;"
         onclick="switchPhase(1);closeCardDetail();setTimeout(()=>{const el=document.getElementById('post-'+p.id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},120);" 
         onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'var(--bg)\'">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-          <span style="font-size:9px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border2);border-radius:20px;padding:1px 7px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">🗒 つぶやき</span>
+          <span style="font-size:9px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border2);border-radius:20px;padding:1px 7px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">🗒 つぶやき${replies.length?" +"+replies.length:""}</span>
           ${sub}
           <span style="font-size:10px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;margin-left:auto;">${fmtDt(p.createdAt)}</span>
         </div>
         ${p.quoteText?`<div style="font-size:12px;color:var(--text2);font-style:italic;border-left:2px solid var(--border2);padding-left:7px;margin-bottom:5px;white-space:pre-wrap;">${esc(p.quoteText.slice(0,100))}${p.quoteText.length>100?'…':''}</div>`:''}
         <div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">${esc(text)}${p.content.length>160?'…':''}</div>
         ${p.ogp?`<div style="margin-top:4px;font-size:10px;color:var(--text3);">🔗 ${esc(p.ogp.title?.slice(0,50)||'')}</div>`:''}
+        ${repliesHtml}
       </div>`;
     }
   }).join('');
@@ -3701,14 +3719,17 @@ function sendQuoteToTimeline(outlineId,quoteId){
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
   const q=(ol.sourceQuotes||[]).find(x=>x.id===quoteId);if(!q)return;
   const sub=(ol.sourceSubItems||[]).find(s=>s.id===q.subItemId);
+
+  // 引用メモを削除（タイムライン投稿に昇格するため重複を避ける）
+  ol.sourceQuotes=ol.sourceQuotes.filter(x=>x.id!==quoteId);
+  ol.updatedAt=Date.now();save();
+
   switchPhase(1);
   setTimeout(()=>{
     const ta=document.getElementById('composeTA');if(!ta)return;
-    // コメントのみコンポーズにセット（引用はsourceQuoteとして別途保存）
     ta.value=(q.comment||'').trim();
     ta.classList.remove('mobile-collapsed');ta.classList.add('mobile-expanded');
     ta.focus();
-    // ソース引用をセット
     pendingSourceRef={
       outlineId,
       title:ol.title||'無題',
@@ -3717,7 +3738,6 @@ function sendQuoteToTimeline(outlineId,quoteId){
       url:sub?.url||ol.sourceUrl||''
     };
     renderComposeSourceRef();
-    // 引用テキストをpendingQuoteとして保持（投稿時に添付）
     pendingQuoteText=q.quoteText||'';
     renderComposeQuotePreview();
   },100);
