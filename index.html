@@ -2901,22 +2901,23 @@ function createScrapCard(){
 
 async function fetchScrapMeta(id,url){
   try{
-    const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-    const json=await res.json();
-    const doc=new DOMParser().parseFromString(json.contents||'','text/html');
-    const gm=p=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
+    const ogp=await fetchOgpData(url);
     const sc=outlines.find(x=>x.id===id);if(!sc)return;
-    sc.title=gm('og:title')||gm('twitter:title')||doc.title||url;
-    sc.scrapSiteName=gm('og:site_name')||(()=>{try{return new URL(url).hostname.replace(/^www\./,'');}catch{return '';}})();
-    sc.scrapImage=gm('og:image')||gm('twitter:image')||'';
-    sc.scrapDescription=gm('og:description')||gm('description')||'';
-    // 本文スニペット（pタグ最初の3段落）
-    const paras=[...doc.querySelectorAll('article p, main p, .content p, p')]
-      .map(p=>p.textContent.trim()).filter(t=>t.length>40).slice(0,3);
-    sc.scrapSnippet=paras.join('\n\n');
+    sc.title=ogp.title||url;
+    sc.scrapSiteName=ogp.siteName||'';
+    sc.scrapImage=ogp.image||'';
+    sc.scrapDescription=ogp.description||'';
+    // 本文スニペット：alloriginsのhtmlから抽出（2nd tryで取得済みの場合のみ）
+    try{
+      const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+      const json=await res.json();
+      const doc=new DOMParser().parseFromString(json.contents||'','text/html');
+      const paras=[...doc.querySelectorAll('article p, main p, .content p, p')]
+        .map(p=>p.textContent.trim()).filter(t=>t.length>40).slice(0,3);
+      if(paras.length)sc.scrapSnippet=paras.join('\n\n');
+    }catch(e){}
     sc.updatedAt=Date.now();save();
     renderScrapGrid();
-    // 詳細が開いていたら再描画
     if(currentCardOutlineId===id)openCardDetail(id);
   }catch(e){
     const sc=outlines.find(x=>x.id===id);
@@ -3627,29 +3628,45 @@ async function fetchOgp(url){
   wrap.style.display='';
   wrap.innerHTML=`<div class="ogp-loading">🔗 読み込み中…</div>`;
   try{
-    // allorigins経由でCORSバイパス
-    const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-    const json=await res.json();
-    const html=json.contents||'';
-    const parser=new DOMParser();
-    const doc=parser.parseFromString(html,'text/html');
-    const getMeta=(prop)=>{
-      return doc.querySelector(`meta[property="${prop}"]`)?.content
-        ||doc.querySelector(`meta[name="${prop}"]`)?.content||'';
-    };
-    const ogp={
-      url,
-      title:getMeta('og:title')||getMeta('twitter:title')||doc.title||url,
-      description:getMeta('og:description')||getMeta('description')||'',
-      image:getMeta('og:image')||getMeta('twitter:image')||'',
-      siteName:getMeta('og:site_name')||(new URL(url)).hostname,
-    };
+    const ogp=await fetchOgpData(url);
     pendingOgp=ogp;
     renderComposeOgp();
   }catch(err){
     wrap.innerHTML=`<div class="ogp-loading" style="color:var(--text3);">🔗 ${esc(url.slice(0,60))}</div>`;
     pendingOgp={url,title:url,description:'',image:'',siteName:(()=>{try{return new URL(url).hostname;}catch{return url;}})()};
   }
+}
+
+// ── OGP取得共通関数：jsonlink.io → allorigins.win フォールバック ──
+async function fetchOgpData(url){
+  // 1st: jsonlink.io（OGP専用・JSレンダリング対応サイトに強い）
+  try{
+    const res=await fetch(`https://jsonlink.io/api/extract?url=${encodeURIComponent(url)}`);
+    if(res.ok){
+      const d=await res.json();
+      if(d.title){
+        return{
+          url,
+          title:d.title||'',
+          description:d.description||'',
+          image:(d.images&&d.images[0])||'',
+          siteName:d.domain||(()=>{try{return new URL(url).hostname.replace(/^www\./,'');}catch{return '';}})(),
+        };
+      }
+    }
+  }catch(e){}
+  // 2nd: allorigins.win（フォールバック）
+  const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+  const json=await res.json();
+  const doc=new DOMParser().parseFromString(json.contents||'','text/html');
+  const gm=p=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
+  return{
+    url,
+    title:gm('og:title')||gm('twitter:title')||doc.title||url,
+    description:gm('og:description')||gm('description')||'',
+    image:gm('og:image')||gm('twitter:image')||'',
+    siteName:gm('og:site_name')||(()=>{try{return new URL(url).hostname.replace(/^www\./,'');}catch{return '';}})(),
+  };
 }
 
 function renderComposeOgp(){
@@ -4021,57 +4038,37 @@ async function autoFetchSourceUrl(url){
   if(!url||!url.startsWith('http'))return;
   const ol=outlines.find(x=>x.id===currentCardOutlineId);
   if(!ol||!ol.isSource)return;
-
-  // タイトルが初期値・空の場合のみ補完
   const titleEl=document.querySelector('#cardDetailBody .card-detail-card-title');
   const isDefaultTitle=!ol.title||ol.title==='新しい媒体'||ol.title==='無題';
-  // メモ欄にローディング表示
   const memoIn=document.getElementById('sourceMemoIn');
   const origPlaceholder=memoIn?.placeholder||'';
   if(memoIn)memoIn.placeholder='取得中…';
-
   try{
-    const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-    const json=await res.json();
-    const doc=new DOMParser().parseFromString(json.contents||'','text/html');
-    const getMeta=p=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
-    const siteName=getMeta('og:site_name')||(()=>{try{return new URL(url).hostname.replace(/^www\./,'');}catch{return '';}})();
-    const desc=getMeta('og:description')||getMeta('description')||'';
-
-    // サイト名 → カードタイトルに補完（初期値の場合のみ）
-    if(siteName&&isDefaultTitle){
-      ol.title=siteName;
-      if(titleEl)titleEl.textContent=siteName;
-      save();renderCardGrid();
+    const ogp=await fetchOgpData(url);
+    if(ogp.siteName&&isDefaultTitle){
+      ol.title=ogp.siteName;
+      if(titleEl)titleEl.textContent=ogp.siteName;
+      save();renderMatSourceGrid();
     }
-    // 説明 → メモ欄に補完（空の場合のみ）
-    if(desc&&memoIn&&!memoIn.value.trim()){
-      memoIn.value=desc;
-      ol.sourceMemo=desc;
+    if(ogp.description&&memoIn&&!memoIn.value.trim()){
+      memoIn.value=ogp.description;
+      ol.sourceMemo=ogp.description;
       save();
     }
-  }catch(e){
-    // 失敗は無視
-  }finally{
-    if(memoIn)memoIn.placeholder=origPlaceholder||'著者・説明・分類など…';
-  }
+  }catch(e){}
+  finally{if(memoIn)memoIn.placeholder=origPlaceholder||'著者・説明・分類など…';}
 }
 
 async function autoFetchSubItemUrl(url){
   url=(url||'').trim();
   if(!url||!url.startsWith('http'))return;
   const labelIn=document.getElementById('sourceSubLabelIn');
-  if(!labelIn||labelIn.value.trim())return; // ラベルが既に入力済みならスキップ
-
+  if(!labelIn||labelIn.value.trim())return;
   const orig=labelIn.placeholder;
   labelIn.placeholder='取得中…';
   try{
-    const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-    const json=await res.json();
-    const doc=new DOMParser().parseFromString(json.contents||'','text/html');
-    const getMeta=p=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
-    const title=getMeta('og:title')||getMeta('twitter:title')||doc.title||'';
-    if(title)labelIn.value=title;
+    const ogp=await fetchOgpData(url);
+    if(ogp.title)labelIn.value=ogp.title;
   }catch(e){}
   finally{labelIn.placeholder=orig;}
 }
