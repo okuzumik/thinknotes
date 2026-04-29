@@ -71,10 +71,38 @@ body {
 /* 集める・蓄える：右端独立ボタン */
 .collect-btns { display:flex; gap:3px; align-items:center; }
 .collect-btn { display:flex; align-items:center; gap:4px; padding:4px 10px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-size:11px; color:var(--text3); cursor:pointer; font-family:'Hiragino Kaku Gothic ProN',sans-serif; transition:all .15s; white-space:nowrap; }
-.collect-btn:hover { background:var(--bg3); color:#8a5c5c; border-color:#c4a4a4; }
-.collect-btn.active { background:#f5eeee; color:#8a5c5c; border-color:#8a5c5c; font-weight:700; }
+.collect-btn:hover { background:var(--bg3); color:#5a6478; border-color:#b0b8c8; }
+.collect-btn.active { background:#f0f1f4; color:#5a6478; border-color:#5a6478; font-weight:700; }
+.collect-btn.active[id="ps-9"] { background:#f0f5f0; color:#3d6b45; border-color:#3d6b45; }
+.collect-btn.active[id="ps-8"] { background:#f0f1f4; color:#5a6478; border-color:#5a6478; }
 .collect-btn span { font-size:11px; }
 .topbar-sep { width:0.5px; height:18px; background:var(--border2); margin:0 6px; flex-shrink:0; }
+/* スクラップカード */
+.scrap-card { background:var(--bg); border:0.5px solid var(--border); border-left:3px solid #3d6b45; border-radius:var(--rsm); overflow:hidden; }
+.scrap-card:hover { border-color:#3d6b45; box-shadow:0 3px 14px rgba(61,107,69,.12); }
+.scrap-card-title { font-size:13px; font-weight:700; color:var(--text); line-height:1.4; margin-bottom:3px; }
+.scrap-badge { display:inline-flex; align-items:center; gap:3px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:#3d6b45; background:#f0f5f0; border:0.5px solid #a8c8a8; border-radius:20px; padding:1px 7px; flex-shrink:0; }
+/* スクラップカード詳細 */
+.scrap-url-bar { display:flex; gap:6px; align-items:center; background:#f0f5f0; border:0.5px solid #a8c8a8; border-radius:var(--rsm); padding:6px 10px; margin-bottom:10px; }
+.scrap-url-in { flex:1; border:none; background:none; font-size:12px; font-family:inherit; color:var(--text); outline:none; }
+.scrap-fetch-btn { padding:4px 12px; background:#3d6b45; color:#fff; border:none; border-radius:20px; font-size:11px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+.scrap-fetch-btn:hover { background:#2e5235; }
+.scrap-thumb { width:100%; max-height:160px; object-fit:cover; border-radius:var(--rsm); margin-bottom:8px; display:block; }
+.scrap-meta-site { font-size:10px; color:#3d6b45; font-family:'Hiragino Kaku Gothic ProN',sans-serif; margin-bottom:3px; }
+.scrap-meta-title { font-size:16px; font-weight:700; color:var(--text); line-height:1.4; margin-bottom:6px; }
+.scrap-meta-desc { font-size:12px; color:var(--text2); line-height:1.7; font-family:'Hiragino Kaku Gothic ProN',sans-serif; margin-bottom:10px; }
+/* ハイライト */
+.scrap-highlights { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+.scrap-highlight-card { background:#f8faf8; border:0.5px solid #a8c8a8; border-left:3px solid #3d6b45; border-radius:var(--rsm); overflow:hidden; }
+.scrap-highlight-body { padding:8px 12px; cursor:pointer; }
+.scrap-highlight-text { font-size:12.5px; color:var(--text2); font-style:italic; line-height:1.7; white-space:pre-wrap; word-break:break-word; border-left:2px solid #a8c8a8; padding-left:8px; margin-bottom:4px; }
+.scrap-highlight-comment { font-size:12.5px; color:var(--text); line-height:1.7; white-space:pre-wrap; word-break:break-word; }
+.scrap-highlight-edit { display:none; padding:8px 12px; background:#f0f5f0; border-top:0.5px solid #a8c8a8; flex-direction:column; gap:6px; }
+.scrap-hl-ta { width:100%; padding:6px 9px; border:0.5px solid #a8c8a8; border-radius:var(--rsm); font-size:12px; font-family:inherit; color:var(--text); background:#fff; outline:none; resize:vertical; min-height:44px; box-sizing:border-box; }
+/* スクラップカード（タイムライン表示） */
+.post-scrap-card { display:inline-flex; align-items:center; gap:5px; margin-top:5px; margin-left:1.5rem; padding:3px 10px 3px 8px; background:#f0f5f0; border:0.5px solid #a8c8a8; border-left:2px solid #3d6b45; border-radius:20px; cursor:pointer; transition:background .15s; max-width:320px; }
+.post-scrap-card:hover { background:#e4ede4; }
+.post-scrap-card-title { font-size:10px; font-weight:600; color:#3d6b45; font-family:'Hiragino Kaku Gothic ProN',sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 .phase-step {
   display:flex; align-items:center; justify-content:center;
@@ -1064,6 +1092,7 @@ body {
     <!-- 集める・蓄える：右端に独立配置 -->
     <div class="collect-btns">
       <button class="collect-btn" id="ps-7" onclick="switchPhase(7)" title="媒体ライブラリ">📎<span>媒体</span></button>
+      <button class="collect-btn" id="ps-9" onclick="switchPhase(9)" title="スクラップ">✂️<span>スクラップ</span></button>
       <button class="collect-btn" id="ps-8" onclick="switchPhase(8)" title="写真ライブラリ">🖼️<span>写真</span></button>
     </div>
     <div class="topbar-sep"></div>
@@ -1383,6 +1412,17 @@ body {
     <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
       <div style="padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">投稿・返信・カードに添付した画像</div>
       <div id="matPhotoGrid" style="display:flex;flex-wrap:wrap;gap:8px;padding:1rem 1.5rem;overflow-y:auto;flex:1;"></div>
+    </div>
+  </div>
+
+  <!-- ═══ PHASE 9 — スクラップ ═══ -->
+  <div class="phase-screen" id="phase9">
+    <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;">
+        <input id="scrapSearch" class="card-grid-search" placeholder="スクラップを検索…" oninput="renderScrapGrid()">
+        <button onclick="createScrapCard()" style="padding:5px 14px;background:#3d6b45;color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✂️ URLを追加</button>
+      </div>
+      <div id="scrapGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:1rem 1.5rem;overflow-y:auto;align-content:start;"></div>
     </div>
   </div>
 
@@ -2484,6 +2524,25 @@ function openCardDetail(outlineId){
   const body=document.getElementById('cardDetailBody');
   if(!body){if(detail)detail.style.display='flex';return;}
 
+  // スクラップカードは専用レンダリング
+  if(ol.isScrap){
+    body.innerHTML=`
+      <div class="card-detail-card" style="border-left:3px solid #3d6b45;">
+        <div class="card-detail-card-title" contenteditable="true" spellcheck="false"
+          onblur="saveCardTitle(this);this.style.borderBottomColor='transparent'"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+          onfocus="this.style.borderBottomColor='#a8c8a8'"
+          style="outline:none;cursor:text;border-bottom:1.5px dashed transparent;transition:border-color .15s;color:#3d6b45;"
+        >${esc(ol.title||'無題')}</div>
+        ${renderScrapDetailSection(ol)}
+      </div>
+      <div style="max-width:720px;margin:.75rem auto 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button onclick="deleteScrapCard()" style="padding:5px 14px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑 削除</button>
+      </div>`;
+    if(detail)detail.style.display='flex';
+    return;
+  }
+
   const labels=ol.labels||[];
   const images=ol.images||[];
 
@@ -2704,6 +2763,7 @@ function closeCardDetail(){
   currentCardOutlineId=null;
   // 媒体タブから開いた場合はグリッドを再描画
   if(currentPhase===7)renderMatSourceGrid();
+  else if(currentPhase===9)renderScrapGrid();
   else if(currentPhase===5)renderCardGrid();
 }
 
@@ -2820,6 +2880,192 @@ function renderBookView(){booksLoad();renderBookSidebar();}
 
 // ─── 素材ビュー ────────────────────────────────────────────
 function renderMatView(){renderMatSourceGrid();}
+
+// ─── スクラップ ────────────────────────────────────────────
+function createScrapCard(){
+  const url=prompt('取り込むページのURLを入力してください:','https://');
+  if(!url||!url.startsWith('http'))return;
+  const sc={
+    id:uid(),title:'取得中…',items:[],labels:[],images:[],
+    isScrap:true,
+    scrapUrl:url,scrapSiteName:'',scrapImage:'',scrapDescription:'',scrapSnippet:'',
+    scrapHighlights:[],
+    createdAt:Date.now(),updatedAt:Date.now()
+  };
+  outlines.unshift(sc);save();renderScrapGrid();
+  // OGP取得
+  fetchScrapMeta(sc.id,url);
+  // カード詳細を開く
+  openCardDetail(sc.id);
+}
+
+async function fetchScrapMeta(id,url){
+  try{
+    const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    const json=await res.json();
+    const doc=new DOMParser().parseFromString(json.contents||'','text/html');
+    const gm=p=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
+    const sc=outlines.find(x=>x.id===id);if(!sc)return;
+    sc.title=gm('og:title')||gm('twitter:title')||doc.title||url;
+    sc.scrapSiteName=gm('og:site_name')||(()=>{try{return new URL(url).hostname.replace(/^www\./,'');}catch{return '';}})();
+    sc.scrapImage=gm('og:image')||gm('twitter:image')||'';
+    sc.scrapDescription=gm('og:description')||gm('description')||'';
+    // 本文スニペット（pタグ最初の3段落）
+    const paras=[...doc.querySelectorAll('article p, main p, .content p, p')]
+      .map(p=>p.textContent.trim()).filter(t=>t.length>40).slice(0,3);
+    sc.scrapSnippet=paras.join('\n\n');
+    sc.updatedAt=Date.now();save();
+    renderScrapGrid();
+    // 詳細が開いていたら再描画
+    if(currentCardOutlineId===id)openCardDetail(id);
+  }catch(e){
+    const sc=outlines.find(x=>x.id===id);
+    if(sc&&sc.title==='取得中…'){sc.title=url.slice(0,60);sc.updatedAt=Date.now();save();}
+  }
+}
+
+function renderScrapGrid(){
+  const q=(document.getElementById('scrapSearch')?.value||'').toLowerCase();
+  const grid=document.getElementById('scrapGrid');if(!grid)return;
+  const pool=[...outlines]
+    .filter(sc=>sc.isScrap)
+    .filter(sc=>!q||(sc.title||'').toLowerCase().includes(q)||(sc.scrapSiteName||'').toLowerCase().includes(q))
+    .sort((a,b)=>b.createdAt-a.createdAt);
+  if(!pool.length){
+    grid.innerHTML=`<div style="padding:2rem;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;grid-column:1/-1;">まだスクラップがありません<br><span style="font-size:11px;">「✂️ URLを追加」からWeb記事を取り込めます</span></div>`;
+    return;
+  }
+  grid.innerHTML=pool.map(sc=>{
+    const hl=sc.scrapHighlights||[];
+    return`<div class="card-cell scrap-card" onclick="openCardDetail('${sc.id}')">
+      ${sc.scrapImage?`<img src="${esc(sc.scrapImage)}" style="width:100%;height:80px;object-fit:cover;flex-shrink:0;" loading="lazy" onerror="this.style.display='none'">`:``}
+      <div style="padding:8px 10px 6px;flex:1;display:flex;flex-direction:column;gap:3px;min-height:0;">
+        <div style="font-size:9px;color:#3d6b45;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(sc.scrapSiteName||'')}</div>
+        <div class="card-cell-title" style="font-size:12.5px;">${esc(sc.title||'無題')}</div>
+        ${sc.scrapDescription?`<div class="card-cell-body" style="font-size:11px;-webkit-line-clamp:2;">${esc(sc.scrapDescription)}</div>`:''}
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;padding:0 10px 8px;flex-shrink:0;">
+        <span class="scrap-badge">✂️ スクラップ${hl.length?` · ${hl.length}件`:''}</span>
+      </div>
+      <div class="card-cell-foot" style="padding:0 10px 8px;">${fmtDate(sc.createdAt)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderScrapDetailSection(sc){
+  const hl=sc.scrapHighlights||[];
+  const hlHtml=hl.map((h,i)=>`
+    <div class="scrap-highlight-card" id="scrap-hl-${h.id}">
+      <div class="scrap-highlight-body" onclick="toggleScrapHlEdit('${sc.id}','${h.id}')">
+        ${h.text?`<div class="scrap-highlight-text">${esc(h.text)}</div>`:''}
+        ${h.comment?`<div class="scrap-highlight-comment">${esc(h.comment)}</div>`
+          :'<div style="font-size:11px;color:var(--text3);font-style:italic;">（コメントなし　クリックして編集）</div>'}
+      </div>
+      <div id="scrap-hl-edit-${h.id}" class="scrap-highlight-edit">
+        <textarea class="scrap-hl-ta" id="scrap-hl-text-${h.id}" placeholder="ハイライトテキスト（省略可）">${esc(h.text||'')}</textarea>
+        <textarea class="scrap-hl-ta" id="scrap-hl-cm-${h.id}" placeholder="コメント・感想（省略可）">${esc(h.comment||'')}</textarea>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="saveScrapHl('${sc.id}','${h.id}')" style="padding:4px 12px;background:#3d6b45;color:#fff;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">保存</button>
+          <button onclick="sendScrapHlToTimeline('${sc.id}','${h.id}')" style="padding:4px 12px;background:none;color:#3d6b45;border:0.5px solid #a8c8a8;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">→ タイムライン</button>
+          <button onclick="deleteScrapHl('${sc.id}','${h.id}')" style="padding:4px 10px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;margin-left:auto;">削除</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const snipHtml=sc.scrapSnippet?`
+    <div style="margin-top:10px;">
+      <div style="font-size:10px;color:#3d6b45;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-weight:600;margin-bottom:6px;">取得した本文</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;word-break:break-word;background:#f8faf8;border:0.5px solid #a8c8a8;border-radius:var(--rsm);padding:10px 12px;max-height:200px;overflow-y:auto;">${esc(sc.scrapSnippet)}</div>
+    </div>`:'';
+
+  return`
+    <div class="scrap-url-bar">
+      <input class="scrap-url-in" id="scrapUrlIn" value="${esc(sc.scrapUrl||'')}" placeholder="https://…">
+      <button class="scrap-fetch-btn" onclick="refetchScrap()">再取得</button>
+      ${sc.scrapUrl?`<a href="${esc(sc.scrapUrl)}" target="_blank" rel="noopener" style="font-size:11px;color:#3d6b45;flex-shrink:0;" title="元ページを開く">↗</a>`:''}
+    </div>
+    ${sc.scrapImage?`<img class="scrap-thumb" src="${esc(sc.scrapImage)}" loading="lazy" onerror="this.style.display='none'">`:''}
+    <div class="scrap-meta-site">${esc(sc.scrapSiteName||'')}</div>
+    <div class="scrap-meta-desc">${esc(sc.scrapDescription||'')}</div>
+    ${snipHtml}
+    <div style="margin-top:14px;border-top:0.5px solid var(--border);padding-top:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">ハイライト・メモ</div>
+        <span style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${hl.length}件</span>
+        <button onclick="addScrapHl()" style="margin-left:auto;padding:4px 12px;background:#f0f5f0;color:#3d6b45;border:0.5px solid #a8c8a8;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">＋ 追加</button>
+      </div>
+      <div id="scrapHlList" style="display:flex;flex-direction:column;gap:6px;">
+        ${hlHtml||'<div style="font-size:11px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">まだハイライトがありません</div>'}
+      </div>
+    </div>`;
+}
+
+function refetchScrap(){
+  const sc=outlines.find(x=>x.id===currentCardOutlineId);if(!sc||!sc.isScrap)return;
+  const url=(document.getElementById('scrapUrlIn')?.value||'').trim();
+  if(!url)return;
+  sc.scrapUrl=url;sc.title='取得中…';sc.updatedAt=Date.now();save();
+  openCardDetail(sc.id);
+  fetchScrapMeta(sc.id,url);
+}
+
+function addScrapHl(){
+  const sc=outlines.find(x=>x.id===currentCardOutlineId);if(!sc||!sc.isScrap)return;
+  if(!sc.scrapHighlights)sc.scrapHighlights=[];
+  sc.scrapHighlights.push({id:uid(),text:'',comment:'',createdAt:Date.now()});
+  sc.updatedAt=Date.now();save();
+  openCardDetail(sc.id);
+  // 追加した編集欄を開く
+  const last=sc.scrapHighlights[sc.scrapHighlights.length-1];
+  setTimeout(()=>toggleScrapHlEdit(sc.id,last.id),50);
+}
+
+function toggleScrapHlEdit(scId,hlId){
+  const el=document.getElementById('scrap-hl-edit-'+hlId);if(!el)return;
+  const hidden=el.style.display==='none'||el.style.display==='';
+  el.style.display=hidden?'flex':'none';
+  if(hidden)el.querySelector('textarea')?.focus();
+}
+
+function saveScrapHl(scId,hlId){
+  const sc=outlines.find(x=>x.id===scId);if(!sc||!sc.scrapHighlights)return;
+  const h=sc.scrapHighlights.find(x=>x.id===hlId);if(!h)return;
+  h.text=(document.getElementById('scrap-hl-text-'+hlId)?.value||'').trim();
+  h.comment=(document.getElementById('scrap-hl-cm-'+hlId)?.value||'').trim();
+  sc.updatedAt=Date.now();save();openCardDetail(sc.id);
+}
+
+function deleteScrapHl(scId,hlId){
+  const sc=outlines.find(x=>x.id===scId);if(!sc||!sc.scrapHighlights)return;
+  sc.scrapHighlights=sc.scrapHighlights.filter(x=>x.id!==hlId);
+  sc.updatedAt=Date.now();save();openCardDetail(sc.id);
+}
+
+function sendScrapHlToTimeline(scId,hlId){
+  const sc=outlines.find(x=>x.id===scId);if(!sc)return;
+  const h=(sc.scrapHighlights||[]).find(x=>x.id===hlId);if(!h)return;
+  sc.scrapHighlights=sc.scrapHighlights.filter(x=>x.id!==hlId);
+  sc.updatedAt=Date.now();save();
+  switchPhase(1);
+  setTimeout(()=>{
+    const ta=document.getElementById('composeTA');if(!ta)return;
+    ta.value=(h.comment||'').trim();
+    ta.classList.remove('mobile-collapsed');ta.classList.add('mobile-expanded');
+    ta.focus();
+    pendingQuoteText=h.text||'';
+    renderComposeQuotePreview();
+    // スクラップカードをソース参照としてセット
+    pendingSourceRef={outlineId:sc.id,title:sc.title,subItemId:null,subLabel:'',url:sc.scrapUrl||''};
+    renderComposeSourceRef();
+  },100);
+}
+
+function deleteScrapCard(){
+  const sc=outlines.find(x=>x.id===currentCardOutlineId);if(!sc||!sc.isScrap)return;
+  if(!confirm(`「${sc.title||'このスクラップ'}」を削除しますか？`))return;
+  outlines=outlines.filter(x=>x.id!==currentCardOutlineId);
+  currentCardOutlineId=null;save();closeCardDetail();renderScrapGrid();
+}
 
 function renderMatSourceGrid(){
   const q=(document.getElementById('matSourceSearch')?.value||'').toLowerCase();
@@ -3326,14 +3572,12 @@ function switchPhase(n){
   /* モバイルはタイムライン固定 */
   if(window.innerWidth<=640) n=1;
   currentPhase=n;
-  [1,2,3,4,5,6,7,8].forEach(i=>{
+  [1,2,3,4,5,6,7,8,9].forEach(i=>{
     document.getElementById('ps-'+i)?.classList.toggle('active',i===n);
     document.getElementById('phase'+i)?.classList.toggle('active',i===n);
   });
-  // collect-btnは7,8のみ、phase-stepは1-6のみ
   document.querySelectorAll('.collect-btn').forEach(btn=>{
-    const id=btn.id; // ps-7 or ps-8
-    const num=parseInt(id.replace('ps-',''));
+    const num=parseInt(btn.id.replace('ps-',''));
     btn.classList.toggle('active',num===n);
   });
   document.getElementById('tagSidebar').style.display=n===1?'':'none';
@@ -3356,6 +3600,7 @@ function switchPhase(n){
   if(n===6){renderBookView();}
   if(n===7){renderMatSourceGrid();}
   if(n===8){renderMatPhotoGrid();}
+  if(n===9){renderScrapGrid();}
 }
 
 // ─── 画像 ────────────────────────────────────────────────
@@ -3557,14 +3802,22 @@ function dismissSourceRef(){
 function renderPostSourceCard(ref){
   if(!ref)return'';
   const ol=outlines.find(x=>x.id===ref.outlineId);
-  const url=ref.url||(ol?.sourceUrl)||'';
+  const isScrap=ol?.isScrap;
+  const url=ref.url||(ol?.scrapUrl)||(ol?.sourceUrl)||'';
   const sub=ref.subLabel?` · ${esc(ref.subLabel)}`:'';
+  if(isScrap){
+    return`<div class="post-scrap-card" onclick="event.stopPropagation();switchPhase(9);setTimeout(()=>{renderScrapGrid();openCardDetail('${ref.outlineId}');},50)">
+      <span style="font-size:10px;flex-shrink:0;">✂️</span>
+      <div class="post-scrap-card-title">${esc(ref.title)}</div>
+      ${url?`<a href="${esc(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;color:#3d6b45;flex-shrink:0;">↗</a>`:''}
+    </div>`;
+  }
   return`<div class="post-source-card" onclick="event.stopPropagation();switchPhase(7);setTimeout(()=>{renderMatSourceGrid();openCardDetail('${ref.outlineId}');},50)">
     <span class="post-source-card-icon">📎</span>
     <div class="post-source-card-body">
       <div class="post-source-card-title">${esc(ref.title)}<span style="font-weight:400;color:var(--text3);">${sub}</span></div>
     </div>
-    ${url?`<a href="${esc(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;color:var(--source);flex-shrink:0;" title="${esc(url)}">↗</a>`:''}
+    ${url?`<a href="${esc(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;color:var(--source);flex-shrink:0;">↗</a>`:''}
   </div>`;
 }
 
