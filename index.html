@@ -3259,7 +3259,6 @@ async function onScrapImageFile(e,scId){
 }
 
 function refetchScrap(){
-function refetchScrap(){
   const sc=outlines.find(x=>x.id===currentCardOutlineId);if(!sc||!sc.isScrap)return;
   const url=(document.getElementById('scrapUrlIn')?.value||'').trim();
   if(!url)return;
