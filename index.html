@@ -103,7 +103,7 @@ body {
 .scrap-highlight-edit { display:none; padding:8px 12px; background:#f0f5f0; border-top:0.5px solid #a8c8a8; flex-direction:column; gap:6px; }
 .scrap-hl-ta { width:100%; padding:6px 9px; border:0.5px solid #a8c8a8; border-radius:var(--rsm); font-size:12px; font-family:inherit; color:var(--text); background:#fff; outline:none; resize:vertical; min-height:44px; box-sizing:border-box; }
 /* スクラップカード（タイムライン表示） */
-.post-scrap-card { display:inline-flex; align-items:center; gap:5px; margin-top:5px; margin-left:1.5rem; padding:3px 10px 3px 8px; background:#f0f5f0; border:0.5px solid #a8c8a8; border-left:2px solid #3d6b45; border-radius:20px; cursor:pointer; transition:background .15s; max-width:320px; }
+.post-scrap-card { display:inline-flex; align-items:center; gap:5px; margin-top:5px; margin-left:1.5rem; padding:3px 10px 3px 8px; background:#f0f5f0; border:0.5px solid #a8c8a8; border-left:2px solid #3d6b45; border-radius:4px; cursor:pointer; transition:background .15s; max-width:320px; }
 .post-scrap-card:hover { background:#e4ede4; }
 .post-scrap-card-title { font-size:10px; font-weight:600; color:#3d6b45; font-family:'Hiragino Kaku Gothic ProN',sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
@@ -835,18 +835,18 @@ body {
 .card-grid-count { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); }
 .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(185px,1fr)); gap:10px; padding:1rem 1.5rem 3rem; overflow-y:auto; align-content:start; flex:1; }
 .card-grid-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; text-align:center; line-height:1.8; }
-.card-cell { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--r); padding:11px; cursor:pointer; transition:all .15s; display:flex; flex-direction:column; gap:5px; height:190px; overflow:hidden; position:relative; }
+.card-cell { background:var(--bg2); border:0.5px solid var(--border); border-left:3px solid var(--border2); border-radius:var(--rsm); padding:11px; cursor:pointer; transition:border-color .12s; display:flex; flex-direction:column; gap:5px; height:190px; overflow:hidden; position:relative; }
 .card-cell.used { background:#eae8e2; border-color:#c8c4bc; opacity:.82; }
 .card-cell.used .card-cell-title { color:var(--text2); }
 .card-used-badge { display:inline-flex; align-items:center; gap:4px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:#888; background:#dedad3; border:0.5px solid #c4c0b8; border-radius:20px; padding:1px 7px; flex-shrink:0; }
 .card-used-badge.in-detail { font-size:11px; padding:3px 10px; cursor:pointer; }
 .card-used-badge.in-detail:hover { background:#d0ccc4; }
-.card-cell:hover { border-color:var(--accent-m); box-shadow:0 3px 14px rgba(0,0,0,.09); transform:translateY(-1px); }
+.card-cell:hover { border-left-color:var(--accent-m); }
 .card-cell-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:700; color:var(--text); line-height:1.4; flex-shrink:0; }
 .card-cell-body { flex:1; overflow:hidden; }
 .card-cell-line { font-size:11px; line-height:1.65; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .card-cell-foot { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); flex-shrink:0; }
-.card-cell-fade { position:absolute; bottom:0; left:0; right:0; height:36px; background:linear-gradient(transparent,var(--bg2)); pointer-events:none; border-radius:0 0 var(--r) var(--r); }
+.card-cell-fade { position:absolute; bottom:0; left:0; right:0; height:36px; background:linear-gradient(transparent,var(--bg2)); pointer-events:none; border-radius:0 0 var(--rsm) var(--rsm); }
 /* 詳細パネル */
 .card-detail { position:fixed; inset:0; top:46px; background:var(--bg); display:flex; flex-direction:column; z-index:200; }
 .card-detail-header { display:flex; align-items:center; gap:8px; padding:8px 1.5rem; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg); }
@@ -875,11 +875,17 @@ body {
 .card-img-upload-btn:hover { background:var(--surface); }
 
 /* カード選択 */
-.card-cell.selected { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-m); }
-/* ── 媒体カード ── */
-.card-cell.source-card { background:var(--source-l); border-color:var(--source-m); border-left:3px solid var(--source); }
-.card-cell.source-card:hover { border-color:var(--source); box-shadow:0 3px 14px rgba(91,79,158,.13); }
+.card-cell.selected { border-left-color:var(--accent); border-color:var(--accent-m); }
+/* 媒体カード：スレートグレー */
+.card-cell.source-card { background:var(--source-l); border-color:var(--source-m); border-left-color:var(--source); }
+.card-cell.source-card:hover { border-color:var(--source); }
 .card-cell.source-card .card-cell-title { color:var(--source); }
+.card-cell.source-card .card-cell-fade { background:linear-gradient(transparent,var(--source-l)); }
+/* スクラップカード：グリーン */
+.card-cell.scrap-card { background:#f4f8f4; border-color:#b8d4b8; border-left-color:#4a7a52; }
+.card-cell.scrap-card:hover { border-color:#4a7a52; }
+.card-cell.scrap-card .card-cell-title { color:#2e5235; }
+.card-cell.scrap-card .card-cell-fade { background:linear-gradient(transparent,#f4f8f4); }
 .source-badge { display:inline-flex; align-items:center; gap:3px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--source); background:var(--source-l); border:0.5px solid var(--source-m); border-radius:20px; padding:1px 7px; flex-shrink:0; }
 .source-url-chip { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--source); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 /* 媒体カード詳細 */
@@ -926,7 +932,7 @@ body {
 .compose-source-sub { font-size:10px; color:var(--text2); font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
 .compose-source-dismiss { background:none; border:none; color:var(--text3); cursor:pointer; font-size:13px; flex-shrink:0; padding:0 2px; }
 /* 投稿のソースリンクカード */
-.post-source-card { display:inline-flex; align-items:center; gap:5px; margin-top:5px; margin-left:1.5rem; padding:3px 10px 3px 8px; background:var(--source-l); border:0.5px solid var(--source-m); border-left:2px solid var(--source); border-radius:20px; cursor:pointer; transition:background .15s; text-decoration:none; max-width:320px; }
+.post-source-card { display:inline-flex; align-items:center; gap:5px; margin-top:5px; margin-left:1.5rem; padding:3px 10px 3px 8px; background:var(--source-l); border:0.5px solid var(--source-m); border-left:2px solid var(--source); border-radius:4px; cursor:pointer; transition:background .15s; text-decoration:none; max-width:320px; }
 .post-source-card:hover { background:#e8eaed; }
 .post-source-card-icon { font-size:10px; flex-shrink:0; }
 .post-source-card-body { flex:1; min-width:0; }
@@ -2523,7 +2529,7 @@ function renderCardView(){
 function renderCardGrid(){
   const q=(document.getElementById('cardGridSearch')?.value||'').toLowerCase();
   let pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt)
-    .filter(ol=>!ol.isSource) // ソースカードは素材タブへ
+    .filter(ol=>!ol.isSource&&!ol.isScrap) // 媒体・スクラップはオブジェクトタブへ
     .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q))
     .filter(ol=>!activeCardLabel||(ol.labels||[]).includes(activeCardLabel));
   const grid=document.getElementById('cardGrid');
@@ -2701,6 +2707,9 @@ function openCardDetail(outlineId){
   if(ol.isSource){
     const linkedSection=document.getElementById('cardLinkedPostsSection');
     if(linkedSection) renderSourceUnifiedSection(outlineId);
+    renderObjectRelated(ol);
+  } else if(ol.isScrap){
+    renderObjectRelated(ol);
   }
   const related=document.getElementById('cardRelated');
   if(related){
@@ -3012,20 +3021,55 @@ function renderObjectGrid(){
       </div>`;
     } else {
       const thumb=ol.scrapImage||''; // スクラップの画像は ol.scrapImage
-      return`<div class="card-cell" style="background:#f6faf6;border:0.5px solid #a8c8a8;border-left:3px solid #3d6b45;" onclick="openCardDetail('${ol.id}')">
+      return`<div class="card-cell scrap-card" onclick="openCardDetail('${ol.id}')">
         ${thumb?`<img src="${esc(thumb)}" style="width:100%;height:72px;object-fit:cover;flex-shrink:0;" loading="lazy" onerror="this.style.display='none'">`:''}
-        <div style="font-size:9px;color:#3d6b45;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(ol.scrapSiteName||'')}</div>
+        <div style="font-size:9px;color:#4a7a52;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(ol.scrapSiteName||'')}</div>
         <div class="card-cell-title" style="color:#2a4a2e;">${esc(ol.title||'無題')}</div>
         <div class="card-cell-body" style="flex:1;font-size:11px;">${esc((ol.scrapDescription||ol.scrapSnippet||'').slice(0,80))}</div>
         <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;align-items:center;">
-          <span class="source-badge" style="color:#3d6b45;background:#e8f5e8;border-color:#a8c8a8;">✂️${ol.scrapHighlights?.length?` ${ol.scrapHighlights.length}件`:''}</span>
+          <span class="source-badge" style="color:#4a7a52;background:#e4f0e4;border-color:#b8d4b8;">✂️${ol.scrapHighlights?.length?` ${ol.scrapHighlights.length}件`:''}</span>
           ${(ol.labels||[]).map(l=>`<span style="font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent);color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
         </div>
         <div class="card-cell-foot">${fmtDate(ol.createdAt)}</div>
-        <div class="card-cell-fade" style="background:linear-gradient(transparent,#e8f5e8)"></div>
+        <div class="card-cell-fade" style="background:linear-gradient(transparent,#f4f8f4)"></div>
       </div>`;
     }
   }).join('');
+}
+
+function renderObjectRelated(ol){
+  const related=document.getElementById('cardRelated');
+  if(!related)return;
+  const labels=ol.labels||[];
+  if(!labels.length){related.style.display='none';return;}
+  // 媒体・スクラップの中でラベルが一致するものを表示
+  const relatedItems=outlines
+    .filter(x=>x.id!==ol.id&&(x.isSource||x.isScrap))
+    .map(x=>{
+      const matchLabels=(x.labels||[]).filter(l=>labels.includes(l));
+      return matchLabels.length?{ol:x,matchLabels}:null;
+    })
+    .filter(Boolean)
+    .sort((a,b)=>b.matchLabels.length-a.matchLabels.length)
+    .slice(0,15);
+  if(!relatedItems.length){related.style.display='none';return;}
+  related.style.display='flex';
+  related.innerHTML=`<div class="card-related-hd">関連オブジェクト</div>`
+    +relatedItems.map(({ol:ro,matchLabels})=>{
+      const isScrap=ro.isScrap;
+      const thumb=isScrap?ro.scrapImage:(ro.images?.[0]||'');
+      const site=isScrap?ro.scrapSiteName:ro.sourceUrl?(()=>{try{return new URL(ro.sourceUrl).hostname.replace(/^www\./,'');}catch{return '';}})():'';
+      const icon=isScrap?'✂️':'📎';
+      const accentColor=isScrap?'#4a7a52':'var(--source)';
+      return`<div class="card-related-thumb" style="border-left:2px solid ${accentColor};" onclick="openCardDetail('${ro.id}')">
+        <div class="card-related-thumb-title" style="color:${accentColor};">${icon} ${esc(ro.title||'無題')}</div>
+        ${thumb?`<img src="${esc(thumb)}" loading="lazy" onerror="this.style.display='none'">`:''}
+        <div style="font-size:9px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(site)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;margin-top:auto;">
+          ${matchLabels.map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent);color:#fff;">${esc(l)}</span>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
 }
 
 function renderObjLabelFilters(){
@@ -4952,7 +4996,7 @@ function renderPost(p){
         ?`<span class="tag-input-wrap"><input class="tag-input" id="taginput-${p.id}" placeholder="タグ名" maxlength="20" onkeydown="onTagInputKey(event,'${p.id}')" onblur="cancelTagEdit('${p.id}')"></span>`
         :`<button class="tag-add-btn" onclick="startTagEdit('${p.id}')">＋ タグ</button>`}
     </div>
-    ${p.quoteText?`<div style="margin-top:8px;padding:8px 12px 8px 14px;border-left:3px solid var(--source);background:var(--source-l);border-radius:0 var(--rsm) var(--rsm) 0;"><div style="font-size:9px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--source);font-weight:600;margin-bottom:4px;letter-spacing:.05em;">引用</div><div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText)}</div></div>`:''}\n    ${(p.images&&p.images.length)?`<div class="post-images">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:''}
+    ${p.quoteText?`<div style="margin-top:8px;margin-left:1rem;padding:7px 12px 7px 12px;border-left:3px solid var(--source);background:var(--source-l);border-radius:0 var(--rsm) var(--rsm) 0;"><div style="font-size:9px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--source);font-weight:600;margin-bottom:4px;letter-spacing:.05em;">引用</div><div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText)}</div></div>`:''}\n    ${(p.images&&p.images.length)?`<div class="post-images">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:''}
     ${p.ogp?renderOgpCard(p.ogp):''}
     ${p.sourceRef?renderPostSourceCard(p.sourceRef):''}
     ${threadHtml}
