@@ -2572,6 +2572,7 @@ function openCardDetail(outlineId){
     <button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()">🖼️ 画像を追加</button>
     <button class="card-img-upload-btn" onclick="openImgLibrary('card')">📂 ライブラリ</button>
     <input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)">
+    ${ol.isSource?`<button onclick="deleteSourceCardConfirm()" style="margin-left:auto;padding:5px 14px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑 削除</button>`:''}\
   </div>
   <div id="cardLinkedPostsSection" style="max-width:720px;margin:.75rem auto 0;"></div>`;
 
@@ -3743,6 +3744,15 @@ function sendQuoteToTimeline(outlineId,quoteId){
   },100);
 }
 
+function deleteSourceCardConfirm(){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol||!ol.isSource)return;
+  if(!confirm(`「${ol.title||'この媒体'}」を削除しますか？\nこの操作は元に戻せません。`))return;
+  outlines=outlines.filter(x=>x.id!==currentCardOutlineId);
+  currentCardOutlineId=null;save();
+  closeCardDetail();
+  renderMatSourceGrid();
+}
+
 function saveCardTitle(el){
   const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
   const newTitle=el.textContent.trim()||'無題';
@@ -4102,14 +4112,19 @@ function renderCalDayView(dateStr){
   const dayEnd=new Date(dateStr+'T23:59:59').getTime();
   const dayOutlines=outlines.filter(ol=>
     ol.createdAt>=dayStart&&ol.createdAt<=dayEnd&&
-    (ol.title||ol.items?.length)  // 空でないものだけ
+    !ol.isSource&&  // 媒体カードは別枠
+    (ol.title||ol.items?.length)
+  ).sort((a,b)=>a.createdAt-b.createdAt);
+  const dayMedia=outlines.filter(ol=>
+    ol.createdAt>=dayStart&&ol.createdAt<=dayEnd&&
+    ol.isSource
   ).sort((a,b)=>a.createdAt-b.createdAt);
   const dayNotes=notes.filter(n=>
     n.createdAt>=dayStart&&n.createdAt<=dayEnd&&
     (n.title||(n.mergedText?.trim())||(n.paragraphs?.length))  // 空でないものだけ
   ).sort((a,b)=>a.createdAt-b.createdAt);
 
-  const docsSectionHtml=(dayOutlines.length||dayNotes.length)?`
+  const docsSectionHtml=(dayOutlines.length||dayNotes.length||dayMedia.length)?`
     <div style="margin-top:1.5rem;padding-top:1rem;border-top:0.5px solid var(--border);">
       <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;letter-spacing:.1em;color:var(--text3);margin-bottom:8px;">この日に作成したドキュメント</div>
       ${dayOutlines.map(ol=>`
@@ -4130,6 +4145,16 @@ function renderCalDayView(dateStr){
           <div>
             <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:600;color:var(--text);">${esc(n.title||'無題のノート')}</div>
             <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">ノート</div>
+          </div>
+        </div>`).join('')}
+      ${dayMedia.map(ol=>`
+        <div onclick="switchPhase(7);setTimeout(()=>{renderMatSourceGrid();openCardDetail('${ol.id}');},50)"
+          style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--rsm);cursor:pointer;margin-bottom:4px;border:0.5px solid var(--source-m);background:var(--source-l);"
+          onmouseover="this.style.borderColor='var(--source)'" onmouseout="this.style.borderColor='var(--source-m)'">
+          <span style="font-size:14px;flex-shrink:0;">📎</span>
+          <div>
+            <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:600;color:var(--source);">${esc(ol.title||'無題の媒体')}</div>
+            <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">媒体カード</div>
           </div>
         </div>`).join('')}
     </div>`:''
@@ -4200,12 +4225,12 @@ function submitCalPost(){
   const ta=document.getElementById('calComposeTA');if(!ta)return;
   const text=ta.value.trim();if(!text||!calSelectedDate)return;
   // 指定日の23:59:59に投稿（タイムライン上では過去に並ぶ）
-  const d=new Date(calSelectedDate+'T23:59:59');
-  // 同日に複数あれば最後+1秒
+  const endOfDay=new Date(calSelectedDate+'T23:59:59').getTime();
+  // 同日に複数あれば最後+1ms（日をまたがないよう同日内に収める）
   const dayPosts=postsForDate(calSelectedDate);
   const ts=dayPosts.length>0
-    ?Math.max(...dayPosts.map(p=>p.createdAt))+1000
-    :d.getTime();
+    ?Math.min(endOfDay, Math.max(...dayPosts.map(p=>p.createdAt))+1)
+    :endOfDay;
   const p={id:uid(),content:text,createdAt:ts,updatedAt:ts,starred:false,replies:[]};
   posts.push(p);
   ta.value='';ta.style.height='';
@@ -4386,8 +4411,7 @@ function renderPost(p){
         ?`<span class="tag-input-wrap"><input class="tag-input" id="taginput-${p.id}" placeholder="タグ名" maxlength="20" onkeydown="onTagInputKey(event,'${p.id}')" onblur="cancelTagEdit('${p.id}')"></span>`
         :`<button class="tag-add-btn" onclick="startTagEdit('${p.id}')">＋ タグ</button>`}
     </div>
-    ${p.quoteText?`<div style="margin-top:7px;padding:7px 10px 7px 12px;border-left:3px solid var(--source-m);background:var(--source-l);border-radius:0 var(--rsm) var(--rsm) 0;font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText)}</div>`:''}
-    ${(p.images&&p.images.length)?`<div class="post-images">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:''}
+    ${p.quoteText?`<div style="margin-top:8px;padding:8px 12px 8px 14px;border-left:3px solid var(--source);background:var(--source-l);border-radius:0 var(--rsm) var(--rsm) 0;"><div style="font-size:9px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--source);font-weight:600;margin-bottom:4px;letter-spacing:.05em;">引用</div><div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText)}</div></div>`:''}\n    ${(p.images&&p.images.length)?`<div class="post-images">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:''}
     ${p.ogp?renderOgpCard(p.ogp):''}
     ${p.sourceRef?renderPostSourceCard(p.sourceRef):''}
     ${threadHtml}
@@ -4668,11 +4692,12 @@ let wfCurrentId=null; // 現在編集中のアウトラインID
 
 function wfRenderSidebar(){
   const list=document.getElementById('wfSidebarList');if(!list)return;
-  if(!outlines.length){
+  const nonSource=outlines.filter(ol=>!ol.isSource);
+  if(!nonSource.length){
     list.innerHTML=`<div style="padding:1rem;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text3);">まだアウトラインがありません</div>`;
     return;
   }
-  list.innerHTML=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt).map(ol=>`
+  list.innerHTML=[...nonSource].sort((a,b)=>b.updatedAt-a.updatedAt).map(ol=>`
     <div class="wf-sidebar-item ${ol.id===wfCurrentId?'active':''}" onclick="wfOpen('${ol.id}')">
       <div class="wf-sidebar-item-title">${esc(ol.title||'無題')}</div>
       <div class="wf-sidebar-item-meta">${ol.items.length}件 · ${fmtDate(ol.updatedAt)}</div>
