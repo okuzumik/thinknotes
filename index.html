@@ -1631,8 +1631,8 @@ body {
 <div class="source-picker-modal" id="sourcePickerModal" onclick="if(event.target===this)closeSourcePicker()">
   <div class="source-picker-box">
     <div class="source-picker-head">
-      <span class="source-picker-title">📎 媒体を選択</span>
-      <input class="source-picker-search" id="sourcePickerSearch" placeholder="媒体を検索…" oninput="_editingSourceForPostId?renderSourcePickerListForEdit():renderSourcePickerList()">
+      <span class="source-picker-title">📎 オブジェクトを選択</span>
+      <input class="source-picker-search" id="sourcePickerSearch" placeholder="媒体・スクラップを検索…" oninput="_editingSourceForPostId?renderSourcePickerListForEdit():renderSourcePickerList()">
       <button onclick="closeSourcePicker()" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;padding:0 4px;">✕</button>
     </div>
     <div class="source-picker-list" id="sourcePickerList"></div>
@@ -2839,6 +2839,9 @@ function wfBackToCards(){
 
 function wfOpenFromCard(outlineId){
   _wfCalledFromCard=true;
+  // カード詳細オーバーレイを先に閉じる
+  const detail=document.getElementById('cardDetail');
+  if(detail)detail.style.display='none';
   switchPhase(3);
   setTimeout(()=>wfOpen(outlineId),50);
 }
@@ -3001,30 +3004,27 @@ function renderObjectGrid(){
       const quotes=ol.sourceQuotes||[];
       const domain=ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname.replace(/^www\./,'');}catch{return '';}})():'';
       return`<div class="card-cell source-card" onclick="openCardDetail('${ol.id}')">
-        ${ol.sourceImage?`<img src="${esc(ol.sourceImage)}" style="width:100%;height:64px;object-fit:cover;flex-shrink:0;border-radius:4px;" loading="lazy" onerror="this.style.display='none'">`:''}
-        <div class="card-cell-title" style="font-size:12px;">${esc(ol.title||'無題')}</div>
-        ${domain?`<div class="source-url-chip">🔗 ${esc(domain)}</div>`:''}
-        <div class="card-cell-body" style="flex:1;font-size:10.5px;">${subs.slice(0,3).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||`<div style="color:var(--text3);font-size:10.5px;">${esc(ol.sourceMemo?.slice(0,60)||'')}</div>`}</div>
-        <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;">
+        ${ol.scrapImage?`<img src="${esc(ol.scrapImage)}" style="width:100%;height:72px;object-fit:cover;flex-shrink:0;" loading="lazy" onerror="this.style.display='none'">`:''}
+        <div style="font-size:9px;color:var(--source);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(domain||'')}</div>
+        <div class="card-cell-title">${esc(ol.title||'無題')}</div>
+        <div class="card-cell-body" style="flex:1;font-size:11px;">${subs.slice(0,3).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||`<div style="color:var(--text3);">${esc(ol.sourceMemo?.slice(0,60)||'')}</div>`}</div>
+        <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;align-items:center;">
           <span class="source-badge">📎${subs.length?` ${subs.length}件`:''}</span>
-          ${quotes.length?`<span class="source-badge">💬 ${quotes.length}件`+`</span>`:''}\
+          ${quotes.length?`<span class="source-badge">💬 ${quotes.length}件</span>`:''}
           ${(ol.labels||[]).map(l=>`<span style="font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent);color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
         </div>
         <div class="card-cell-foot">${fmtDate(ol.updatedAt)}</div>
         <div class="card-cell-fade" style="background:linear-gradient(transparent,var(--source-l))"></div>
       </div>`;
     } else {
-      // スクラップ
-      const hl=ol.scrapHighlights||[];
-      const imgs=ol.scrapImages||[];
-      const thumb=imgs[0]||'';
-      return`<div class="card-cell scrap-card" style="border-left-color:#3d6b45;" onclick="openCardDetail('${ol.id}')">
-        ${thumb?`<img src="${esc(thumb)}" style="width:100%;height:64px;object-fit:cover;flex-shrink:0;border-radius:4px;" loading="lazy" onerror="this.style.display='none'">`:''}
-        <div style="font-size:9px;color:#3d6b45;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(ol.scrapSiteName||'')}</div>
-        <div class="card-cell-title" style="font-size:12px;">${esc(ol.title||'無題')}</div>
-        <div class="card-cell-body" style="flex:1;font-size:10.5px;">${esc((ol.scrapDescription||ol.scrapSnippet||'').slice(0,80))}</div>
-        <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;">
-          <span class="scrap-badge">✂️${hl.length?` ${hl.length}件`:''}</span>
+      const thumb=ol.scrapImage||'';
+      return`<div class="card-cell source-card" onclick="openCardDetail('${ol.id}')">
+        ${thumb?`<img src="${esc(thumb)}" style="width:100%;height:72px;object-fit:cover;flex-shrink:0;" loading="lazy" onerror="this.style.display='none'">`:''}
+        <div style="font-size:9px;color:var(--source);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(ol.scrapSiteName||'')}</div>
+        <div class="card-cell-title">${esc(ol.title||'無題')}</div>
+        <div class="card-cell-body" style="flex:1;font-size:11px;">${esc((ol.scrapDescription||ol.scrapSnippet||'').slice(0,80))}</div>
+        <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;align-items:center;">
+          <span class="source-badge" style="color:#3d6b45;background:#f0f5f0;border-color:#a8c8a8;">✂️${ol.scrapHighlights?.length?` ${ol.scrapHighlights.length}件`:''}</span>
           ${(ol.labels||[]).map(l=>`<span style="font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent);color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
         </div>
         <div class="card-cell-foot">${fmtDate(ol.createdAt)}</div>
@@ -3049,6 +3049,8 @@ function newCardFromOutliner(){
     createdAt:Date.now(),updatedAt:Date.now()};
   outlines.unshift(ol);save();
   _wfCalledFromCard=true;
+  const detail=document.getElementById('cardDetail');
+  if(detail)detail.style.display='none';
   switchPhase(3);
   setTimeout(()=>wfOpen(ol.id),50);
 }
@@ -4033,14 +4035,24 @@ function renderSourcePickerList(){
   const q=(document.getElementById('sourcePickerSearch')?.value||'').toLowerCase();
   const list=document.getElementById('sourcePickerList');
   if(!list)return;
-  const sources=outlines.filter(ol=>ol.isSource)
-    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q))
+  const objects=[...outlines.filter(ol=>ol.isSource||ol.isScrap)]
+    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q)||(ol.scrapSiteName||'').toLowerCase().includes(q))
     .sort((a,b)=>(a.title||'').localeCompare(b.title||'','ja'));
-  if(!sources.length){
-    list.innerHTML=`<div class="source-picker-none">媒体カードがありません<br><span style="font-size:11px;color:var(--text3);">「集める・蓄える」タブから作成できます</span></div>`;
+  if(!objects.length){
+    list.innerHTML=`<div class="source-picker-none">媒体・スクラップがありません<br><span style="font-size:11px;color:var(--text3);">「オブジェクト」タブから作成できます</span></div>`;
     return;
   }
-  list.innerHTML=sources.map(ol=>{
+  list.innerHTML=objects.map(ol=>{
+    if(ol.isScrap){
+      const site=ol.scrapSiteName||'';
+      return`<div class="source-picker-item" style="border-left:2px solid #3d6b45;">
+        <div class="source-picker-item-title" style="color:#3d6b45;" onclick="event.stopPropagation();selectSourceRef('${ol.id}',null)">✂️ ${esc(ol.title||'無題')}</div>
+        <div class="source-picker-item-meta">${esc(site)}${ol.scrapHighlights?.length?` · ${ol.scrapHighlights.length}件のメモ`:''}</div>
+        <div style="padding:4px 8px 6px;">
+          <div class="source-picker-sub-item" onclick="event.stopPropagation();selectSourceRef('${ol.id}',null)" style="color:#3d6b45;background:#f0f5f0;">引用する</div>
+        </div>
+      </div>`;
+    }
     const subs=ol.sourceSubItems||[];
     const subsHtml=subs.length?`
       <div class="source-picker-sub-list">
@@ -4068,7 +4080,9 @@ function toggleSourcePickerItem(el){
 function selectSourceRef(outlineId, subItemId){
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
   let subLabel='',url='';
-  if(subItemId){
+  if(ol.isScrap){
+    url=ol.scrapUrl||'';
+  } else if(subItemId){
     const si=(ol.sourceSubItems||[]).find(s=>s.id===subItemId);
     if(si){subLabel=si.label;url=si.url||ol.sourceUrl||'';}
   } else {
