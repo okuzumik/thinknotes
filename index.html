@@ -817,7 +817,7 @@ body {
 .card-cell-foot { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); flex-shrink:0; }
 .card-cell-fade { position:absolute; bottom:0; left:0; right:0; height:36px; background:linear-gradient(transparent,var(--bg2)); pointer-events:none; border-radius:0 0 var(--r) var(--r); }
 /* 詳細パネル */
-.card-detail { position:absolute; inset:0; background:var(--bg); display:flex; flex-direction:column; z-index:10; }
+.card-detail { position:fixed; inset:0; top:var(--topbar-h); background:var(--bg); display:flex; flex-direction:column; z-index:200; }
 .card-detail-header { display:flex; align-items:center; gap:8px; padding:10px 1.5rem; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
 .card-detail-back { background:none; border:none; cursor:pointer; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; color:var(--accent); padding:0; white-space:nowrap; }
 .card-detail-back:hover { opacity:.7; }
@@ -1363,26 +1363,6 @@ body {
         <div style="font-size:28px;margin-bottom:8px;">🗂️</div>
         保存済みアウトラインがありません<br>
         <span style="font-size:11px;margin-top:4px;display:block;">「思考」タブのアウトラインから保存してください</span>
-      </div>
-    </div>
-    <!-- カード詳細 -->
-    <div class="card-detail" id="cardDetail" style="display:none;">
-      <div class="card-detail-header">
-        <button class="card-detail-back" onclick="closeCardDetail()">‹ 一覧</button>
-        <div style="flex:1;"></div>
-        <button class="card-copy-btn" onclick="copyCardText()">📋 コピー</button>
-        <div style="position:relative;">
-          <button class="card-export-btn" onclick="toggleCardExportMenu()">↓ 書き出し ▾</button>
-          <div id="cardExportMenu" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:160px;z-index:50;overflow:hidden;">
-            <button onclick="exportCardText('txt')" style="display:block;width:100%;padding:9px 14px;text-align:left;background:none;border:none;border-bottom:0.5px solid var(--border);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text);cursor:pointer;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">📄 テキストファイル (.txt)</button>
-            <button onclick="exportCardText('md')" style="display:block;width:100%;padding:9px 14px;text-align:left;background:none;border:none;border-bottom:0.5px solid var(--border);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text);cursor:pointer;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">📝 Markdownファイル (.md)</button>
-            <button onclick="exportCardText('cosense')" style="display:block;width:100%;padding:9px 14px;text-align:left;background:none;border:none;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text);cursor:pointer;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">🔗 Cosense / Scrapbox形式</button>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;flex:1;overflow:hidden;">
-        <div class="card-detail-body" id="cardDetailBody" style="flex:1;"></div>
-        <div class="card-related" id="cardRelated" style="display:none;"></div>
       </div>
     </div>
   </div>
@@ -2749,6 +2729,9 @@ function closeCardDetail(){
   const detail=document.getElementById('cardDetail');
   if(detail)detail.style.display='none';
   currentCardOutlineId=null;
+  // 媒体タブから開いた場合はグリッドを再描画
+  if(currentPhase===7)renderMatSourceGrid();
+  else if(currentPhase===5)renderCardGrid();
 }
 
 function outlineToCosensetText(ol){
@@ -5652,5 +5635,26 @@ if(window.innerWidth<=640){
   if(ta)ta.classList.add('mobile-collapsed');
 }
 </script>
+<!-- ── カード詳細（グローバルオーバーレイ） ── -->
+<div class="card-detail" id="cardDetail" style="display:none;">
+  <div class="card-detail-header">
+    <button class="card-detail-back" onclick="closeCardDetail()">‹ 一覧</button>
+    <div style="flex:1;"></div>
+    <button class="card-copy-btn" onclick="copyCardText()">📋 コピー</button>
+    <div style="position:relative;">
+      <button class="card-export-btn" onclick="toggleCardExportMenu()">↓ 書き出し ▾</button>
+      <div id="cardExportMenu" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:160px;z-index:50;overflow:hidden;">
+        <button onclick="exportCardText('txt')" style="display:block;width:100%;padding:9px 14px;text-align:left;background:none;border:none;border-bottom:0.5px solid var(--border);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text);cursor:pointer;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">📄 テキストファイル (.txt)</button>
+        <button onclick="exportCardText('md')" style="display:block;width:100%;padding:9px 14px;text-align:left;background:none;border:none;border-bottom:0.5px solid var(--border);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text);cursor:pointer;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">📝 Markdownファイル (.md)</button>
+        <button onclick="exportCardText('cosense')" style="display:block;width:100%;padding:9px 14px;text-align:left;background:none;border:none;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text);cursor:pointer;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">🔗 Cosense / Scrapbox形式</button>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;flex:1;overflow:hidden;">
+    <div class="card-detail-body" id="cardDetailBody" style="flex:1;"></div>
+    <div class="card-related" id="cardRelated" style="display:none;"></div>
+  </div>
+</div>
+
 </body>
 </html>
