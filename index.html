@@ -2460,37 +2460,34 @@ let activeSourceLabel=null;
 let activeScrapLabel=null;
 
 // ── ラベルフィルター（汎用） ──
-function renderLabelBar(elId, pool, activeLabel, onSet){
+function renderLabelBar(elId, pool, activeLabel, callbackName){
   const el=document.getElementById(elId);if(!el)return;
   const set=new Set();
   pool.forEach(ol=>(ol.labels||[]).forEach(l=>set.add(l)));
   if(!set.size){el.innerHTML='';return;}
-  el.innerHTML=`<span class="card-label-pill${!activeLabel?' active':''}" onclick="(${onSet})(null)">すべて</span>`
-    +[...set].map(l=>`<span class="card-label-pill${activeLabel===l?' active':''}" onclick="(${onSet})('${esc(l)}')">${esc(l)}</span>`).join('');
+  el.innerHTML=`<span class="card-label-pill${!activeLabel?' active':''}" onclick="${callbackName}(null)">すべて</span>`
+    +[...set].map(l=>`<span class="card-label-pill${activeLabel===l?' active':''}" onclick="${callbackName}('${esc(l)}')">${esc(l)}</span>`).join('');
 }
 
 function renderCardLabelFilters(){
   renderLabelBar('cardLabelFilters',
     outlines.filter(ol=>!ol.isSource&&!ol.isScrap),
-    activeCardLabel,
-    'function(l){activeCardLabel=l;renderCardLabelFilters();renderCardGrid();}');
+    activeCardLabel,'setCardLabelFilter');
 }
 function renderSourceLabelFilters(){
   renderLabelBar('sourceLabelFilters',
     outlines.filter(ol=>ol.isSource),
-    activeSourceLabel,
-    'function(l){activeSourceLabel=l;renderMatSourceGrid();}');
+    activeSourceLabel,'setSourceLabelFilter');
 }
 function renderScrapLabelFilters(){
   renderLabelBar('scrapLabelFilters',
     outlines.filter(ol=>ol.isScrap),
-    activeScrapLabel,
-    'function(l){activeScrapLabel=l;renderScrapGrid();}');
+    activeScrapLabel,'setScrapLabelFilter');
 }
-
-function setCardLabel(label){
-  activeCardLabel=label;renderCardLabelFilters();renderCardGrid();
-}
+function setCardLabelFilter(l){activeCardLabel=l;renderCardLabelFilters();renderCardGrid();}
+function setSourceLabelFilter(l){activeSourceLabel=l;renderMatSourceGrid();}
+function setScrapLabelFilter(l){activeScrapLabel=l;renderScrapGrid();}
+function setCardLabel(label){activeCardLabel=label;renderCardLabelFilters();renderCardGrid();}
 
 function renderCardView(){
   closeCardDetail();
@@ -2959,7 +2956,7 @@ async function fetchScrapMeta(id,url){
     sc.scrapImage=ogp.image||'';
     sc.scrapDescription=ogp.description||'';
 
-    // 本文スニペット：r.jina.aiで取得（最大500字）
+    // 本文スニペット：r.jina.aiで取得してクリーニング
     try{
       const res=await fetch(`https://r.jina.ai/${url}`,{
         headers:{'Accept':'application/json','X-Return-Format':'json'}
@@ -2967,13 +2964,37 @@ async function fetchScrapMeta(id,url){
       if(res.ok){
         const d=await res.json();
         const data=d.data||d;
-        const content=(data.content||data.text||'').trim();
-        if(content)sc.scrapSnippet=content.slice(0,500);
+        const raw=(data.content||data.text||'').trim();
+        if(raw){
+          // 1) 画像マークダウンを除去 ![...](...)
+          // 2) リンクをテキストのみに [text](url) → text
+          // 3) 短すぎる行（30字未満）・URLだけの行を除去
+          // 4) 見出し# は保持（ただし先頭の重複タイトル行は除去）
+          const cleaned=raw
+            .replace(/!\[.*?\]\(.*?\)/g,'')           // 画像除去
+            .replace(/\[([^\]]+)\]\([^)]+\)/g,'$1')   // リンク→テキストのみ
+            .replace(/https?:\/\/\S+/g,'')             // 裸のURL除去
+            .split('\n')
+            .map(l=>l.trim())
+            .filter(l=>{
+              if(!l)return false;
+              if(l.startsWith('#'))return true;         // 見出しは保持
+              if(l.length<20)return false;              // 短行除去
+              if(/^\[.*\]$/.test(l))return false;       // リンクのみ行除去
+              return true;
+            })
+            .join('\n')
+            .replace(/\n{3,}/g,'\n\n')                 // 3行以上の空行を2行に
+            .slice(0,800);
+          if(cleaned.length>30)sc.scrapSnippet=cleaned;
+          // Jinaから画像URLも取得（OGPで取れなかった場合）
+          if(!sc.scrapImage&&data.images&&data.images[0]?.src){
+            sc.scrapImage=data.images[0].src;
+          }
+        }
       }
-    }catch(e){
-      // jinaが失敗してもOGPの説明文をスニペットとして使う
-      if(!sc.scrapSnippet&&ogp.description)sc.scrapSnippet=ogp.description;
-    }
+    }catch(e){}
+    if(!sc.scrapSnippet&&ogp.description)sc.scrapSnippet=ogp.description;
 
     sc.updatedAt=Date.now();save();
     renderScrapGrid();
@@ -3035,19 +3056,28 @@ function renderScrapDetailSection(sc){
       </div>
     </div>`).join('');
 
-  const snipHtml=sc.scrapSnippet?`
+  const snipHtml=`
     <div style="margin-top:10px;">
-      <div style="font-size:10px;color:#3d6b45;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-weight:600;margin-bottom:6px;">取得した本文</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;word-break:break-word;background:#f8faf8;border:0.5px solid #a8c8a8;border-radius:var(--rsm);padding:10px 12px;max-height:200px;overflow-y:auto;">${esc(sc.scrapSnippet)}</div>
-    </div>`:'';
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+        <div style="font-size:10px;color:#3d6b45;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-weight:600;">本文・メモ</div>
+        <span style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${sc.scrapSnippet?'自動取得済':'未取得'}</span>
+      </div>
+      <textarea id="scrapSnippetTA" style="width:100%;padding:9px 12px;border:0.5px solid #a8c8a8;border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#f8faf8;outline:none;resize:vertical;min-height:100px;max-height:240px;box-sizing:border-box;line-height:1.75;" placeholder="本文をペースト（自動取得が失敗した場合など）…" onblur="saveScrapSnippet('${sc.id}')">${esc(sc.scrapSnippet||'')}</textarea>
+    </div>`;
 
+  const imgHtml='<div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+    +(sc.scrapImage?'<img src="'+esc(sc.scrapImage)+'" style="height:44px;border-radius:var(--rsm);border:0.5px solid #a8c8a8;object-fit:cover;" onerror="this.style.display=\'none\'">':'')
+    +'<input id="scrapImageUrlIn" placeholder="画像URLを入力または変更" style="flex:1;min-width:100px;padding:4px 9px;border:0.5px solid #a8c8a8;border-radius:var(--rsm);font-size:11px;font-family:inherit;color:var(--text);background:#fff;outline:none;" value="'+esc(sc.scrapImage||'')+'" onblur="saveScrapImageUrl(\''+sc.id+'\')">'
+    +'<button onclick="document.getElementById(\'scrapImgFile\').click()" style="padding:4px 10px;background:#f0f5f0;color:#3d6b45;border:0.5px solid #a8c8a8;border-radius:20px;font-size:11px;cursor:pointer;">📁</button>'
+    +'<input type="file" id="scrapImgFile" accept="image/*" style="display:none" onchange="onScrapImageFile(event,\''+sc.id+'\')">'  
+    +'</div>';
   return`
     <div class="scrap-url-bar">
       <input class="scrap-url-in" id="scrapUrlIn" value="${esc(sc.scrapUrl||'')}" placeholder="https://…">
       <button class="scrap-fetch-btn" onclick="refetchScrap()">再取得</button>
-      ${sc.scrapUrl?`<a href="${esc(sc.scrapUrl)}" target="_blank" rel="noopener" style="font-size:11px;color:#3d6b45;flex-shrink:0;" title="元ページを開く">↗</a>`:''}
+      ${sc.scrapUrl?`<a href="${esc(sc.scrapUrl)}" target="_blank" rel="noopener" style="font-size:11px;color:#3d6b45;flex-shrink:0;">↗</a>`:''}
     </div>
-    ${sc.scrapImage?`<img class="scrap-thumb" src="${esc(sc.scrapImage)}" loading="lazy" onerror="this.style.display='none'">`:''}
+    ${imgHtml}
     <div class="scrap-meta-site">${esc(sc.scrapSiteName||'')}</div>
     <div class="scrap-meta-desc">${esc(sc.scrapDescription||'')}</div>
     ${snipHtml}
@@ -3058,9 +3088,28 @@ function renderScrapDetailSection(sc){
         <button onclick="addScrapHl()" style="margin-left:auto;padding:4px 12px;background:#f0f5f0;color:#3d6b45;border:0.5px solid #a8c8a8;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">＋ 追加</button>
       </div>
       <div id="scrapHlList" style="display:flex;flex-direction:column;gap:6px;">
-        ${hlHtml||'<div style="font-size:11px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">まだハイライトがありません</div>'}
+        ${hlHtml||'<div style="font-size:11px;color:var(--text3);">まだハイライトがありません</div>'}
       </div>
     </div>`;
+}
+
+function saveScrapSnippet(scId){
+  const sc=outlines.find(x=>x.id===scId);if(!sc)return;
+  sc.scrapSnippet=(document.getElementById('scrapSnippetTA')?.value||'').trim();
+  sc.updatedAt=Date.now();save();
+}
+function saveScrapImageUrl(scId){
+  const sc=outlines.find(x=>x.id===scId);if(!sc)return;
+  sc.scrapImage=(document.getElementById('scrapImageUrlIn')?.value||'').trim();
+  sc.updatedAt=Date.now();save();
+  renderScrapGrid();openCardDetail(scId);
+}
+async function onScrapImageFile(e,scId){
+  const file=e.target.files[0];e.target.value='';if(!file)return;
+  const sc=outlines.find(x=>x.id===scId);if(!sc)return;
+  const dataUrl=await resizeImage(file,800,0.82);
+  sc.scrapImage=dataUrl;sc.updatedAt=Date.now();save();
+  renderScrapGrid();openCardDetail(scId);
 }
 
 function refetchScrap(){
