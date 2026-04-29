@@ -2482,7 +2482,7 @@ function openCardDetail(outlineId){
       <div style="display:grid;gap:6px;">
         <div>
           <div style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-bottom:2px;">サイト・配信URL</div>
-          <input class="source-detail-input" id="sourceUrlIn" value="${esc(ol.sourceUrl||'')}" placeholder="https://…" onblur="saveSourceMeta()">
+          <input class="source-detail-input" id="sourceUrlIn" value="${esc(ol.sourceUrl||'')}" placeholder="https://…" onblur="saveSourceMeta();autoFetchSourceUrl(this.value)">
         </div>
         <div>
           <div style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-bottom:2px;">PDF URL</div>
@@ -2503,7 +2503,7 @@ function openCardDetail(outlineId){
           </div>`).join('')}
         <div class="source-sub-add-row">
           <input class="source-sub-in" id="sourceSubLabelIn" placeholder="ラベル（例：#123「AIの倫理」）" onkeydown="if(event.key==='Enter'&&!event.isComposing)addSourceSubItem()">
-          <input class="source-sub-in" id="sourceSubUrlIn" placeholder="URL（省略可）" style="max-width:180px;" onkeydown="if(event.key==='Enter'&&!event.isComposing)addSourceSubItem()">
+          <input class="source-sub-in" id="sourceSubUrlIn" placeholder="URL（省略可）" style="max-width:180px;" onkeydown="if(event.key==='Enter'&&!event.isComposing)addSourceSubItem()" onblur="autoFetchSubItemUrl(this.value)">
           <button class="card-img-upload-btn" onclick="addSourceSubItem()" style="white-space:nowrap;">＋ 追加</button>
         </div>
       </div>
@@ -3470,6 +3470,66 @@ function saveCardTitle(el){
   save();renderCardGrid();
   // ソースピッカーが開いていれば更新
   if(document.getElementById('sourcePickerModal')?.classList.contains('open'))renderSourcePickerList();
+}
+
+async function autoFetchSourceUrl(url){
+  url=(url||'').trim();
+  if(!url||!url.startsWith('http'))return;
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);
+  if(!ol||!ol.isSource)return;
+
+  // タイトルが初期値・空の場合のみ補完
+  const titleEl=document.querySelector('#cardDetailBody .card-detail-card-title');
+  const isDefaultTitle=!ol.title||ol.title==='新しいソース'||ol.title==='無題';
+  // メモ欄にローディング表示
+  const memoIn=document.getElementById('sourceMemoIn');
+  const origPlaceholder=memoIn?.placeholder||'';
+  if(memoIn)memoIn.placeholder='取得中…';
+
+  try{
+    const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    const json=await res.json();
+    const doc=new DOMParser().parseFromString(json.contents||'','text/html');
+    const getMeta=p=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
+    const siteName=getMeta('og:site_name')||(()=>{try{return new URL(url).hostname.replace(/^www\./,'');}catch{return '';}})();
+    const desc=getMeta('og:description')||getMeta('description')||'';
+
+    // サイト名 → カードタイトルに補完（初期値の場合のみ）
+    if(siteName&&isDefaultTitle){
+      ol.title=siteName;
+      if(titleEl)titleEl.textContent=siteName;
+      save();renderCardGrid();
+    }
+    // 説明 → メモ欄に補完（空の場合のみ）
+    if(desc&&memoIn&&!memoIn.value.trim()){
+      memoIn.value=desc;
+      ol.sourceMemo=desc;
+      save();
+    }
+  }catch(e){
+    // 失敗は無視
+  }finally{
+    if(memoIn)memoIn.placeholder=origPlaceholder||'著者・説明・分類など…';
+  }
+}
+
+async function autoFetchSubItemUrl(url){
+  url=(url||'').trim();
+  if(!url||!url.startsWith('http'))return;
+  const labelIn=document.getElementById('sourceSubLabelIn');
+  if(!labelIn||labelIn.value.trim())return; // ラベルが既に入力済みならスキップ
+
+  const orig=labelIn.placeholder;
+  labelIn.placeholder='取得中…';
+  try{
+    const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    const json=await res.json();
+    const doc=new DOMParser().parseFromString(json.contents||'','text/html');
+    const getMeta=p=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
+    const title=getMeta('og:title')||getMeta('twitter:title')||doc.title||'';
+    if(title)labelIn.value=title;
+  }catch(e){}
+  finally{labelIn.placeholder=orig;}
 }
 
 function saveSourceMeta(){
