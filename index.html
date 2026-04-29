@@ -2556,16 +2556,6 @@ function openCardDetail(outlineId){
         </div>
       </div>
     </div>`:''}\
-    ${ol.isSource?`
-    <div style="margin-top:16px;">
-      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-        <span>💬 引用メモ</span>
-        <span style="font-weight:400;color:var(--text3);">${(ol.sourceQuotes||[]).length}件</span>
-      </div>
-      <div class="source-quotes-section" id="sourceQuotesList">
-        ${renderSourceQuotesHTML(ol)}
-      </div>
-    </div>`:''}\
     ${cardImgsHtml}
     ${!ol.isSource?`<div class="card-detail-card-content">${itemsHtml||'<div style="color:var(--text3);font-size:13px;">項目がありません</div>'}</div>`:''}
   </div>
@@ -2588,33 +2578,10 @@ function openCardDetail(outlineId){
 
   if(detail)detail.style.display='flex';
 
-  // ソースカード：言及つぶやきをカード詳細本体に表示
-  const linkedSection=document.getElementById('cardLinkedPostsSection');
-  if(linkedSection&&ol.isSource){
-    const linkedPosts=posts.filter(p=>p.sourceRef&&p.sourceRef.outlineId===outlineId)
-      .sort((a,b)=>b.createdAt-a.createdAt);
-    if(linkedPosts.length){
-      linkedSection.innerHTML=`
-        <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:700;color:var(--source);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-          <span>📎 言及しているつぶやき</span>
-          <span style="font-weight:400;color:var(--text3);">${linkedPosts.length}件</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          ${linkedPosts.map(p=>{
-            const sub=p.sourceRef?.subLabel?`<span style="font-size:9px;color:var(--source);background:var(--source-l);padding:1px 6px;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;border:0.5px solid var(--source-m);">${esc(p.sourceRef.subLabel)}</span>`:'';
-            const text=cleanText(p.content).slice(0,160);
-            return`<div style="background:var(--bg2);border:0.5px solid var(--border);border-left:3px solid var(--source);border-radius:var(--rsm);padding:9px 12px;cursor:pointer;transition:background .12s;"
-              onclick="switchPhase(1);setTimeout(()=>{const el=document.getElementById('post-${p.id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100)"
-              onmouseover="this.style.background='var(--source-l)'" onmouseout="this.style.background='var(--bg2)'">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">${sub}<span style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${fmtDt(p.createdAt)}</span></div>
-              <div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(text)}${p.content.length>160?'…':''}</div>
-              ${p.ogp?`<div style="margin-top:4px;font-size:10px;color:var(--text3);">🔗 ${esc(p.ogp.title?.slice(0,60)||p.ogp.url?.slice(0,60)||'')}</div>`:''}
-            </div>`;
-          }).join('')}
-        </div>`;
-    } else {
-      linkedSection.innerHTML=`<div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);padding:6px 0;">この媒体への言及はまだありません</div>`;
-    }
+  // 媒体カード：引用メモ＋言及つぶやき 統合表示
+  if(ol.isSource){
+    const linkedSection=document.getElementById('cardLinkedPostsSection');
+    if(linkedSection) renderSourceUnifiedSection(outlineId);
   }
   const related=document.getElementById('cardRelated');
   if(related){
@@ -3618,64 +3585,118 @@ function removeSourceSubItem(idx){
   openCardDetail(currentCardOutlineId);
 }
 
-// ─── 引用カード ────────────────────────────────────────────
-function renderSourceQuotesHTML(ol){
-  const quotes=ol.sourceQuotes||[];
+// ─── 引用メモ＋言及 統合ビュー ────────────────────────────────
+function renderSourceUnifiedSection(outlineId){
+  const section=document.getElementById('cardLinkedPostsSection');
+  if(!section)return;
+  const ol=outlines.find(x=>x.id===outlineId);
+  if(!ol)return;
+  const quotes=(ol.sourceQuotes||[]).map(q=>({type:'quote',date:q.createdAt,q}));
+  const linkedPosts=posts
+    .filter(p=>p.sourceRef&&p.sourceRef.outlineId===outlineId)
+    .map(p=>({type:'post',date:p.createdAt,p}));
+  const items=[...quotes,...linkedPosts].sort((a,b)=>b.date-a.date);
   const subs=ol.sourceSubItems||[];
+  const addFormId='sqAddForm-'+outlineId;
   const subOpts=subs.map(s=>`<option value="${esc(s.id)}">${esc(s.label)}</option>`).join('');
-  const cards=quotes.map((q,i)=>{
-    const sub=subs.find(s=>s.id===q.subItemId);
-    return`<div class="source-quote-card" id="sqcard-${q.id}">
-      <div class="source-quote-body">
-        ${sub?`<span class="source-quote-episode">${esc(sub.label)}</span>`:''}
-        ${q.quoteText?`<p class="source-quote-text">${esc(q.quoteText)}</p>`:''}
-        ${q.comment?`<div class="source-quote-comment">${esc(q.comment)}</div>`:''}
-      </div>
-      <div class="source-quote-meta">
-        <span class="source-quote-date">${fmtDt(q.createdAt)}</span>
-        <div class="source-quote-actions">
-          <button class="source-quote-btn" onclick="sendQuoteToTimeline('${ol.id}','${q.id}')">→ タイムライン</button>
-          <button class="source-quote-btn del" onclick="deleteSourceQuote('${ol.id}','${q.id}')">削除</button>
+  const itemsHtml=items.map(item=>{
+    if(item.type==='quote'){
+      const q=item.q;
+      const sub=subs.find(s=>s.id===q.subItemId);
+      return`<div class="sq-unified-card" id="sqcard-${q.id}" style="background:var(--bg);border:0.5px solid var(--source-m);border-left:3px solid var(--source);border-radius:var(--rsm);overflow:hidden;">
+        <div style="padding:9px 12px;cursor:pointer;" onclick="toggleQuoteEdit('${ol.id}','${q.id}')">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:${q.quoteText||q.comment?'6px':'0'};">
+            <span style="font-size:9px;background:var(--source-l);color:var(--source);border:0.5px solid var(--source-m);border-radius:20px;padding:1px 7px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">💬 引用メモ</span>
+            ${sub?`<span style="font-size:9px;color:var(--source);background:var(--source-l);border:0.5px solid var(--source-m);border-radius:20px;padding:1px 7px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">${esc(sub.label)}</span>`:''}
+            <span style="font-size:10px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;margin-left:auto;">${fmtDt(q.createdAt)}</span>
+          </div>
+          ${q.quoteText?`<div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;border-left:2px solid var(--source-m);padding-left:8px;margin-bottom:${q.comment?'6px':'0'};white-space:pre-wrap;word-break:break-word;">${esc(q.quoteText)}</div>`:''}
+          ${q.comment?`<div style="font-size:12.5px;color:var(--text);line-height:1.7;white-space:pre-wrap;word-break:break-word;">${esc(q.comment)}</div>`:'<div style="font-size:11px;color:var(--text3);font-style:italic;">（コメントなし　クリックして編集）</div>'}
         </div>
-      </div>
-    </div>`;
+        <div id="sqedit-${q.id}" style="display:none;padding:8px 12px;background:var(--source-l);border-top:0.5px solid var(--source-m);flex-direction:column;gap:6px;">
+          <textarea id="sqedit-qt-${q.id}" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="引用テキスト（省略可）">${esc(q.quoteText||'')}</textarea>
+          <textarea id="sqedit-cm-${q.id}" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="コメント・感想（省略可）">${esc(q.comment||'')}</textarea>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            ${subs.length?`<select id="sqedit-ep-${q.id}" style="flex:1;min-width:120px;padding:5px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:11px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;color:var(--text2);background:#fff;outline:none;"><option value="">エピソード（省略可）</option>${subs.map(s=>`<option value="${esc(s.id)}"${q.subItemId===s.id?' selected':''}>${esc(s.label)}</option>`).join('')}</select>`:''}
+            <button onclick="saveQuoteEdit(\'${ol.id}\',\'${q.id}\')" style="padding:5px 14px;background:var(--source);color:#fff;border:none;border-radius:20px;font-size:11px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;cursor:pointer;white-space:nowrap;">保存</button>
+            <button onclick="sendQuoteToTimeline(\'${ol.id}\',\'${q.id}\')" style="padding:5px 12px;background:none;color:var(--source);border:0.5px solid var(--source-m);border-radius:20px;font-size:11px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;cursor:pointer;white-space:nowrap;">→ タイムライン</button>
+            <button onclick="deleteSourceQuote(\'${ol.id}\',\'${q.id}\')" style="padding:5px 10px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;cursor:pointer;white-space:nowrap;margin-left:auto;">削除</button>
+          </div>
+        </div>
+      </div>`;
+    } else {
+      const p=item.p;
+      const sub=p.sourceRef?.subLabel?`<span style="font-size:9px;color:var(--text3);background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;padding:1px 6px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">${esc(p.sourceRef.subLabel)}</span>`:'';
+      const text=cleanText(p.content).slice(0,160);
+      return`<div style="background:var(--bg);border:0.5px solid var(--border);border-left:3px solid var(--border2);border-radius:var(--rsm);padding:9px 12px;cursor:pointer;transition:background .12s;"
+        onclick="switchPhase(1);setTimeout(()=>{const el=document.getElementById(\'post-${p.id}\');if(el)el.scrollIntoView({behavior:\'smooth\',block:\'center\'});},100)"
+        onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'var(--bg)\'">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <span style="font-size:9px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border2);border-radius:20px;padding:1px 7px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">🗒 つぶやき</span>
+          ${sub}
+          <span style="font-size:10px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;margin-left:auto;">${fmtDt(p.createdAt)}</span>
+        </div>
+        ${p.quoteText?`<div style="font-size:12px;color:var(--text2);font-style:italic;border-left:2px solid var(--border2);padding-left:7px;margin-bottom:5px;white-space:pre-wrap;">${esc(p.quoteText.slice(0,100))}${p.quoteText.length>100?'…':''}</div>`:''}
+        <div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">${esc(text)}${p.content.length>160?'…':''}</div>
+        ${p.ogp?`<div style="margin-top:4px;font-size:10px;color:var(--text3);">🔗 ${esc(p.ogp.title?.slice(0,50)||'')}</div>`:''}
+      </div>`;
+    }
   }).join('');
-
-  return cards+`
-    <div class="source-quote-add-form" id="sourceQuoteAddForm">
-      <div style="font-size:10px;color:var(--source);font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-weight:600;">＋ 引用を追加</div>
-      <textarea class="source-quote-add-ta" id="sqQuoteText" placeholder="引用テキスト（省略可）" rows="2"></textarea>
-      <textarea class="source-quote-add-ta" id="sqComment" placeholder="コメント・感想（省略可）" rows="2"></textarea>
-      <div class="source-quote-add-row">
-        ${subs.length?`<select class="source-quote-ep-sel" id="sqEpisodeSel"><option value="">エピソード（省略可）</option>${subOpts}</select>`:''}
-        <button class="card-img-upload-btn" onclick="addSourceQuote()" style="white-space:nowrap;background:var(--source);color:#fff;border-color:var(--source);">追加</button>
+  section.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:11px;font-weight:700;color:var(--text2);">メモ・言及</div>
+      <span style="font-size:10px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">${items.length}件</span>
+      <button onclick="toggleAddQuoteForm(\'${addFormId}\')" style="margin-left:auto;padding:4px 12px;background:var(--source-l);color:var(--source);border:0.5px solid var(--source-m);border-radius:20px;font-size:11px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;cursor:pointer;white-space:nowrap;">＋ 引用を追加</button>
+    </div>
+    <div id="${addFormId}" style="display:none;background:var(--source-l);border:0.5px solid var(--source-m);border-radius:var(--rsm);padding:10px 12px;margin-bottom:10px;flex-direction:column;gap:6px;">
+      <textarea id="sqQuoteText" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="引用テキスト（省略可）"></textarea>
+      <textarea id="sqComment" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="コメント・感想（省略可）"></textarea>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        ${subs.length?`<select id="sqEpisodeSel" style="flex:1;min-width:120px;padding:5px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:11px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;color:var(--text2);background:#fff;outline:none;"><option value="">エピソード（省略可）</option>${subOpts}</select>`:''}
+        <button onclick="addSourceQuote()" style="padding:5px 14px;background:var(--source);color:#fff;border:none;border-radius:20px;font-size:11px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;cursor:pointer;white-space:nowrap;">追加</button>
       </div>
-    </div>`;
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;">${itemsHtml||`<div style="font-size:11px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;padding:4px 0;">まだメモも言及もありません</div>`}</div>`;
 }
-
+function toggleAddQuoteForm(id){
+  const el=document.getElementById(id);if(!el)return;
+  const hidden=el.style.display==='none'||el.style.display==='';
+  el.style.display=hidden?'flex':'none';
+  if(hidden)el.querySelector('textarea')?.focus();
+}
+function toggleQuoteEdit(outlineId,quoteId){
+  const el=document.getElementById('sqedit-'+quoteId);if(!el)return;
+  const hidden=el.style.display==='none'||el.style.display==='';
+  el.style.display=hidden?'flex':'none';
+  if(hidden)el.querySelector('textarea')?.focus();
+}
+function saveQuoteEdit(outlineId,quoteId){
+  const ol=outlines.find(x=>x.id===outlineId);if(!ol||!ol.sourceQuotes)return;
+  const q=ol.sourceQuotes.find(x=>x.id===quoteId);if(!q)return;
+  q.quoteText=(document.getElementById('sqedit-qt-'+quoteId)?.value||'').trim();
+  q.comment=(document.getElementById('sqedit-cm-'+quoteId)?.value||'').trim();
+  q.subItemId=(document.getElementById('sqedit-ep-'+quoteId)?.value||'')||null;
+  ol.updatedAt=Date.now();save();
+  renderSourceUnifiedSection(outlineId);
+}
 function addSourceQuote(){
   const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol||!ol.isSource)return;
   const quoteText=(document.getElementById('sqQuoteText')?.value||'').trim();
   const comment=(document.getElementById('sqComment')?.value||'').trim();
-  const subItemId=(document.getElementById('sqEpisodeSel')?.value||'').trim()||null;
+  const subItemId=(document.getElementById('sqEpisodeSel')?.value||'')||null;
   if(!quoteText&&!comment)return;
   if(!ol.sourceQuotes)ol.sourceQuotes=[];
   ol.sourceQuotes.push({id:uid(),quoteText,comment,subItemId,createdAt:Date.now()});
   ol.updatedAt=Date.now();save();
-  // フォームリセット
-  ['sqQuoteText','sqComment','sqEpisodeSel'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  // リスト再描画
-  const listEl=document.getElementById('sourceQuotesList');
-  if(listEl)listEl.innerHTML=renderSourceQuotesHTML(ol);
+  renderSourceUnifiedSection(ol.id);
 }
-
 function deleteSourceQuote(outlineId,quoteId){
   const ol=outlines.find(x=>x.id===outlineId);if(!ol||!ol.sourceQuotes)return;
   ol.sourceQuotes=ol.sourceQuotes.filter(q=>q.id!==quoteId);
   ol.updatedAt=Date.now();save();
-  const listEl=document.getElementById('sourceQuotesList');
-  if(listEl)listEl.innerHTML=renderSourceQuotesHTML(ol);
+  renderSourceUnifiedSection(outlineId);
 }
+function renderSourceQuotesHTML(ol){return '';}
 
 function sendQuoteToTimeline(outlineId,quoteId){
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
