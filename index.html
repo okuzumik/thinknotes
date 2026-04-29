@@ -1915,6 +1915,18 @@ async function bskyRefreshSession(){
   }catch(e){return false;}
 }
 
+function bskyAppendSourceTag(text, sourceTitle){
+  if(!sourceTitle)return text;
+  const tag='#'+sourceTitle
+    .replace(/[\s　]+/g,'_')
+    .replace(/[^\w぀-鿿가-힯_]/g,'')
+    .replace(/_+/g,'_').replace(/^_|_$/g,'')
+    .slice(0,30);
+  if(!tag||tag==='#')return text;
+  const combined=text.trimEnd()+'\n'+tag;
+  return combined.length<=300?combined:text.slice(0,300-tag.length-1).trimEnd()+'\n'+tag;
+}
+
 async function postToBsky(text, replyRef=null, imageUrls=[]){
   if(!bskySession)return{ok:false,error:'未接続'};
   const bskyText=text.length>300?text.slice(0,297)+'…':text;
@@ -4163,7 +4175,8 @@ async function submitPost(){
     save();
   }
   if(postToBskyFlag){
-    const result=await postToBsky(text,null,p.images||[]);
+    const bskyText=sourceRefData?bskyAppendSourceTag(text,sourceRefData.title):text;
+    const result=await postToBsky(bskyText,null,p.images||[]);
     if(result.ok){p.bskyUri=result.uri;p.bskyCid=result.cid;save();showBskyPostStatus(p.id,true);}
     else showBskyPostStatus(p.id,false,null,result.error);
   }
@@ -4172,7 +4185,8 @@ async function submitPost(){
 async function postExistingToBsky(pid){
   if(!bskySession)return;
   const p=posts.find(x=>x.id===pid);if(!p)return;
-  const result=await postToBsky(p.content);
+  const bskyText=p.sourceRef?bskyAppendSourceTag(p.content,p.sourceRef.title):p.content;
+  const result=await postToBsky(bskyText,null,p.images||[]);
   if(result.ok){
     p.bskyUri=result.uri;p.bskyCid=result.cid;
     save();renderFeed();
