@@ -1409,17 +1409,6 @@ body {
     </div>
   </div>
 
-  <!-- ═══ PHASE 7 — 媒体 ═══ -->
-  <div class="phase-screen" id="phase7">
-    <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;">
-        <input id="matSourceSearch" class="card-grid-search" placeholder="メディアを検索…" oninput="renderMatSourceGrid()">
-        <div class="card-label-filters" id="sourceLabelFilters" style="flex:1;overflow-x:auto;display:flex;gap:4px;"></div>
-        <button onclick="createSourceCard()" style="padding:5px 14px;background:#8a5c5c;color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">＋ メディアを追加</button>
-      </div>
-      <div class="card-grid" id="matSourceGrid" style="padding:1rem 1.5rem;"></div>
-    </div>
-  </div>
 
   <!-- ═══ PHASE 8 — 写真 ═══ -->
   <div class="phase-screen" id="phase8">
@@ -1696,42 +1685,42 @@ function getStoredSession(){
 }
 
 async function initAuth(){
+  // まずonAuthStateChangeを登録（イベントを取りこぼさないよう先に）
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'){
+      if(session&&!currentUser){
+        currentUser=session.user;showApp();await loadFromSupabase();
+      }
+    } else if(event==='SIGNED_OUT'){
+      currentUser=null;showLogin();
+    }
+  });
+
+  // localStorageのセッションを試みる
   const stored=getStoredSession();
   if(stored){
     try{
-      // トークンをセット（refresh_tokenがあれば自動更新される）
       const {data,error}=await sb.auth.setSession({
         access_token:stored.access_token,
         refresh_token:stored.refresh_token||''
       });
       if(data?.session){
         currentUser=data.session.user;
-        // 書き込みテストで実際に認証が通るか確認
-        const {error:te}=await sb.from('thinkdata').upsert(
-          {user_id:currentUser.id,data_key:'_ping',data_value:{t:Date.now()},updated_at:new Date().toISOString()},
-          {onConflict:'user_id,data_key'}
-        );
-        if(te){
-          console.warn('write test failed, trying refresh:',te.message);
-          // 書き込みに失敗したらトークンを強制リフレッシュ
-          const {data:rd}=await sb.auth.refreshSession();
-          if(rd?.session)currentUser=rd.session.user;
-        }
         showApp();
         await loadFromSupabase();
         return;
       }
-      if(error)console.warn('setSession error:',error.message);
-    }catch(e){console.warn('setSession failed:',e);}
+      // access_tokenが切れている場合はrefreshを試みる
+      const {data:rd}=await sb.auth.refreshSession();
+      if(rd?.session){
+        currentUser=rd.session.user;
+        showApp();
+        await loadFromSupabase();
+        return;
+      }
+    }catch(e){console.warn('initAuth error:',e);}
   }
   showLogin();
-  sb.auth.onAuthStateChange(async(event,session)=>{
-    if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&!currentUser){
-      currentUser=session.user;showApp();await loadFromSupabase();
-    } else if(event==='SIGNED_OUT'){
-      currentUser=null;showLogin();
-    }
-  });
 }
 function showLogin(){
   document.getElementById('loginOverlay').style.display='flex';
@@ -3939,7 +3928,7 @@ function switchPhase(n){
   if(n===4){renderNotesList();}
   if(n===5){renderCardView();}
   if(n===6){renderBookView();}
-  if(n===7){renderMatSourceGrid();}
+  if(n===7){renderMediaGrid();}
   if(n===8){renderMatPhotoGrid();}
   if(n===9){renderScrapGrid();}
   if(n===10){renderMediaGrid();}
@@ -4767,7 +4756,7 @@ function renderCalDayView(dateStr){
           </div>
         </div>`).join('')}
       ${dayMedia.map(ol=>`
-        <div onclick="switchPhase(7);setTimeout(()=>{renderMatSourceGrid();openCardDetail('${ol.id}');},50)"
+        <div onclick="switchPhase(10);setTimeout(()=>{renderMediaGrid();openCardDetail('${ol.id}');},50)"
           style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--rsm);cursor:pointer;margin-bottom:4px;border:0.5px solid var(--source-m);background:var(--source-l);"
           onmouseover="this.style.borderColor='var(--source)'" onmouseout="this.style.borderColor='var(--source-m)'">
           <span style="font-size:14px;flex-shrink:0;">📎</span>
