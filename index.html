@@ -1356,12 +1356,7 @@ body {
           <div class="editor-toolbar">
             <input class="editor-title-in" id="editorTitle" placeholder="タイトル" oninput="saveNoteTitle()">
             <div class="et-sep"></div>
-            <div style="display:flex;gap:2px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:20px;padding:2px;">
-              <button id="mdBtnEdit" onclick="setNoteViewMode('edit')" style="padding:3px 10px;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;background:var(--accent);color:#fff;font-weight:600;">編集</button>
-              <button id="mdBtnSplit" onclick="setNoteViewMode('split')" style="padding:3px 10px;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;background:none;color:var(--text2);">分割</button>
-              <button id="mdBtnPreview" onclick="setNoteViewMode('preview')" style="padding:3px 10px;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;background:none;color:var(--text2);">プレビュー</button>
-            </div>
-            <button class="et-btn primary" onclick="openNoteCardPicker()">🗂️ カードから作成</button>
+<button class="et-btn primary" onclick="openNoteCardPicker()">🗂️ カードから作成</button>
             <button class="et-btn danger" onclick="deleteCurrentNote()">削除</button>
           </div>
           <div class="editor-stats-bar">
@@ -1376,14 +1371,13 @@ body {
                 <div id="noteEditorOuter" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;">
                   <textarea id="noteTextEditor"
                     spellcheck="false"
-                    placeholder="# 見出し&#10;&#10;本文をMarkdownで書く…&#10;&#10;**太字** *斜体* `コード`&#10;- リスト"
-                    style="flex:1;resize:none;border:none;outline:none;padding:1.5rem 2rem;font-family:'Hiragino Kaku Gothic ProN',monospace;font-size:14px;line-height:1.9;color:var(--text);background:var(--bg);caret-color:var(--accent);white-space:pre;overflow-wrap:normal;overflow-x:auto;tab-size:2;"
+                    placeholder="書き始める…"
+                    style="flex:1;resize:none;border:none;outline:none;padding:1.5rem 2rem;font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:15px;line-height:1.9;color:var(--text);background:var(--bg);caret-color:var(--accent);white-space:pre-wrap;word-break:break-word;"
                     oninput="onNoteTextInput()"
                     onkeydown="onNoteTextKey(event)"
+                    onpaste="onNotePaste(event)"
                   ></textarea>
                 </div>
-                <!-- プレビュー -->
-                <div id="notePreviewPane" style="display:none;flex:1;overflow-y:auto;padding:1.5rem 2rem 4rem;border-left:0.5px solid var(--border);font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:15px;line-height:1.9;color:var(--text);min-width:0;" class="note-preview-body"></div>
               </div>
             </div>
             <div class="sticky-pane-b" id="stickyPaneB">
@@ -6167,7 +6161,16 @@ function saveCardBlockSticky(bi,si,text){
 }
 
 
-let noteViewMode='edit'; // 'edit' | 'split' | 'preview'
+function onNotePaste(e){
+  e.preventDefault();
+  // テキストのみ取り込む（書式・HTMLを除去）
+  const text=e.clipboardData?.getData('text/plain')||'';
+  const ta=e.target;
+  const s=ta.selectionStart,end=ta.selectionEnd;
+  ta.value=ta.value.slice(0,s)+text+ta.value.slice(end);
+  ta.selectionStart=ta.selectionEnd=s+text.length;
+  onNoteTextInput();
+}
 
 function setNoteViewMode(mode){
   noteViewMode=mode;
