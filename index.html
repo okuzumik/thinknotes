@@ -2642,43 +2642,51 @@ function openCardDetail(outlineId){
       ${ol.usedAt?`<span class="card-used-badge in-detail" onclick="toggleCardUsed()" title="クリックで解除">✓ ${esc(ol.usedNote||'成仏済')} ✕</span>`:''}
     </div>
     ${ol.isSource?`
-    <div class="source-detail-section">
-      <div class="source-detail-label">📎 メディア情報</div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:160px;">
-            <div style="font-size:9px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-bottom:2px;">サイト・配信URL</div>
-            <input class="source-detail-input" id="sourceUrlIn" value="${esc(ol.sourceUrl||'')}" placeholder="https://…" onblur="saveSourceMeta();autoFetchSourceUrl(this.value)" style="font-size:11px;padding:4px 8px;">
+    <div class="source-detail-section" id="sourceDetailSection">
+      <div onclick="toggleSourceDetail()" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:2px 0;">
+        ${ol.sourceImage?'<img src="'+esc(ol.sourceImage)+'" style="width:32px;height:24px;object-fit:cover;border-radius:3px;border:0.5px solid var(--source-m);flex-shrink:0;" onerror="this.style.display=\'none\'">':''}
+        <span class="source-detail-label" style="flex:1;">📎 メディア情報
+          <span style="font-weight:400;color:var(--text3);font-size:10px;margin-left:6px;">${ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname.replace(/^www\./,'');}catch{return '';}})():''}</span>
+          ${(ol.sourceSubItems||[]).length?'<span style="font-weight:400;color:var(--text3);font-size:10px;margin-left:4px;">· '+(ol.sourceSubItems||[]).length+'件</span>':''}
+        </span>
+        <span id="sourceDetailToggleIcon" style="font-size:10px;color:var(--text3);">▸</span>
+      </div>
+      <div id="sourceDetailBody" style="display:none;margin-top:8px;">
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:160px;">
+              <div style="font-size:9px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-bottom:2px;">サイト・配信URL</div>
+              <input class="source-detail-input" id="sourceUrlIn" value="${esc(ol.sourceUrl||'')}" placeholder="https://…" onblur="saveSourceMeta();autoFetchSourceUrl(this.value)" style="font-size:11px;padding:4px 8px;">
+            </div>
+            <div style="flex:1;min-width:120px;">
+              <div style="font-size:9px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-bottom:2px;">PDF URL</div>
+              <input class="source-detail-input" id="sourcePdfIn" value="${esc(ol.sourcePdfUrl||'')}" placeholder="https://….pdf" onblur="saveSourceMeta()" style="font-size:11px;padding:4px 8px;">
+            </div>
           </div>
-          <div style="flex:1;min-width:120px;">
-            <div style="font-size:9px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-bottom:2px;">PDF URL</div>
-            <input class="source-detail-input" id="sourcePdfIn" value="${esc(ol.sourcePdfUrl||'')}" placeholder="https://….pdf" onblur="saveSourceMeta()" style="font-size:11px;padding:4px 8px;">
+          <input class="source-detail-input" id="sourceMemoIn" value="${esc(ol.sourceMemo||'')}" placeholder="著者・説明・分類など…" onblur="saveSourceMeta()" style="font-size:11px;padding:4px 8px;">
+          <div style="display:flex;gap:5px;align-items:center;">
+            ${ol.sourceImage?`<img src="${esc(ol.sourceImage)}" style="height:36px;width:48px;object-fit:cover;border-radius:var(--rsm);border:0.5px solid var(--source-m);flex-shrink:0;" onerror="this.style.display='none'">`:''}
+            <input class="source-detail-input" id="sourceImageIn" value="${esc(ol.sourceImage||'')}" placeholder="サムネイル画像URL" onblur="saveSourceMeta()" style="font-size:11px;padding:4px 8px;flex:1;">
+            <button onclick="document.getElementById('sourceImgFile').click()" style="padding:3px 8px;background:var(--source-l);color:var(--source);border:0.5px solid var(--source-m);border-radius:20px;font-size:10px;cursor:pointer;white-space:nowrap;">📁</button>
+            <input type="file" id="sourceImgFile" accept="image/*" style="display:none" onchange="onSourceImageFile(event,'${ol.id}')">
           </div>
         </div>
-        <input class="source-detail-input" id="sourceMemoIn" value="${esc(ol.sourceMemo||'')}" placeholder="著者・説明・分類など…" onblur="saveSourceMeta()" style="font-size:11px;padding:4px 8px;">
-        <div style="display:flex;gap:5px;align-items:center;">
-          ${ol.sourceImage?`<img src="${esc(ol.sourceImage)}" style="height:36px;width:48px;object-fit:cover;border-radius:var(--rsm);border:0.5px solid var(--source-m);flex-shrink:0;" onerror="this.style.display='none'">`:''}
-          <input class="source-detail-input" id="sourceImageIn" value="${esc(ol.sourceImage||'')}" placeholder="サムネイル画像URL" onblur="saveSourceMeta()" style="font-size:11px;padding:4px 8px;flex:1;">
-          <button onclick="document.getElementById('sourceImgFile').click()" style="padding:3px 8px;background:var(--source-l);color:var(--source);border:0.5px solid var(--source-m);border-radius:20px;font-size:10px;cursor:pointer;white-space:nowrap;">📁</button>
-          <input type="file" id="sourceImgFile" accept="image/*" style="display:none" onchange="onSourceImageFile(event,'${ol.id}')">
+        <div class="source-detail-label" style="margin-top:8px;">エピソード・サブアイテム</div>
+        <div class="source-sub-list" id="sourceSubList">
+          ${(ol.sourceSubItems||[]).map((si,i)=>`
+            <div class="source-sub-item">
+              <span class="source-sub-label">${esc(si.label)}</span>
+              ${si.url?`<a href="${esc(si.url)}" target="_blank" class="source-sub-url" title="${esc(si.url)}" onclick="event.stopPropagation()">🔗 ${esc((()=>{try{return new URL(si.url).hostname;}catch{return si.url.slice(0,20);}})())}</a>`:''}
+              <button class="source-sub-del" onclick="removeSourceSubItem(${i})">✕</button>
+            </div>`).join('')}
+          <div class="source-sub-add-row">
+            <input class="source-sub-in" id="sourceSubLabelIn" placeholder="ラベル（例：#123「AIの倫理」）" onkeydown="if(event.key==='Enter'&&!event.isComposing)addSourceSubItem()">
+            <input class="source-sub-in" id="sourceSubUrlIn" placeholder="URL（省略可）" style="max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing)addSourceSubItem()" onblur="autoFetchSubItemUrl(this.value)">
+            <button class="card-img-upload-btn" onclick="addSourceSubItem()" style="white-space:nowrap;">＋ 追加</button>
+          </div>
         </div>
       </div>
-      <div class="source-detail-label" style="margin-top:6px;">エピソード・サブアイテム</div>
-      <div class="source-sub-list" id="sourceSubList">
-        ${(ol.sourceSubItems||[]).map((si,i)=>`
-          <div class="source-sub-item">
-            <span class="source-sub-label">${esc(si.label)}</span>
-            ${si.url?`<a href="${esc(si.url)}" target="_blank" class="source-sub-url" title="${esc(si.url)}" onclick="event.stopPropagation()">🔗 ${esc((()=>{try{return new URL(si.url).hostname;}catch{return si.url.slice(0,20);}})())}</a>`:''}
-            <button class="source-sub-del" onclick="removeSourceSubItem(${i})">✕</button>
-          </div>`).join('')}
-        <div class="source-sub-add-row">
-          <input class="source-sub-in" id="sourceSubLabelIn" placeholder="ラベル（例：#123「AIの倫理」）" onkeydown="if(event.key==='Enter'&&!event.isComposing)addSourceSubItem()">
-          <input class="source-sub-in" id="sourceSubUrlIn" placeholder="URL（省略可）" style="max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing)addSourceSubItem()" onblur="autoFetchSubItemUrl(this.value)">
-          <button class="card-img-upload-btn" onclick="addSourceSubItem()" style="white-space:nowrap;">＋ 追加</button>
-        </div>
-      </div>
-    </div>`:''}\
-    ${cardImgsHtml}
+    </div>`:''}\n    ${cardImgsHtml}
     ${!ol.isSource?`<div class="card-detail-card-content">${itemsHtml||'<div style="color:var(--text3);font-size:13px;">項目がありません</div>'}</div>`:''}
   </div>
   <!-- 共通フッター -->
@@ -4457,6 +4465,19 @@ async function autoFetchSubItemUrl(url){
     if(ogp.title)labelIn.value=ogp.title;
   }catch(e){}
   finally{labelIn.placeholder=orig;}
+}
+
+function toggleSourceDetail(){
+  const body=document.getElementById('sourceDetailBody');
+  const icon=document.getElementById('sourceDetailToggleIcon');
+  if(!body)return;
+  const open=body.style.display==='none'||!body.style.display;
+  body.style.display=open?'block':'none';
+  if(icon)icon.textContent=open?'▾':'▸';
+  if(open){
+    // 開いたときにURLフィールドにフォーカス
+    document.getElementById('sourceUrlIn')?.focus();
+  }
 }
 
 function saveSourceMeta(){
