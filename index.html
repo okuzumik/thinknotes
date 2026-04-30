@@ -1782,20 +1782,12 @@ async function signOut(){
 async function loadFromSupabase(force=false){
   if(!currentUser)return;
 
-  // ① ログイン直後（force=true or localStorageにデータがある場合）は
-  //    まずlocalをクリアしてからSupabaseで上書き（別ユーザーのデータを守る）
-  if(force){
-    // localStorageのアプリデータをクリアしてからSupabaseで上書き
-    Object.keys(localStorage).forEach(k=>{if(k.startsWith('tn_'))localStorage.removeItem(k);});
-    posts=[];notes=[];outlines=[];
-  } else {
-    // 通常時はlocalStorageを即表示（画面が空にならないように）
-    loadLocal();
-    renderSidebar();renderFeed();
-  }
+  // localStorageを即表示（画面が空にならないように）
+  loadLocal();
+  renderSidebar();renderFeed();
   setSyncDot('syncing');
 
-  // ② Supabaseから読み込む
+  // Supabaseから読み込む
   const {data,error}=await sb.from('thinkdata')
     .select('data_key,data_value').eq('user_id',currentUser.id);
 
@@ -1807,22 +1799,11 @@ async function loadFromSupabase(force=false){
 
   const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
 
-  if(map.posts||map.notes){
-    const sbPosts=map.posts||[];
-    const sbNotes=map.notes||[];
-    const sbOutlines=map.outlines||[];
-    // 保存失敗中はローカルデータを守る（上書きしない）
-    if(!lastSaveOk&&!force){
-      console.warn('Last save failed - keeping local data');
-      setSyncDot('');
-      return;
-    }
-    // 強制同期か、Supabaseの方がデータが多い場合のみ上書き
-    if(force||sbPosts.length>=posts.length){
-      posts=sbPosts;
-      notes=sbNotes;
-      outlines=sbOutlines;
-    }
+  if(map.posts!==undefined||map.notes!==undefined){
+    // Supabaseにデータがあれば常に上書き（件数に関わらず）
+    posts=map.posts||[];
+    notes=map.notes||[];
+    outlines=map.outlines||[];
   } else if(posts.length>0){
     // Supabaseが空 → localStorageをアップロード
     await saveToSupabase();
