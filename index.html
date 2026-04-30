@@ -1783,7 +1783,7 @@ async function loadFromSupabase(force=false){
   if(!currentUser)return;
   setSyncDot('syncing');
 
-  // ローカルを直接読む（DEMOデータは注入しない）
+  // ローカルを直接読む（DEMOなし）
   let localPosts=[], localNotes=[], localOutlines=[];
   try{localPosts=JSON.parse(localStorage.getItem(KP)||'[]');}catch(e){}
   try{localNotes=JSON.parse(localStorage.getItem(KN)||'[]');}catch(e){}
@@ -1795,45 +1795,50 @@ async function loadFromSupabase(force=false){
 
   if(error){
     console.error('Supabase load error:',error);
-    // 失敗時はローカルを使い、なければDEMO
-    loadLocal();
-    renderSidebar();renderFeed();
     setSyncDot('');
+    // ローカルがあれば使う、なければ空表示（DEMOは出さない）
+    posts=localPosts;notes=localNotes;outlines=localOutlines;
+    renderSidebar();renderFeed();
     return;
   }
 
   const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
-  const sbPosts  =map.posts||[];
-  const sbNotes  =map.notes||[];
+  const sbPosts   =map.posts||[];
+  const sbNotes   =map.notes||[];
   const sbOutlines=map.outlines||[];
+
+  const hasLocal=localPosts.length>0;
+  const hasSb   =sbPosts.length>0;
 
   let useLocal=false;
 
-  if(sbPosts.length===0&&sbNotes.length===0){
-    if(localPosts.length>0){
-      // Supabase空・ローカルあり → ローカルを採用してアップロード
-      console.log('✅ Supabaseが空 → ローカルをアップロード');
-      posts=localPosts;notes=localNotes;outlines=localOutlines;
-      useLocal=true;
-    } else {
-      // 両方空 → DEMO表示（新規ユーザー）
-      loadLocal(); // DEMOを注入
-    }
-  } else {
-    // タイムスタンプ比較
+  if(hasSb&&hasLocal){
+    // 両方ある → タイムスタンプ比較
     const latestLocal=Math.max(0,...localPosts.map(p=>p.createdAt||0),...localOutlines.map(o=>o.updatedAt||o.createdAt||0));
     const latestSb   =Math.max(0,...sbPosts.map(p=>p.createdAt||0),...sbOutlines.map(o=>o.updatedAt||o.createdAt||0));
     console.log('📊 ローカル最新:',latestLocal?new Date(latestLocal).toLocaleString():'なし');
     console.log('📊 Supabase最新:',latestSb?new Date(latestSb).toLocaleString():'なし');
-
     if(latestLocal>latestSb){
-      console.log('✅ ローカルを採用 → Supabaseにアップロード');
+      console.log('✅ ローカルを採用');
       posts=localPosts;notes=localNotes;outlines=localOutlines;
       useLocal=true;
     } else {
       console.log('✅ Supabaseを採用');
       posts=sbPosts;notes=sbNotes;outlines=sbOutlines;
     }
+  } else if(hasSb){
+    // Supabaseのみ → Supabaseを使う
+    console.log('✅ Supabaseのみ → 採用');
+    posts=sbPosts;notes=sbNotes;outlines=sbOutlines;
+  } else if(hasLocal){
+    // ローカルのみ → アップロード
+    console.log('✅ ローカルのみ → アップロード');
+    posts=localPosts;notes=localNotes;outlines=localOutlines;
+    useLocal=true;
+  } else {
+    // 両方空 → 空のまま表示（DEMOは出さない）
+    console.log('ℹ️ データなし');
+    posts=[];notes=[];outlines=[];
   }
 
   // migrate
@@ -1843,9 +1848,12 @@ async function loadFromSupabase(force=false){
   });
   posts.forEach(p=>{if(!p.replies)p.replies=[];});
 
-  localStorage.setItem(KP,JSON.stringify(posts));
-  localStorage.setItem(KN,JSON.stringify(notes));
-  localStorage.setItem(KO,JSON.stringify(outlines));
+  // DEMOは保存しない：実データがある場合のみlocalStorageを更新
+  if(posts.length>0||notes.length>0){
+    localStorage.setItem(KP,JSON.stringify(posts));
+    localStorage.setItem(KN,JSON.stringify(notes));
+    localStorage.setItem(KO,JSON.stringify(outlines));
+  }
 
   setSyncDot('saved');
   renderSidebar();renderFeed();
