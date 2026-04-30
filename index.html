@@ -1783,10 +1783,11 @@ async function loadFromSupabase(force=false){
   if(!currentUser)return;
   setSyncDot('syncing');
 
-  // ローカルデータを変数に読み込む（まだレンダリングしない）
-  const localPosts=JSON.parse(localStorage.getItem(KP)||'[]');
-  const localNotes=JSON.parse(localStorage.getItem(KN)||'[]');
-  const localOutlines=JSON.parse(localStorage.getItem(KO)||'[]');
+  // ローカルデータを読み込む（loadLocalを使うことでtry-catchや移行処理を流用）
+  loadLocal();
+  const localPosts=[...posts];
+  const localNotes=[...notes];
+  const localOutlines=[...outlines];
 
   // Supabaseから取得
   const {data,error}=await sb.from('thinkdata')
@@ -1794,8 +1795,7 @@ async function loadFromSupabase(force=false){
 
   if(error){
     console.error('Supabase load error:',error);
-    // Supabase失敗 → ローカルをそのまま使う
-    posts=localPosts;notes=localNotes;outlines=localOutlines;
+    // Supabase失敗 → ローカルをそのまま表示
     setSyncDot('');
     renderSidebar();renderFeed();
     return;
@@ -1809,47 +1809,43 @@ async function loadFromSupabase(force=false){
     const sbPosts=map.posts||[];
     const sbOutlines=map.outlines||[];
 
-    // 最新のタイムスタンプで比較
-    const latestLocal=Math.max(0,...localPosts.map(p=>p.createdAt||0),...localOutlines.map(o=>o.updatedAt||o.createdAt||0));
+    // DEMOデータを除外してタイムスタンプ比較
+    const realLocalPosts=localPosts.filter(p=>!p._demo);
+    const latestLocal=Math.max(0,...realLocalPosts.map(p=>p.createdAt||0),...localOutlines.map(o=>o.updatedAt||o.createdAt||0));
     const latestSb   =Math.max(0,...sbPosts.map(p=>p.createdAt||0),...sbOutlines.map(o=>o.updatedAt||o.createdAt||0));
 
     console.log('📊 ローカル最新:',latestLocal?new Date(latestLocal).toLocaleString():'なし');
     console.log('📊 Supabase最新:',latestSb?new Date(latestSb).toLocaleString():'なし');
 
     if(latestLocal>latestSb){
-      // ローカルが新しい → ローカルを使い、Supabaseへアップロード
-      console.log('✅ ローカルを採用 → Supabaseにアップロード');
+      console.log('✅ ローカルを採用');
       posts=localPosts;notes=localNotes;outlines=localOutlines;
       useLocal=true;
     } else {
-      // Supabaseが新しい or 同じ → Supabaseを使う
       console.log('✅ Supabaseを採用');
-      posts=sbPosts;notes=map.notes||[];outlines=sbOutlines;
+      posts=sbPosts;
+      notes=map.notes||[];
+      outlines=sbOutlines;
+      // migrate
+      notes.forEach(n=>{
+        if(!n.items)n.items=[];if(!n.stickies)n.stickies=[];
+        if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
+      });
+      posts.forEach(p=>{if(!p.replies)p.replies=[];});
+      localStorage.setItem(KP,JSON.stringify(posts));
+      localStorage.setItem(KN,JSON.stringify(notes));
+      localStorage.setItem(KO,JSON.stringify(outlines));
     }
-  } else if(localPosts.length>0){
-    // Supabaseが空 → ローカルをアップロード
+  } else {
+    // Supabaseが空 → ローカルを使い、アップロード
+    console.log('✅ Supabaseが空 → ローカルを採用してアップロード');
     posts=localPosts;notes=localNotes;outlines=localOutlines;
     useLocal=true;
-  } else {
-    posts=[];notes=[];outlines=[];
   }
-
-  // migrate
-  notes.forEach(n=>{
-    if(!n.items)n.items=[];if(!n.stickies)n.stickies=[];
-    if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
-  });
-  posts.forEach(p=>{if(!p.replies)p.replies=[];});
-
-  // localStorageを確定データで更新
-  localStorage.setItem(KP,JSON.stringify(posts));
-  localStorage.setItem(KN,JSON.stringify(notes));
-  localStorage.setItem(KO,JSON.stringify(outlines));
 
   setSyncDot('saved');
   renderSidebar();renderFeed();
 
-  // ローカルが勝った場合はSupabaseにアップロード
   if(useLocal)await saveToSupabase();
 }
 
