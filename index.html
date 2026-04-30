@@ -2597,7 +2597,7 @@ function openCardDetail(outlineId){
         <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" style="flex:1;min-width:80px;max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
         <button class="card-img-upload-btn" onclick="addCardLabel()" style="font-size:11px;">＋</button>
         <button onclick="document.getElementById('scrapImgFile').click()" class="card-img-upload-btn" style="font-size:11px;" title="画像をアップロード">🖼️</button>
-        <input type="file" id="scrapImgFile" accept="image/*" style="display:none" onchange="onScrapImageFile(event,'${ol.id}')">
+        <input type="file" id="scrapImgFile" accept="image/*" style="display:none" onchange="onScrapImageFile(event)">
         <button onclick="openImgLibrary('scrap')" class="card-img-upload-btn" style="font-size:11px;" title="ライブラリから選択">📂</button>
         <button onclick="deleteScrapCard()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>
       </div>
@@ -3312,7 +3312,13 @@ function renderScrapDetailSection(sc){
         :`<input id="scrapUrlIn" value="" placeholder="URLを追加…" style="width:100%;padding:5px 9px;border:0.5px solid #b8d4b8;border-radius:var(--rsm);font-size:12px;font-family:inherit;outline:none;box-sizing:border-box;" onblur="saveScrapUrl('${sc.id}')">`
       }
     </div>
-    ${(()=>{const imgs=sc.scrapImage?[sc.scrapImage]:[];return imgs.map(img=>`<img src="${esc(img)}" style="width:100%;border-radius:var(--rsm);margin-bottom:8px;display:block;" loading="lazy" onerror="this.style.display='none'">`).join('');})()} 
+    ${(()=>{
+      if(!sc.scrapImage)return '';
+      return `<div style="position:relative;margin-bottom:8px;">`
+        +`<img src="${esc(sc.scrapImage)}" style="width:100%;border-radius:var(--rsm);display:block;" loading="lazy" onerror="this.style.display='none'">`
+        +`<button onclick="deleteScrapImage('${sc.id}')" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;line-height:1;">✕</button>`
+        +`</div>`;
+    })()} 
     <div class="scrap-meta-desc">${esc(sc.scrapDescription||'')}</div>
     <div class="scrap-meta-site">${esc(sc.scrapSiteName||'')}</div>
     <div style="margin-top:8px;">
@@ -3359,15 +3365,20 @@ function removeScrapImage(scId,idx){
   openCardDetail(scId);
 }
 async function onScrapImageFile(e,scId){
-  const files=[...e.target.files];e.target.value='';if(!files.length)return;
-  const sc=outlines.find(x=>x.id===scId);if(!sc)return;
-  if(!sc.scrapImages)sc.scrapImages=[];
-  for(const file of files){
-    const dataUrl=await resizeImage(file,800,0.82);
-    sc.scrapImages.push(dataUrl);
-  }
+  const id=scId||currentCardOutlineId;
+  const file=e.target.files?.[0];e.target.value='';if(!file)return;
+  const sc=outlines.find(x=>x.id===id);if(!sc)return;
+  const dataUrl=await resizeImage(file,1200,0.85);
+  sc.scrapImage=dataUrl;
   sc.updatedAt=Date.now();save();
-  renderObjectGrid();openCardDetail(scId);
+  openCardDetail(id);
+}
+
+function deleteScrapImage(scId){
+  const sc=outlines.find(x=>x.id===scId);if(!sc)return;
+  sc.scrapImage='';sc.updatedAt=Date.now();save();
+  openCardDetail(scId);
+  renderScrapGrid11();
 }
 
 function refetchScrap(){
