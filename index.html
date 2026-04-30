@@ -572,7 +572,22 @@ body {
 @media (max-width: 640px) {
   body { font-size:16px; }
 
-  /* ── モバイル：タイムライン専用レイアウト ── */
+  /* ノートMarkdownプレビュー */
+.note-preview-body h1,.note-preview-body h2,.note-preview-body h3 { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-weight:700; color:var(--text); margin:1.5em 0 .5em; line-height:1.35; }
+.note-preview-body h1 { font-size:1.5em; border-bottom:0.5px solid var(--border); padding-bottom:.4em; }
+.note-preview-body h2 { font-size:1.2em; }
+.note-preview-body h3 { font-size:1em; }
+.note-preview-body p { margin:.7em 0; }
+.note-preview-body ul,.note-preview-body ol { padding-left:1.5em; margin:.5em 0; }
+.note-preview-body li { margin:.2em 0; }
+.note-preview-body code { font-family:monospace; font-size:.9em; background:var(--bg3); border:0.5px solid var(--border2); border-radius:3px; padding:1px 5px; }
+.note-preview-body pre { background:var(--bg3); border:0.5px solid var(--border2); border-radius:var(--rsm); padding:1em; overflow-x:auto; margin:.8em 0; }
+.note-preview-body pre code { background:none; border:none; padding:0; }
+.note-preview-body blockquote { border-left:3px solid var(--border2); padding-left:1em; color:var(--text2); margin:.8em 0; }
+.note-preview-body strong { font-weight:700; }
+.note-preview-body em { font-style:italic; }
+.note-preview-body hr { border:none; border-top:0.5px solid var(--border); margin:1.5em 0; }
+.note-preview-body a { color:var(--accent); text-decoration:underline; }
   /* トップバー：アプリ名のみ、タブ全非表示 */
   .topbar { padding:0 .75rem; height:44px; }
   .app-name { font-size:15px; }
@@ -1045,6 +1060,7 @@ body {
 .bsky-post-status.ok { background:var(--teal-l); color:var(--teal); }
 .bsky-post-status.err { background:var(--red-l); color:var(--red); }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
 <body>
 
@@ -1340,35 +1356,34 @@ body {
           <div class="editor-toolbar">
             <input class="editor-title-in" id="editorTitle" placeholder="タイトル" oninput="saveNoteTitle()">
             <div class="et-sep"></div>
+            <div style="display:flex;gap:2px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:20px;padding:2px;">
+              <button id="mdBtnEdit" onclick="setNoteViewMode('edit')" style="padding:3px 10px;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;background:var(--accent);color:#fff;font-weight:600;">編集</button>
+              <button id="mdBtnSplit" onclick="setNoteViewMode('split')" style="padding:3px 10px;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;background:none;color:var(--text2);">分割</button>
+              <button id="mdBtnPreview" onclick="setNoteViewMode('preview')" style="padding:3px 10px;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;background:none;color:var(--text2);">プレビュー</button>
+            </div>
             <button class="et-btn primary" onclick="openNoteCardPicker()">🗂️ カードから作成</button>
             <button class="et-btn danger" onclick="deleteCurrentNote()">削除</button>
           </div>
           <div class="editor-stats-bar">
             <div class="stat-pill"><span>文字数</span><span class="stat-pill-val" id="statChars">0</span></div>
-            <div class="stat-pill"><span>段落数</span><span class="stat-pill-val" id="statParas">0</span></div>
-            <div class="stat-pill" title="1行あたりの文字数（0=制限なし）">
-              <span>行幅</span>
-              <input class="stat-line-in" id="lineWidthIn" type="number" value="0" min="0" max="120" step="5" oninput="applyNoteEditorSettings()">
-              <span>字</span>
-            </div>
-            <div class="stat-pill" style="cursor:pointer;" onclick="toggleNoteLineNumbers()" title="行番号の表示切替">
-              <span id="lineNumToggleLabel" style="user-select:none;">行番号 OFF</span>
-            </div>
+            <div class="stat-pill"><span>行数</span><span class="stat-pill-val" id="statParas">0</span></div>
           </div>
           <div class="editor-split">
             <div class="editor-main" style="position:relative;">
-              <!-- シンプルエディタ（段落・カードブロック統合） -->
+              <!-- Markdownエディタ（textarea + プレビュー） -->
               <div id="noteTextWrap" style="flex:1;display:flex;overflow:hidden;">
-                <!-- スクロールコンテナ（行番号＋本文が一緒にスクロール） -->
-                <div id="noteEditorOuter" style="flex:1;overflow-y:auto;display:flex;">
-                  <div id="lineNumbers" style="display:none;padding:1.75rem 0 4rem;font-family:monospace;font-size:14px;line-height:1.9;color:var(--text3);text-align:right;user-select:none;flex-shrink:0;border-right:0.5px solid var(--border);background:var(--bg3);min-width:3em;padding-right:.5rem;padding-left:.75rem;"></div>
-                  <div id="noteTextEditor"
-                    contenteditable="true"
-                    style="flex:1;padding:1.75rem 2rem 4rem;font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:15px;line-height:1.9;color:var(--text);outline:none;white-space:pre-wrap;word-break:break-word;caret-color:var(--accent);"
+                <!-- エディタ -->
+                <div id="noteEditorOuter" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;">
+                  <textarea id="noteTextEditor"
+                    spellcheck="false"
+                    placeholder="# 見出し&#10;&#10;本文をMarkdownで書く…&#10;&#10;**太字** *斜体* `コード`&#10;- リスト"
+                    style="flex:1;resize:none;border:none;outline:none;padding:1.5rem 2rem;font-family:'Hiragino Kaku Gothic ProN',monospace;font-size:14px;line-height:1.9;color:var(--text);background:var(--bg);caret-color:var(--accent);white-space:pre;overflow-wrap:normal;overflow-x:auto;tab-size:2;"
                     oninput="onNoteTextInput()"
-                    onkeydown="onNoteTextKey(event)">
-                  </div>
+                    onkeydown="onNoteTextKey(event)"
+                  ></textarea>
                 </div>
+                <!-- プレビュー -->
+                <div id="notePreviewPane" style="display:none;flex:1;overflow-y:auto;padding:1.5rem 2rem 4rem;border-left:0.5px solid var(--border);font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:15px;line-height:1.9;color:var(--text);min-width:0;" class="note-preview-body"></div>
               </div>
             </div>
             <div class="sticky-pane-b" id="stickyPaneB">
@@ -5965,12 +5980,11 @@ function openNote(id){
     text=n.body;
   }
 
-  const ed=document.getElementById('noteTextEditor');
-  ed.textContent=text;
-  loadNoteEditorSettings(n);
-  renderStickyPane();
-  initLineNumberSync();
-  setTimeout(()=>ed.focus(),30);
+  const ta=document.getElementById('noteTextEditor');
+  if(ta)ta.value=text;
+  setNoteViewMode(noteViewMode||'edit');
+  updateEditorStats();
+  setTimeout(()=>ta?.focus(),30);
 }
 
 // ─── ノートエディタ設定 ───────────────────────────────────
@@ -6036,19 +6050,22 @@ function loadNoteEditorSettings(n){
 
 function onNoteTextInput(){
   const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
-  const ed=document.getElementById('noteTextEditor');
-  n.mergedText=ed.textContent;
+  const ta=document.getElementById('noteTextEditor');
+  n.mergedText=ta?.value||'';
   n.updatedAt=Date.now();
-  updateLineNumbers();
+  updateEditorStats();
+  if(noteViewMode==='split')renderNotePreview();
   clearTimeout(onNoteTextInput._t);
   onNoteTextInput._t=setTimeout(()=>save(),800);
 }
 
 function onNoteTextKey(e){
-  // Tab → スペース2つ
   if(e.key==='Tab'){
     e.preventDefault();
-    document.execCommand('insertText',false,'  ');
+    const ta=e.target,s=ta.selectionStart,end=ta.selectionEnd;
+    ta.value=ta.value.slice(0,s)+'  '+ta.value.slice(end);
+    ta.selectionStart=ta.selectionEnd=s+2;
+    onNoteTextInput();
   }
 }
 function showEditorEmpty(){
@@ -6150,32 +6167,41 @@ function saveCardBlockSticky(bi,si,text){
 }
 
 
-function renderParaEditor(){
-  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
-  if(!n.paragraphs)n.paragraphs=[];
-  const editor=document.getElementById('paraEditor');
-  editor.innerHTML='';
-  const paras=n.paragraphs.length?n.paragraphs:[''];
-  paras.forEach((para,i)=>{
-    const row=document.createElement('div');row.className='para-row';row.dataset.idx=i;
-    const ta=document.createElement('textarea');
-    ta.className='para-input';ta.value=para;ta.rows=1;
-    ta.placeholder=i===0?'書き始める…':'';ta.dataset.idx=i;
-    setTimeout(()=>autoH(ta),0);
-    ta.addEventListener('input',()=>{autoH(ta);n.paragraphs[i]=ta.value;n.updatedAt=Date.now();save();updateEditorStats();});
-    ta.addEventListener('keydown',e=>onParaKey(e,i));
-    ta.addEventListener('focus',()=>highlightStickiesForPara(n.paragraphs[i]));
-    const addBtn=document.createElement('button');
-    addBtn.className='para-add-sticky';addBtn.textContent='＋ 付箋';
-    addBtn.onclick=()=>addStickyToParaIdx(i,ta.value);
-    row.appendChild(ta);row.appendChild(addBtn);
-    editor.appendChild(row);
+let noteViewMode='edit'; // 'edit' | 'split' | 'preview'
+
+function setNoteViewMode(mode){
+  noteViewMode=mode;
+  const ed=document.getElementById('noteEditorOuter');
+  const pr=document.getElementById('notePreviewPane');
+  const ta=document.getElementById('noteTextEditor');
+  if(!ed||!pr)return;
+  ['edit','split','preview'].forEach(m=>{
+    const btn=document.getElementById('mdBtn'+m.charAt(0).toUpperCase()+m.slice(1));
+    if(btn){btn.style.background=m===mode?'var(--accent)':'none';btn.style.color=m===mode?'#fff':'var(--text2)';btn.style.fontWeight=m===mode?'600':'400';}
   });
-  const addPBtn=document.createElement('button');addPBtn.className='para-add-btn';addPBtn.textContent='＋ 段落を追加';addPBtn.onclick=()=>addPara();
-  editor.appendChild(addPBtn);
-  setTimeout(()=>{editor.querySelectorAll('.para-input').forEach(autoH);updateEditorStats();renderStickyPaneB();},30);
+  if(mode==='edit'){
+    ed.style.display='flex';pr.style.display='none';
+    if(ta)ta.style.flex='1';
+  } else if(mode==='preview'){
+    ed.style.display='none';pr.style.display='block';
+    renderNotePreview();
+  } else {
+    ed.style.display='flex';pr.style.display='block';
+    if(ta)ta.style.flex='1';
+    renderNotePreview();
+  }
 }
 
+function renderNotePreview(){
+  const pr=document.getElementById('notePreviewPane');if(!pr)return;
+  const ta=document.getElementById('noteTextEditor');
+  const md=(ta?.value)||'';
+  if(typeof marked!=='undefined'){
+    pr.innerHTML=marked.parse(md,{breaks:true,gfm:true});
+  } else {
+    pr.innerHTML='<pre style="white-space:pre-wrap;">'+esc(md)+'</pre>';
+  }
+}
 function autoH(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}
 
 function onParaKey(e,i){
@@ -6206,16 +6232,13 @@ function removePara(i){
 
 // ─── Stats ───────────────────────────────────────────────
 function updateEditorStats(){
-  const n=notes.find(x=>x.id===currentNoteId);if(!n)return;
-  const paras=(n.paragraphs||[]).filter(l=>l.trim());
-  const chars=paras.join('').replace(/\s/g,'').length;
-  const lineW=parseInt(document.getElementById('lineWidthIn')?.value||40)||40;
-  let lines=0;paras.forEach(p=>{lines+=Math.max(1,Math.ceil(p.replace(/\s/g,'').length/lineW));});
+  const ta=document.getElementById('noteTextEditor');
+  const text=ta?.value||'';
+  const chars=text.replace(/\s/g,'').length;
+  const lines=text.split('\n').length;
   document.getElementById('statChars').textContent=chars.toLocaleString();
-  document.getElementById('statParas').textContent=paras.length;
-  document.getElementById('statLines').textContent=lines;
+  document.getElementById('statParas').textContent=lines;
 }
-document.addEventListener('DOMContentLoaded',()=>{document.getElementById('lineWidthIn')?.addEventListener('input',updateEditorStats);});
 
 // ─── Sticky Pane B ───────────────────────────────────────
 function setupScrollSync(){
