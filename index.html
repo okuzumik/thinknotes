@@ -1361,7 +1361,12 @@ body {
           </div>
           <div class="editor-stats-bar">
             <div class="stat-pill"><span>文字数</span><span class="stat-pill-val" id="statChars">0</span></div>
-            <div class="stat-pill"><span>行数</span><span class="stat-pill-val" id="statParas">0</span></div>
+            <div class="stat-pill"><span>行数</span><span class="stat-pill-val" id="statLines">0</span></div>
+            <div class="stat-pill" style="gap:4px;">
+              <span>行幅</span>
+              <input id="lineWidthIn" type="number" min="0" max="120" step="4" value="0" style="width:38px;padding:1px 4px;border:0.5px solid var(--border2);border-radius:4px;font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);outline:none;text-align:center;" oninput="applyLineWidth()">
+              <span>字（0=制限なし）</span>
+            </div>
           </div>
           <div class="editor-split">
             <div class="editor-main" style="position:relative;">
@@ -5976,7 +5981,11 @@ function openNote(id){
 
   const ta=document.getElementById('noteTextEditor');
   if(ta)ta.value=text;
+  // 行幅設定を復元
+  const lwIn=document.getElementById('lineWidthIn');
+  if(lwIn){lwIn.value=n.lineWidth||0;}
   setNoteViewMode(noteViewMode||'edit');
+  applyLineWidth();
   updateEditorStats();
   setTimeout(()=>ta?.focus(),30);
 }
@@ -6238,9 +6247,35 @@ function updateEditorStats(){
   const ta=document.getElementById('noteTextEditor');
   const text=ta?.value||'';
   const chars=text.replace(/\s/g,'').length;
-  const lines=text.split('\n').length;
+  const lineW=parseInt(document.getElementById('lineWidthIn')?.value||0)||0;
+  let lineCount;
+  if(lineW>0){
+    // 各行の文字数を行幅で割って表示行数を積算
+    lineCount=text.split('\n').reduce((sum,line)=>{
+      const len=line.replace(/\s/g,'').length;
+      return sum+Math.max(1,Math.ceil(len/lineW));
+    },0);
+  } else {
+    lineCount=text.split('\n').length;
+  }
   document.getElementById('statChars').textContent=chars.toLocaleString();
-  document.getElementById('statParas').textContent=lines;
+  document.getElementById('statLines').textContent=lineCount.toLocaleString();
+}
+
+function applyLineWidth(){
+  const ta=document.getElementById('noteTextEditor');
+  const w=parseInt(document.getElementById('lineWidthIn')?.value||0)||0;
+  if(w>0){
+    // em単位で幅を指定（1emが1文字）
+    ta.style.maxWidth=w+'em';
+    ta.style.boxSizing='content-box';
+  } else {
+    ta.style.maxWidth='';
+  }
+  // ノートに保存
+  const n=notes.find(x=>x.id===currentNoteId);
+  if(n){n.lineWidth=w;n.updatedAt=Date.now();save();}
+  updateEditorStats();
 }
 
 // ─── Sticky Pane B ───────────────────────────────────────
