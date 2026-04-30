@@ -2596,6 +2596,8 @@ function openCardDetail(outlineId){
       <div style="max-width:720px;margin:.5rem auto 0;display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:4px 0;">
         <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" style="flex:1;min-width:80px;max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
         <button class="card-img-upload-btn" onclick="addCardLabel()" style="font-size:11px;">＋</button>
+        <button onclick="document.getElementById('scrapImgFile').click()" class="card-img-upload-btn" style="font-size:11px;" title="画像を追加">🖼️</button>
+        <input type="file" id="scrapImgFile" accept="image/*" style="display:none" onchange="onScrapImageFile(event,'${ol.id}')">
         <button onclick="deleteScrapCard()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>
       </div>
       <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>`;
@@ -2631,12 +2633,12 @@ function openCardDetail(outlineId){
       <button onclick="removeCardImage(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;">✕</button>
     </div>`).join('')}</div>`:'';
 
-  body.innerHTML=`<div class="card-detail-card">
+  body.innerHTML=`<div class="card-detail-card" style="${ol.isSource?'border-left:3px solid var(--source);background:var(--source-l);':''}">
     <div class="card-detail-card-title" contenteditable="true" spellcheck="false"
       onblur="saveCardTitle(this);this.style.borderBottomColor='transparent'"
       onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
       onfocus="this.style.borderBottomColor='var(--border2)'"
-      style="outline:none;cursor:text;border-bottom:1.5px dashed transparent;transition:border-color .15s;"
+      style="outline:none;cursor:text;border-bottom:1.5px dashed transparent;transition:border-color .15s;${ol.isSource?'color:var(--source);':''}"
     >${esc(ol.title||'無題')}</div>
     <div class="card-detail-card-meta">
       <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">${ol.isSource?(ol.sourceSubItems||[]).length+'件のサブアイテム':ol.items.length+'項目'} · ${fmtDate(ol.updatedAt)}</span>
@@ -3036,7 +3038,7 @@ function renderObjectRelated(ol){
   if(!related)return;
   const labels=ol.labels||[];
   if(!labels.length){related.style.display='none';return;}
-  // 媒体・スクラップの中でラベルが一致するものを表示
+  // 媒体・スクラップの中でラベルが一致するもののみ（普通のカードは除外）
   const relatedItems=outlines
     .filter(x=>x.id!==ol.id&&(x.isSource||x.isScrap))
     .map(x=>{
@@ -3054,9 +3056,11 @@ function renderObjectRelated(ol){
       const thumb=isScrap?ro.scrapImage:(ro.images?.[0]||'');
       const site=isScrap?ro.scrapSiteName:ro.sourceUrl?(()=>{try{return new URL(ro.sourceUrl).hostname.replace(/^www\./,'');}catch{return '';}})():'';
       const icon=isScrap?'✂️':'📎';
-      const accentColor=isScrap?'#4a7a52':'var(--source)';
-      return`<div class="card-related-thumb" style="border-left:2px solid ${accentColor};" onclick="openCardDetail('${ro.id}')">
-        <div class="card-related-thumb-title" style="color:${accentColor};">${icon} ${esc(ro.title||'無題')}</div>
+      const bg=isScrap?'#f4f8f4':'var(--source-l)';
+      const border=isScrap?'#b8d4b8':'var(--source-m)';
+      const accent=isScrap?'#4a7a52':'var(--source)';
+      return`<div class="card-related-thumb" style="background:${bg};border-color:${border};border-left:2px solid ${accent};" onclick="openCardDetail('${ro.id}')">
+        <div class="card-related-thumb-title" style="color:${accent};">${icon} ${esc(ro.title||'無題')}</div>
         ${thumb?`<img src="${esc(thumb)}" loading="lazy" onerror="this.style.display='none'">`:''}
         <div style="font-size:9px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(site)}</div>
         <div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;margin-top:auto;">
@@ -3229,13 +3233,6 @@ function renderScrapDetailSection(sc){
       ${sc.scrapUrl?`<a href="${esc(sc.scrapUrl)}" target="_blank" rel="noopener" style="font-size:13px;color:#3d6b45;flex-shrink:0;text-decoration:none;" title="元ページを開く">↗</a>`:''}
     </div>
     ${imgGallery}
-    <div style="margin-top:6px;display:flex;gap:5px;align-items:center;">
-      <div style="font-size:10px;color:#3d6b45;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-weight:600;">画像</div>
-      <input id="scrapImageUrlIn" placeholder="画像URLを追加" style="flex:1;padding:4px 9px;border:0.5px solid #a8c8a8;border-radius:var(--rsm);font-size:11px;font-family:inherit;color:var(--text);background:#fff;outline:none;">
-      <button onclick="addScrapImageUrl('${sc.id}')" style="padding:4px 10px;background:#f0f5f0;color:#3d6b45;border:0.5px solid #a8c8a8;border-radius:20px;font-size:11px;cursor:pointer;white-space:nowrap;">URL追加</button>
-      <button onclick="document.getElementById('scrapImgFile').click()" style="padding:4px 10px;background:#f0f5f0;color:#3d6b45;border:0.5px solid #a8c8a8;border-radius:20px;font-size:11px;cursor:pointer;white-space:nowrap;">📁 ファイル</button>
-      <input type="file" id="scrapImgFile" accept="image/*" multiple style="display:none" onchange="onScrapImageFile(event,'${sc.id}')">
-    </div>
     <div class="scrap-meta-site">${esc(sc.scrapSiteName||'')}</div>
     <div style="margin-top:8px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
