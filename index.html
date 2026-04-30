@@ -1424,7 +1424,7 @@ body {
       <div style="display:flex;align-items:center;gap:10px;padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;">
         <input id="scrapSearch" class="card-grid-search" placeholder="スクラップを検索…" oninput="renderScrapGrid()">
         <div class="card-label-filters" id="scrapLabelFilters" style="flex:1;overflow-x:auto;display:flex;gap:4px;"></div>
-        <button onclick="createScrapCard()" style="padding:5px 14px;background:#3d6b45;color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✂️ URLを追加</button>
+        <button onclick="createScrapCard()" style="padding:5px 14px;background:#3d6b45;color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✂️ スクラップを追加</button>
       </div>
       <div id="scrapGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:10px;padding:1rem 1.5rem 3rem;overflow-y:auto;align-content:start;flex:1;"></div>
     </div>
@@ -1448,7 +1448,7 @@ body {
       <div style="display:flex;align-items:center;gap:10px;padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;">
         <input id="scrapSearch11" class="card-grid-search" placeholder="スクラップを検索…" oninput="renderScrapGrid11()">
         <div class="card-label-filters" id="scrapLabelFilters11" style="flex:1;overflow-x:auto;display:flex;gap:4px;"></div>
-        <button onclick="createScrapCard()" style="padding:5px 14px;background:#3d6b45;color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✂️ URLを追加</button>
+        <button onclick="createScrapCard()" style="padding:5px 14px;background:#3d6b45;color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✂️ スクラップを追加</button>
       </div>
       <div id="scrapGrid11" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:1rem 1.5rem;overflow-y:auto;align-content:start;"></div>
     </div>
@@ -3124,17 +3124,45 @@ function newCardFromOutliner(){
 
 // ─── スクラップ ────────────────────────────────────────────
 function createScrapCard(){
-  const url=prompt('取り込むページのURLを入力してください:','https://');
-  if(!url||!url.startsWith('http'))return;
+  const modal=document.getElementById('scrapCreateModal');
+  if(modal){
+    modal.style.display='flex';
+    setTimeout(()=>document.getElementById('scrapCreateUrl')?.focus(),50);
+  }
+}
+function closeScrapCreateModal(){
+  const modal=document.getElementById('scrapCreateModal');
+  if(modal){modal.style.display='none';}
+  const urlIn=document.getElementById('scrapCreateUrl');
+  const titleIn=document.getElementById('scrapCreateTitle');
+  if(urlIn)urlIn.value='';
+  if(titleIn)titleIn.value='';
+}
+function _newScrapBase(title){
   const sc={
-    id:uid(),title:'取得中…',items:[],labels:[],images:[],
+    id:uid(),title:title||'新しいスクラップ',items:[],labels:[],images:[],
     isScrap:true,
-    scrapUrl:url,scrapSiteName:'',scrapImages:[],scrapDescription:'',scrapSnippet:'',
+    scrapUrl:'',scrapSiteName:'',scrapImage:'',scrapDescription:'',scrapSnippet:'',
     scrapHighlights:[],
     createdAt:Date.now(),updatedAt:Date.now()
   };
-  outlines.unshift(sc);save();if(currentPhase===11)renderScrapGrid11();
+  outlines.unshift(sc);save();
+  if(currentPhase===11)renderScrapGrid11();
+  return sc;
+}
+function createScrapFromUrl(){
+  const url=(document.getElementById('scrapCreateUrl')?.value||'').trim();
+  if(!url||!url.startsWith('http'))return;
+  closeScrapCreateModal();
+  const sc=_newScrapBase('取得中…');
+  sc.scrapUrl=url;save();
   fetchScrapMeta(sc.id,url);
+  openCardDetail(sc.id);
+}
+function createScrapManual(){
+  const title=(document.getElementById('scrapCreateTitle')?.value||'').trim();
+  closeScrapCreateModal();
+  const sc=_newScrapBase(title||'新しいスクラップ');
   openCardDetail(sc.id);
 }
 
@@ -6370,6 +6398,32 @@ if(window.innerWidth<=640){
   <div style="display:flex;flex:1;overflow:hidden;">
     <div class="card-detail-body" id="cardDetailBody"></div>
     <div class="card-related" id="cardRelated" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- スクラップ作成モーダル -->
+<div id="scrapCreateModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:900;align-items:center;justify-content:center;" onclick="if(event.target===this)closeScrapCreateModal()">
+  <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);width:min(420px,92vw);padding:1.5rem;display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+    <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:15px;font-weight:700;color:#2e5235;">✂️ スクラップを追加</div>
+    <!-- URLから -->
+    <div style="border:0.5px solid #b8d4b8;border-radius:var(--rsm);padding:14px;background:#f4f8f4;display:flex;flex-direction:column;gap:8px;">
+      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:600;color:#2e5235;">🔗 URLから読み込む</div>
+      <div style="display:flex;gap:6px;">
+        <input id="scrapCreateUrl" type="url" placeholder="https://…" style="flex:1;padding:7px 10px;border:0.5px solid #b8d4b8;border-radius:var(--rsm);font-size:13px;font-family:inherit;color:var(--text);background:#fff;outline:none;" onkeydown="if(event.key==='Enter'&&!event.isComposing)createScrapFromUrl()">
+        <button onclick="createScrapFromUrl()" style="padding:7px 16px;background:#3d6b45;color:#fff;border:none;border-radius:var(--rsm);font-size:13px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;white-space:nowrap;">読み込む</button>
+      </div>
+      <div style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">タイトル・サイト名・本文を自動取得します</div>
+    </div>
+    <!-- 手動作成 -->
+    <div style="border:0.5px solid var(--border2);border-radius:var(--rsm);padding:14px;background:var(--bg2);display:flex;flex-direction:column;gap:8px;">
+      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:600;color:var(--text2);">✍️ 手動で作成</div>
+      <div style="display:flex;gap:6px;">
+        <input id="scrapCreateTitle" placeholder="タイトル（省略可）" style="flex:1;padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--rsm);font-size:13px;font-family:inherit;color:var(--text);background:#fff;outline:none;" onkeydown="if(event.key==='Enter'&&!event.isComposing)createScrapManual()">
+        <button onclick="createScrapManual()" style="padding:7px 16px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border2);border-radius:var(--rsm);font-size:13px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;white-space:nowrap;">作成</button>
+      </div>
+      <div style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">空のスクラップを作成。あとからURLやテキストを追加できます</div>
+    </div>
+    <button onclick="closeScrapCreateModal()" style="align-self:flex-end;background:none;border:none;font-size:13px;color:var(--text3);cursor:pointer;padding:0;">キャンセル</button>
   </div>
 </div>
 
