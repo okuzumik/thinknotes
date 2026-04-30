@@ -1796,7 +1796,7 @@ async function loadFromSupabase(force=false){
   if(error){
     console.error('Supabase load error:',error);
     setSyncDot('');
-    // ローカルがあれば使う、なければ空表示（DEMOは出さない）
+    // ローカルがあれば使う（DEMOは出さない）
     posts=localPosts;notes=localNotes;outlines=localOutlines;
     renderSidebar();renderFeed();
     return;
@@ -3920,8 +3920,19 @@ function importBackup(){
         if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
       });
       posts.forEach(p=>{if(!p.replies)p.replies=[];});
-      save();renderSidebar();renderFeed();
-      alert('✓ 復元が完了しました');
+      // まずlocalStorageに保存
+      localStorage.setItem(KP,JSON.stringify(posts));
+      localStorage.setItem(KN,JSON.stringify(notes));
+      localStorage.setItem(KO,JSON.stringify(outlines));
+      renderSidebar();renderFeed();
+      // Supabaseに即時保存（デバウンスなし）
+      if(currentUser){
+        alert('✓ 復元しました。Supabaseに保存中…');
+        await saveToSupabase();
+        alert('✓ Supabaseへの保存も完了しました。');
+      } else {
+        alert('✓ 復元が完了しました（ローカルのみ）。');
+      }
     }catch(err){alert('読み込みエラー: '+err.message);}
   };
   input.click();
