@@ -2578,24 +2578,29 @@ function openCardDetail(outlineId){
 
   // スクラップカードは専用レンダリング
   if(ol.isScrap){
+    const labels=ol.labels||[];
     body.innerHTML=`
-      <div class="card-detail-card" style="border-left:3px solid #3d6b45;">
+      <div class="card-detail-card" style="border-left:3px solid #4a7a52;">
         <div class="card-detail-card-title" contenteditable="true" spellcheck="false"
           onblur="saveCardTitle(this);this.style.borderBottomColor='transparent'"
           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
           onfocus="this.style.borderBottomColor='#a8c8a8'"
-          style="outline:none;cursor:text;border-bottom:1.5px dashed transparent;transition:border-color .15s;color:#3d6b45;"
+          style="outline:none;cursor:text;border-bottom:1.5px dashed transparent;transition:border-color .15s;color:#2e5235;"
         >${esc(ol.title||'無題')}</div>
+        <div class="card-detail-card-meta">
+          ${labels.map((lb,i)=>`<span class="card-label-tag" style="cursor:pointer;" onclick="removeCardLabel(${i})" title="クリックで削除">${esc(lb)} ✕</span>`).join('')}
+        </div>
         ${renderScrapDetailSection(ol)}
       </div>
-      <div style="max-width:720px;margin:.5rem auto 0;padding:10px 14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--rsm);">
-        <div style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-bottom:6px;">ラベル</div>
-        ${renderSharedLabelsHTML(ol)}
+      <!-- 共通フッター -->
+      <div style="max-width:720px;margin:.5rem auto 0;display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:4px 0;">
+        <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" style="flex:1;min-width:80px;max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
+        <button class="card-img-upload-btn" onclick="addCardLabel()" style="font-size:11px;">＋</button>
+        <button onclick="deleteScrapCard()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>
       </div>
-      <div style="max-width:720px;margin:.5rem auto 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <button onclick="deleteScrapCard()" style="padding:5px 14px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑 削除</button>
-      </div>`;
+      <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>`;
     if(detail)detail.style.display='flex';
+    renderObjectRelated(ol);
     return;
   }
 
@@ -2679,27 +2684,16 @@ function openCardDetail(outlineId){
     ${cardImgsHtml}
     ${!ol.isSource?`<div class="card-detail-card-content">${itemsHtml||'<div style="color:var(--text3);font-size:13px;">項目がありません</div>'}</div>`:''}
   </div>
-  <!-- ラベル・画像追加UIはカード外に -->
-  <div style="max-width:720px;margin:.75rem auto 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    ${!ol.isSource?`<button class="card-img-upload-btn" onclick="wfOpenFromCard(currentCardOutlineId)">✏️ 編集</button>`:''}
-    ${!ol.usedAt&&!ol.isSource?`<div style="display:flex;gap:4px;flex:1;min-width:200px;">
-      <input id="cardUsedNoteIn" placeholder="成仏メモ（例：連載2026-06）" style="flex:1;padding:5px 10px;border:0.5px solid var(--border2);border-radius:20px;font-size:12px;font-family:inherit;color:var(--text);background:var(--bg3);outline:none;" onkeydown="if(event.key==='Enter'&&!event.isComposing)toggleCardUsed()">
-      <button class="card-img-upload-btn" onclick="toggleCardUsed()" style="white-space:nowrap;">✓ 成仏させる</button>
-    </div>`:''}
-    <div class="card-label-input-wrap" style="flex:1;min-width:180px;">
-      <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
-      <button class="card-img-upload-btn" onclick="addCardLabel()">＋ ラベル</button>
-    </div>
-    <button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()">🖼️ 画像を追加</button>
-    <button class="card-img-upload-btn" onclick="openImgLibrary('card')">📂 ライブラリ</button>
-    <input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)">
-    ${ol.isSource?`<button onclick="deleteSourceCardConfirm()" style="margin-left:auto;padding:5px 14px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑 削除</button>`:''}\
+  <!-- 共通フッター -->
+  <div style="max-width:720px;margin:.5rem auto 0;display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:4px 0;">
+    ${!ol.isSource&&!ol.isScrap?`<button class="card-img-upload-btn" onclick="wfOpenFromCard(currentCardOutlineId)" style="font-size:11px;">✏️ 編集</button>`:''}\
+    ${!ol.usedAt&&!ol.isSource&&!ol.isScrap?`<input id="cardUsedNoteIn" placeholder="成仏メモ…" style="width:110px;padding:4px 9px;border:0.5px solid var(--border2);border-radius:20px;font-size:11px;font-family:inherit;color:var(--text);background:var(--bg3);outline:none;" onkeydown="if(event.key==='Enter'&&!event.isComposing)toggleCardUsed()"><button class="card-img-upload-btn" onclick="toggleCardUsed()" style="white-space:nowrap;font-size:11px;">✓ 成仏</button>`:''}\
+    <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" style="flex:1;min-width:80px;max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
+    <button class="card-img-upload-btn" onclick="addCardLabel()" style="font-size:11px;">＋</button>
+    ${!ol.isScrap?`<button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()" style="font-size:11px;">🖼️</button><input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)"><button class="card-img-upload-btn" onclick="openImgLibrary('card')" style="font-size:11px;">📂</button>`:''}\
+    ${ol.isSource||ol.isScrap?`<button onclick="${ol.isSource?'deleteSourceCardConfirm':'deleteScrapCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>`:''}\
   </div>
-  ${ol.isSource?`<div style="max-width:720px;margin:.5rem auto 0;padding:10px 14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--rsm);">
-    <div style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-bottom:6px;">ラベル</div>
-    ${renderSharedLabelsHTML(ol)}
-  </div>`:''}
-  <div id="cardLinkedPostsSection" style="max-width:720px;margin:.75rem auto 0;"></div>`;
+  <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>`;
 
   if(detail)detail.style.display='flex';
 
