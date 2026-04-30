@@ -3444,9 +3444,9 @@ function renderMatSourceGrid(){
     const domain=ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname.replace(/^www\./,'');}catch{return ol.sourceUrl.slice(0,30);}})():'';
     const thumb=ol.sourceImage||(ol.images&&ol.images[0])||'';
     return`<div class="card-cell source-card" onclick="openCardDetail('${ol.id}')">
-      ${thumb?`<img src="${esc(thumb)}" style="width:100%;height:72px;object-fit:cover;flex-shrink:0;border-radius:calc(var(--rsm) - 1px) calc(var(--rsm) - 1px) 0 0;margin:-1px -1px 0;display:block;" loading="lazy" onerror="this.style.display='none'">`:''}
-      <div class="card-cell-title">${esc(ol.title||'無題')}</div>
-      ${domain?`<div class="source-url-chip">🔗 ${esc(domain)}</div>`:''}
+      <div class="card-cell-title" style="flex-shrink:0;">${esc(ol.title||'無題')}</div>
+      ${domain?`<div class="source-url-chip" style="flex-shrink:0;">🔗 ${esc(domain)}</div>`:''}
+      ${thumb?`<img src="${esc(thumb)}" style="width:100%;max-height:100px;object-fit:contain;flex-shrink:0;background:var(--bg3);border-radius:var(--rsm);" loading="lazy" onerror="this.style.display='none'">`:''}
       <div class="card-cell-body" style="flex:1;">${subs.slice(0,4).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||`<div style="color:var(--text3);font-size:11px;">${esc(ol.sourceMemo?.slice(0,80)||'')}</div>`}</div>
       <div style="display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;">
         ${subs.length?`<span class="source-badge">📋 ${subs.length}件</span>`:''}
