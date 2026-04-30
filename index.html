@@ -1866,34 +1866,67 @@ async function showDiag(){
   if(!panel){
     panel=document.createElement('div');
     panel.id='diagPanel';
-    panel.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:#fff;border:2px solid #7a5c1e;border-radius:12px;padding:20px;width:90vw;max-width:400px;font-family:monospace;font-size:13px;max-height:80vh;overflow-y:auto;';
+    panel.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:#fff;border:2px solid #7a5c1e;border-radius:12px;padding:20px;width:92vw;max-width:480px;font-family:monospace;font-size:12px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);';
     document.body.appendChild(panel);
   }
   panel.innerHTML='<div style="font-weight:bold;margin-bottom:8px;">🔍 診断中…</div>';
   const lines=[];
+  const btn=s=>`<button onclick="${s}" style="padding:4px 14px;background:#7a5c1e;color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:11px;margin:4px 4px 4px 0;">`; 
   try{
-    const stored=getStoredSession();
-    lines.push('ローカルセッション: '+(stored?'✅ あり':'❌ なし'));
-    lines.push('currentUser: '+(currentUser?currentUser.email:'null'));
-    lines.push('ローカル投稿数: '+posts.length);
+    lines.push('👤 '+( currentUser?currentUser.email:'未ログイン'));
+
+    // ローカルのタイムスタンプ
+    let localP=[],localN=[],localO=[];
+    try{localP=JSON.parse(localStorage.getItem(KP)||'[]');}catch(e){}
+    try{localN=JSON.parse(localStorage.getItem(KN)||'[]');}catch(e){}
+    try{localO=JSON.parse(localStorage.getItem(KO)||'[]');}catch(e){}
+    const latestLocal=Math.max(0,...localP.map(p=>p.createdAt||0),...localO.map(o=>o.updatedAt||0));
+    lines.push(`📱 ローカル: 投稿${localP.length}件 / アウトライン${localO.length}件`);
+    lines.push(`📱 ローカル最新: ${latestLocal?new Date(latestLocal).toLocaleString():'なし'}`);
+
     if(currentUser){
       const {data,error}=await sb.from('thinkdata')
         .select('data_key,data_value').eq('user_id',currentUser.id);
-      if(error){lines.push('読込エラー: '+error.message);}
+      if(error){lines.push('❌ 読込エラー: '+error.message);}
       else{
         const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
-        lines.push('Supabase投稿数: '+(map.posts?.length??'なし'));
-        lines.push('Supabaseノート数: '+(map.notes?.length??'なし'));
+        const sbP=map.posts||[],sbO=map.outlines||[];
+        const latestSb=Math.max(0,...sbP.map(p=>p.createdAt||0),...sbO.map(o=>o.updatedAt||0));
+        lines.push(`☁️ Supabase: 投稿${sbP.length}件 / アウトライン${sbO.length}件`);
+        lines.push(`☁️ Supabase最新: ${latestSb?new Date(latestSb).toLocaleString():'なし'}`);
+        if(latestLocal>latestSb) lines.push('⚠️ ローカルの方が新しい！');
+        else if(latestSb>latestLocal) lines.push('⚠️ Supabaseの方が新しい！');
+        else lines.push('✅ タイムスタンプ一致');
       }
-      const {error:we}=await sb.from('thinkdata').upsert(
-        {user_id:currentUser.id,data_key:'_test',data_value:{t:Date.now()},updated_at:new Date().toISOString()},
-        {onConflict:'user_id,data_key'}
-      );
-      lines.push('書込テスト: '+(we?'❌ '+we.message:'✅ 成功'));
     }
   }catch(e){lines.push('例外: '+e.message);}
-  panel.innerHTML=lines.map(l=>`<div style="padding:3px 0;border-bottom:1px solid #eee;">${l}</div>`).join('')
-    +'<button onclick="document.getElementById(\'diagPanel\').remove()" style="margin-top:12px;padding:6px 20px;background:#7a5c1e;color:#fff;border:none;border-radius:20px;cursor:pointer;">閉じる</button>';
+  panel.innerHTML=
+    lines.map(l=>`<div style="padding:4px 0;border-bottom:0.5px solid #eee;">${l}</div>`).join('')
+    +'<div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:6px;">'
+    +btn('diagForcePush()')+'⬆ ローカル→Supabase</button>'
+    +btn('diagForcePull()')+'⬇ Supabase→ローカル</button>'
+    +'</div>'
+    +'<button onclick="document.getElementById(\'diagPanel\').remove()" style="margin-top:10px;padding:5px 16px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border2);border-radius:20px;cursor:pointer;font-size:11px;">閉じる</button>';
+}
+
+async function diagForcePush(){
+  document.getElementById('diagPanel')?.remove();
+  await saveToSupabase();
+  alert('ローカルデータをSupabaseにアップロードしました');
+}
+
+async function diagForcePull(){
+  document.getElementById('diagPanel')?.remove();
+  const {data}=await sb.from('thinkdata').select('data_key,data_value').eq('user_id',currentUser.id);
+  const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
+  if(!map.posts?.length){alert('Supabaseにデータがありません');return;}
+  posts=map.posts||[];notes=map.notes||[];outlines=map.outlines||[];
+  posts.forEach(p=>{if(!p.replies)p.replies=[];});
+  localStorage.setItem(KP,JSON.stringify(posts));
+  localStorage.setItem(KN,JSON.stringify(notes));
+  localStorage.setItem(KO,JSON.stringify(outlines));
+  renderSidebar();renderFeed();
+  alert('Supabaseからローカルに反映しました（投稿'+posts.length+'件）');
 }
 
 async function forceSyncFromSupabase(){
