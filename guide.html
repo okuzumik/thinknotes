@@ -3,114 +3,85 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>使い方ガイド — ThinkNotes</title>
+<title>ThinkNotes — 使い方ガイド</title>
 <style>
 :root {
-  --bg:#f5f3ee; --bg2:#ffffff; --bg3:#f0ede6; --surface:#e8e4db;
+  --bg:#f5f3ee; --bg2:#ffffff; --bg3:#f0ede6;
   --border:#dbd6ca; --border2:#c8c2b4;
   --text:#1c1a14; --text2:#5a5446; --text3:#9a9080;
   --accent:#7a5c1e; --accent-d:#5a4214; --accent-l:#f5edda;
+  --source:#5a6478; --source-l:#f0f1f4;
+  --scrap:#3d6b45; --scrap-l:#f4f8f4;
   --teal:#2a7a58; --teal-l:#e8f5ee;
-  --log:#4e7fa0; --log-l:#edf3f8;
-  --r:9px;
+  --r:9px; --rsm:6px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:15px;line-height:1.8;}
+body{background:var(--bg);color:var(--text);font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;font-size:15px;line-height:1.85;}
 
-/* ── ヘッダー ── */
-header{background:var(--bg3);border-bottom:0.5px solid var(--border);padding:0 2rem;position:sticky;top:0;z-index:100;}
-.header-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:16px;height:54px;}
-.logo{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:15px;font-weight:700;color:var(--accent);letter-spacing:.06em;text-decoration:none;}
-.header-nav{display:flex;gap:0;margin-left:auto;}
-.header-nav a{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text3);text-decoration:none;padding:0 12px;height:54px;display:flex;align-items:center;border-bottom:2px solid transparent;transition:all .12s;}
+header{background:var(--bg3);border-bottom:0.5px solid var(--border);padding:0 2rem;position:sticky;top:0;z-index:10;}
+.header-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:16px;height:52px;}
+.logo{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:15px;font-weight:700;color:var(--accent);letter-spacing:.06em;}
+.header-nav{display:flex;margin-left:auto;}
+.header-nav a{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text3);text-decoration:none;padding:0 13px;height:52px;display:flex;align-items:center;border-bottom:2px solid transparent;transition:all .12s;}
 .header-nav a:hover{color:var(--text);}
 .header-nav a.active{color:var(--accent);border-bottom-color:var(--accent);}
+.header-nav a.cta{color:var(--teal);font-weight:700;}
 
-/* ── レイアウト ── */
-.layout{display:flex;max-width:960px;margin:0 auto;padding:2.5rem 2rem 5rem;gap:3rem;align-items:flex-start;}
-.sidebar{width:200px;flex-shrink:0;position:sticky;top:70px;}
+/* サイドバーレイアウト */
+.layout{max-width:900px;margin:0 auto;display:grid;grid-template-columns:200px 1fr;gap:2.5rem;padding:2.5rem 2rem 5rem;}
+.sidebar{position:sticky;top:70px;height:fit-content;}
 .sidebar-nav{display:flex;flex-direction:column;gap:2px;}
-.sidebar-group{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--text3);margin:1rem 0 .4rem;}
-.sidebar-group:first-child{margin-top:0;}
-.sidebar-link{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text2);text-decoration:none;padding:5px 10px;border-radius:5px;display:flex;align-items:center;gap:7px;transition:all .1s;}
-.sidebar-link:hover{background:var(--surface);color:var(--text);}
-.sidebar-link.log:hover,.sidebar-link.log.active{background:var(--log-l);color:var(--log);}
-.sidebar-link.think:hover,.sidebar-link.think.active{background:var(--accent-l);color:var(--accent-d);}
-.sidebar-link.write:hover,.sidebar-link.write.active{background:var(--teal-l);color:var(--teal);}
-.sidebar-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.dot-log{background:var(--log);}
-.dot-think{background:var(--accent);}
-.dot-write{background:var(--teal);}
+.sidebar-nav a{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text2);text-decoration:none;padding:5px 10px;border-radius:var(--rsm);transition:all .12s;}
+.sidebar-nav a:hover{background:var(--bg3);color:var(--text);}
+.sidebar-nav a.active{background:var(--accent-l);color:var(--accent-d);font-weight:700;}
+.sidebar-section{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--text3);padding:8px 10px 4px;margin-top:6px;}
 
-/* ── コンテンツ ── */
-.content{flex:1;min-width:0;}
+.content{}
+.guide-section{margin-bottom:3rem;padding-bottom:3rem;border-bottom:0.5px solid var(--border);}
+.guide-section:last-child{border-bottom:none;}
+.guide-h2{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:1rem;padding-bottom:.5rem;border-bottom:0.5px solid var(--border);}
+.guide-h3{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin:1.2rem 0 .5rem;}
+.guide-p{font-size:14px;color:var(--text2);line-height:1.85;margin-bottom:.7rem;}
 
-/* ── ページタイトル ── */
-.page-hero{margin-bottom:2.5rem;}
-.page-hero h1{font-size:1.8rem;font-weight:700;color:var(--text);letter-spacing:.03em;margin-bottom:.5rem;}
-.page-hero p{color:var(--text2);font-size:14px;line-height:1.8;}
+/* ステップ */
+.steps{display:flex;flex-direction:column;gap:8px;margin:1rem 0;}
+.step{display:flex;gap:12px;align-items:flex-start;}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.step-body{font-size:13.5px;color:var(--text2);line-height:1.75;}
+.step-body strong{color:var(--text);font-family:'Hiragino Kaku Gothic ProN',sans-serif;}
 
-/* ── フェーズバナー ── */
-.phase-banner{border-radius:var(--r);padding:1.2rem 1.4rem;margin-bottom:2rem;display:flex;align-items:center;gap:14px;}
-.phase-banner.log{background:var(--log-l);border:0.5px solid #aac8e0;}
-.phase-banner.think{background:var(--accent-l);border:0.5px solid #c8a860;}
-.phase-banner.write{background:var(--teal-l);border:0.5px solid #8cc8a8;}
-.phase-badge{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;font-weight:700;letter-spacing:.08em;color:#fff;border-radius:3px;padding:3px 8px;white-space:nowrap;}
-.log .phase-badge{background:var(--log);}
-.think .phase-badge{background:var(--accent);}
-.write .phase-badge{background:var(--teal);}
-.phase-banner-title{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px;font-weight:700;color:var(--text);}
-.phase-banner-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
-.phase-tab-chip{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text2);background:rgba(255,255,255,.65);border:0.5px solid var(--border2);border-radius:20px;padding:1px 8px;}
+/* ヒント */
+.tip{background:var(--accent-l);border:0.5px solid #c8a860;border-left:3px solid var(--accent);border-radius:var(--rsm);padding:.75rem 1rem;margin:1rem 0;font-size:13px;color:var(--accent-d);line-height:1.7;}
+.tip-media{background:var(--source-l);border-color:#b0b8c8;border-left-color:var(--source);color:var(--source);}
+.tip-scrap{background:var(--scrap-l);border-color:#b8d4b8;border-left-color:var(--scrap);color:var(--scrap);}
 
-/* ── タブセクション ── */
-.tab-section{margin-bottom:3.5rem;scroll-margin-top:80px;}
-.tab-header{display:flex;align-items:center;gap:10px;margin-bottom:1.2rem;padding-bottom:.8rem;border-bottom:1px solid var(--border);}
-.tab-icon{font-size:22px;}
-.tab-title{font-size:1.2rem;font-weight:700;color:var(--text);}
-.tab-sub{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);margin-top:2px;}
+/* キーボードショートカット表 */
+.kbd-table{width:100%;border-collapse:collapse;font-size:13px;margin:1rem 0;}
+.kbd-table th{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text3);text-align:left;padding:.4rem .5rem;border-bottom:0.5px solid var(--border);}
+.kbd-table td{padding:.4rem .5rem;border-bottom:0.5px solid var(--border);color:var(--text2);vertical-align:top;}
+.kbd-table tr:last-child td{border-bottom:none;}
+kbd{font-family:monospace;font-size:11px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;padding:1px 5px;color:var(--text);}
 
-/* ── 説明ブロック ── */
-.guide-body p{color:var(--text2);font-size:14px;line-height:1.85;margin-bottom:1rem;}
-.guide-body p:last-child{margin-bottom:0;}
+/* フローチャート風 */
+.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:1rem 0;padding:1rem;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);}
+.flow-node{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rsm);padding:5px 12px;color:var(--text);}
+.flow-node.accent{background:var(--accent-l);border-color:#c8a860;color:var(--accent-d);}
+.flow-node.teal{background:var(--teal-l);border-color:#8cc8a8;color:var(--teal);}
+.flow-node.media{background:var(--source-l);border-color:#b0b8c8;color:var(--source);}
+.flow-node.scrap{background:var(--scrap-l);border-color:#b8d4b8;color:var(--scrap);}
+.flow-arrow{color:var(--text3);font-size:14px;}
 
-/* ── ショートカット表 ── */
-.shortcuts{margin:1.2rem 0;border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
-.shortcuts-head{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text3);padding:7px 14px;background:var(--bg3);border-bottom:0.5px solid var(--border);}
-.shortcuts table{width:100%;border-collapse:collapse;}
-.shortcuts td{padding:7px 14px;font-size:13px;border-bottom:0.5px solid var(--border);}
-.shortcuts tr:last-child td{border-bottom:none;}
-.shortcuts td:first-child{font-family:'Hiragino Kaku Gothic ProN',sans-serif;white-space:nowrap;}
-.kbd{display:inline-block;background:var(--surface);border:0.5px solid var(--border2);border-radius:4px;padding:1px 7px;font-size:11px;font-family:monospace;color:var(--text2);box-shadow:0 1px 0 var(--border2);}
+/* オブジェクト種類バッジ */
+.type-badge{display:inline-flex;align-items:center;gap:4px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;vertical-align:middle;}
+.type-badge.outline{background:var(--bg3);color:var(--text2);border:0.5px solid var(--border2);}
+.type-badge.media{background:var(--source-l);color:var(--source);border:0.5px solid #b0b8c8;}
+.type-badge.scrap{background:var(--scrap-l);color:var(--scrap);border:0.5px solid #b8d4b8;}
 
-/* ── Tips ── */
-.tips{margin:1.2rem 0;display:flex;flex-direction:column;gap:8px;}
-.tip{background:var(--bg3);border-left:3px solid var(--accent);border-radius:0 var(--r) var(--r) 0;padding:10px 14px;font-size:13px;color:var(--text2);line-height:1.7;}
-.tip.teal{border-left-color:var(--teal);}
-.tip.log{border-left-color:var(--log);}
-.tip strong{font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--text);}
-
-/* ── ステップリスト ── */
-.steps{margin:1.2rem 0;counter-reset:step;}
-.step{display:flex;gap:12px;margin-bottom:10px;align-items:flex-start;}
-.step-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
-.step.teal .step-num{background:var(--teal);}
-.step.log .step-num{background:var(--log);}
-.step-body{font-size:13px;color:var(--text2);line-height:1.75;padding-top:3px;}
-
-/* ── フロー図（テキストベース） ── */
-.flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:1.2rem 0;}
-.flow-node{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:8px 14px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text);}
-.flow-arrow{color:var(--text3);padding:0 8px;font-size:18px;}
-
-/* ── フッター ── */
 footer{background:var(--bg3);border-top:0.5px solid var(--border);padding:1.5rem 2rem;text-align:center;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);}
 
 @media(max-width:700px){
-  .layout{flex-direction:column;padding:1.5rem 1rem 4rem;gap:0;}
-  .sidebar{width:100%;position:static;margin-bottom:1.5rem;}
-  .sidebar-nav{flex-direction:row;flex-wrap:wrap;gap:4px;}
-  .sidebar-group{display:none;}
+  .layout{grid-template-columns:1fr;padding:1.5rem 1rem 4rem;}
+  .sidebar{display:none;}
 }
 </style>
 </head>
@@ -118,282 +89,314 @@ footer{background:var(--bg3);border-top:0.5px solid var(--border);padding:1.5rem
 
 <header>
   <div class="header-inner">
-    <a class="logo" href="info.html">ThinkNotes</a>
+    <div class="logo">ThinkNotes</div>
     <nav class="header-nav">
       <a href="info.html">概要</a>
+      <a href="info.html#changelog">更新履歴</a>
       <a href="guide.html" class="active">使い方</a>
-      <a href="index.html" style="color:var(--teal);font-weight:700;">アプリを開く →</a>
+      <a href="index.html" class="cta">アプリを開く →</a>
     </nav>
   </div>
 </header>
 
 <div class="layout">
 
-  <!-- サイドバー -->
   <nav class="sidebar">
     <div class="sidebar-nav">
-      <div class="sidebar-group">書きためる・閲覧する</div>
-      <a href="#timeline" class="sidebar-link log"><span class="sidebar-dot dot-log"></span>タイムライン</a>
-      <a href="#calendar" class="sidebar-link log"><span class="sidebar-dot dot-log"></span>カレンダー</a>
-      <div class="sidebar-group">束ねる・攪拌する</div>
-      <a href="#outline" class="sidebar-link think"><span class="sidebar-dot dot-think"></span>アウトライン</a>
-      <a href="#card" class="sidebar-link think"><span class="sidebar-dot dot-think"></span>カード</a>
-      <div class="sidebar-group">執筆する・本にする</div>
-      <a href="#note" class="sidebar-link write"><span class="sidebar-dot dot-write"></span>ノート</a>
-      <a href="#book" class="sidebar-link write"><span class="sidebar-dot dot-write"></span>ブック</a>
+      <div class="sidebar-section">基本</div>
+      <a href="#overview">全体像</a>
+      <a href="#login">ログイン・同期</a>
+      <div class="sidebar-section">つぶやく・閲覧する</div>
+      <a href="#timeline">タイムライン</a>
+      <a href="#calendar">カレンダー</a>
+      <div class="sidebar-section">カードで束ねる・集める</div>
+      <a href="#outline">アウトライン</a>
+      <a href="#media">メディア</a>
+      <a href="#scrap">スクラップ</a>
+      <a href="#label">ラベルと関連</a>
+      <div class="sidebar-section">記事を書く・本にする</div>
+      <a href="#note">ノート</a>
+      <a href="#book">ブック</a>
+      <div class="sidebar-section">連携</div>
+      <a href="#bluesky">Bluesky</a>
     </div>
   </nav>
 
-  <!-- コンテンツ -->
-  <div class="content">
+  <main class="content">
 
-    <div class="page-hero">
-      <h1>タブの使い方</h1>
-      <p>ThinkNotesは「書きためる → 束ねる → 執筆する」という3フェーズの流れで使います。<br>各タブはそれぞれのフェーズで異なる役割を担っています。</p>
-    </div>
+    <!-- 全体像 -->
+    <section class="guide-section" id="overview">
+      <h2 class="guide-h2">全体像</h2>
+      <p class="guide-p">ThinkNotes は「つぶやく → 束ねる → 書く」という思考の流れをひとつのアプリで完結させるツールです。</p>
+      <div class="flow">
+        <span class="flow-node accent">タイムライン<br><small>断片を流す</small></span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">アウトライン<br><small>束ねる・整理</small></span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node teal">ノート・ブック<br><small>原稿を書く</small></span>
+      </div>
+      <div class="flow">
+        <span class="flow-node media">メディア<br><small>媒体を蓄積</small></span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node accent">タイムライン<br><small>引用・言及</small></span>
+        <span class="flow-arrow">←</span>
+        <span class="flow-node scrap">スクラップ<br><small>記事を切り取り</small></span>
+      </div>
+      <p class="guide-p">上部ナビゲーションは3グループ。右端の「🖼️ 写真」は画像ライブラリです。</p>
+    </section>
 
-    <!-- ── 書きためる ── -->
-    <div class="phase-banner log">
-      <div>
-        <div class="phase-badge">書きためる・閲覧する</div>
-        <div class="phase-banner-title" style="margin-top:5px;">思考の断片を流し、俯瞰する</div>
-        <div class="phase-banner-tabs">
-          <span class="phase-tab-chip">タイムライン</span>
-          <span class="phase-tab-chip">カレンダー</span>
+    <!-- ログイン -->
+    <section class="guide-section" id="login">
+      <h2 class="guide-h2">ログイン・同期</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>初回</strong>：メールアドレスとパスワード（6文字以上）を入力して「新規登録」を押す。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">以降は同じメール・パスワードで「ログイン」。セッションはブラウザに保持されるため、再起動後も自動ログインされる。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">別のデバイスでも同じアカウントでログインするとデータが同期される。画面右上のドット（●）が同期状態を表示。</div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- タイムライン -->
-    <section class="tab-section" id="timeline">
-      <div class="tab-header">
-        <div class="tab-icon">💬</div>
-        <div>
-          <div class="tab-title">タイムライン</div>
-          <div class="tab-sub">思考の入り口。Twitter感覚で書き流す。</div>
+    <section class="guide-section" id="timeline">
+      <h2 class="guide-h2">タイムライン</h2>
+      <p class="guide-p">思考の断片・メモ・引用を流すメインスペース。Twitterライクに投稿し、タグで分類します。</p>
+
+      <h3 class="guide-h3">投稿する</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">上部の入力欄にテキストを入力。<kbd>Ctrl/Cmd</kbd>+<kbd>Enter</kbd> で投稿。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">本文中に <strong>#タグ名</strong> を入れると自動的にタグとして認識・分類される。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">🖼️ アイコンで画像を添付。📎 アイコンでメディア・スクラップを引用として紐付け可能。</div>
         </div>
       </div>
-      <div class="guide-body">
-        <p>ThinkNotesの起点となるタブです。思いついたこと、読んで気になったこと、論文メモ、日常の観察——あらゆる断片をここに投げ込みます。</p>
-        <p><strong>#タグ</strong>を本文に書くと自動でタグ分類されます。左サイドバーのタグをクリックして絞り込めます。投稿にリプライをつけて連ツイ（スレッド）を作ることもできます。</p>
+
+      <h3 class="guide-h3">メディア・スクラップを引用する</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">コンポーズ欄の <strong>📎</strong> ボタンを押してピッカーを開く。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">メディア（📎）またはスクラップ（✂️）から引用したいものを選択。メディアはエピソード単位での選択も可能。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">引用テキストがある場合は自動でインデント付きブロックとして表示される。投稿の下部に引用元カードが角丸四角形で表示。</div>
+        </div>
       </div>
 
-      <div class="tips">
-        <div class="tip log"><strong>完成を目指さない。</strong>書き切ろうとしなくていい。「これ面白い」という感覚をひとこと残すだけでも価値がある。</div>
-        <div class="tip log"><strong>タグは後から整理する入口。</strong>#新書 #SLA #論文 など、後でアウトラインに束ねたいカテゴリをつけておくと便利。</div>
-      </div>
-
-      <div class="shortcuts">
-        <div class="shortcuts-head">ショートカット</div>
-        <table>
-          <tr><td><kbd class="kbd">Ctrl/⌘ + Enter</kbd></td><td>投稿する</td></tr>
-          <tr><td><kbd class="kbd">Shift + Enter</kbd></td><td>改行（投稿はしない）</td></tr>
-          <tr><td><kbd class="kbd">⭐</kbd>ボタン</td><td>スターをつけて目立たせる</td></tr>
-        </table>
-      </div>
+      <h3 class="guide-h3">検索・フィルター</h3>
+      <p class="guide-p">左サイドバーのタグ一覧をクリックするとそのタグでフィルタリング。上部の検索欄でテキスト全文検索ができます。</p>
     </section>
 
     <!-- カレンダー -->
-    <section class="tab-section" id="calendar">
-      <div class="tab-header">
-        <div class="tab-icon">📅</div>
-        <div>
-          <div class="tab-title">カレンダー</div>
-          <div class="tab-sub">日ごとの記録を振り返る。</div>
-        </div>
-      </div>
-      <div class="guide-body">
-        <p>月カレンダーで投稿の密度を確認し、日付をクリックするとその日の投稿をカテゴリ別に表示します。タイムラインとは別の角度から自分の思考を俯瞰できます。</p>
-        <p>カテゴリはタグと紐付けて自由に設定できます。たとえば「ライフログ」に<strong>#日記 #記録</strong>、「研究」に<strong>#論文 #SLA</strong>を割り当てると、その日のどんな活動が多かったかひと目でわかります。</p>
-        <p>カレンダーの下部にはその日に作成した<strong>アウトラインとノート</strong>も表示され、クリックで直接ジャンプできます。</p>
-      </div>
-
-      <div class="tips">
-        <div class="tip log"><strong>⚙️ カテゴリ設定</strong>は自分の活動に合わせてカスタマイズを。研究者なら「論文読み」「授業準備」「執筆」など。絵文字で色分けできます。</div>
-      </div>
+    <section class="guide-section" id="calendar">
+      <h2 class="guide-h2">カレンダー</h2>
+      <p class="guide-p">投稿をカテゴリ別に色分けして月・日単位で俯瞰します。</p>
+      <h3 class="guide-h3">カテゴリの設定</h3>
+      <p class="guide-p">カレンダー右上の歯車アイコン（設定）から、カテゴリ名・絵文字・紐付けるタグを設定できます。最大3カテゴリ。例：「🌿 研究 → #研究, #論文」。</p>
+      <p class="guide-p">日をクリックすると、その日の投稿一覧・作成したアウトライン・ノートが表示されます。</p>
     </section>
-
-    <!-- ── 束ねる ── -->
-    <div class="phase-banner think" style="margin-top:1rem;">
-      <div>
-        <div class="phase-badge">束ねる・攪拌する</div>
-        <div class="phase-banner-title" style="margin-top:5px;">散らばった断片を構造にする</div>
-        <div class="phase-banner-tabs">
-          <span class="phase-tab-chip">アウトライン</span>
-          <span class="phase-tab-chip">カード</span>
-        </div>
-      </div>
-    </div>
 
     <!-- アウトライン -->
-    <section class="tab-section" id="outline">
-      <div class="tab-header">
-        <div class="tab-icon">📋</div>
-        <div>
-          <div class="tab-title">アウトライン</div>
-          <div class="tab-sub">タイムラインの断片を束ねて構造化する。</div>
+    <section class="guide-section" id="outline">
+      <h2 class="guide-h2">アウトライン</h2>
+      <p class="guide-p">タイムラインの断片を束ねて構造化するツールです。WorkFlowy風のリアルタイム編集ができます。</p>
+
+      <h3 class="guide-h3">新規アウトラインの作成</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">「カードで束ねる・集める」→「アウトライン」タブを開き、<strong>＋ 新規作成</strong> ボタンを押す。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">アウトライナーが開く。タイトルを入力して各項目を追加。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">「‹ カード一覧に戻る」を押すとアウトラインタブに戻り、詳細が開いた状態になる。</div>
         </div>
       </div>
-      <div class="guide-body">
-        <p>WorkFlowy風の階層型アウトラインエディタです。タイムラインに流した断片を拾い上げて、論点整理・章立て・発表構成などに使います。</p>
-        <p>右ペインの「＋ つぶやきから追加」でタイムラインのつぶやきを直接取り込めます。連ツイは「<strong>＋ スレッドごと</strong>」で親ツイ＋リプライを階層を保ったまま一括挿入できます。</p>
-        <p>完成したアウトラインは<strong>カードに変換</strong>して管理します。</p>
-      </div>
 
-      <div class="shortcuts">
-        <div class="shortcuts-head">キーボード操作</div>
-        <table>
-          <tr><td><kbd class="kbd">Enter</kbd></td><td>同レベルの行を追加</td></tr>
-          <tr><td><kbd class="kbd">Tab</kbd> / <kbd class="kbd">Shift+Tab</kbd></td><td>インデント深く / 浅く</td></tr>
-          <tr><td><kbd class="kbd">Ctrl+↑</kbd> / <kbd class="kbd">Ctrl+↓</kbd></td><td>行を上下に移動</td></tr>
-          <tr><td><kbd class="kbd">Backspace</kbd>（空行）</td><td>行を削除</td></tr>
-        </table>
-      </div>
+      <h3 class="guide-h3">アウトライナーのキーボード操作</h3>
+      <table class="kbd-table">
+        <thead><tr><th>操作</th><th>ショートカット</th></tr></thead>
+        <tbody>
+          <tr><td>インデント（子にする）</td><td><kbd>Tab</kbd></td></tr>
+          <tr><td>アウトデント（親に戻す）</td><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td></tr>
+          <tr><td>項目を上に移動</td><td><kbd>Ctrl</kbd>+<kbd>↑</kbd></td></tr>
+          <tr><td>項目を下に移動</td><td><kbd>Ctrl</kbd>+<kbd>↓</kbd></td></tr>
+          <tr><td>改行（新項目追加）</td><td><kbd>Enter</kbd></td></tr>
+          <tr><td>項目を削除</td><td><kbd>Backspace</kbd>（空行のみ）</td></tr>
+        </tbody>
+      </table>
 
-      <div class="flow">
-        <div class="flow-node">💬 タイムラインのつぶやき</div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node">📋 アウトラインに取り込む</div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node">🗂️ カードに保存</div>
-      </div>
+      <h3 class="guide-h3">タイムライン投稿の取り込み</h3>
+      <p class="guide-p">タイムライン投稿のメニュー（…）から「アウトラインに追加」または「スレッドごと追加」を選択。現在開いているアウトラインの最後に挿入されます。</p>
+
+      <h3 class="guide-h3">カード詳細の操作</h3>
+      <p class="guide-p">アウトライン一覧のカードをクリックすると詳細画面が開きます。下部フッターから：</p>
+      <p class="guide-p">✏️ 編集（アウトライナーを開く）、成仏メモ入力＋✓ 成仏、ラベル追加 ＋、🖼️ 画像追加、📂 ライブラリ</p>
+      <div class="tip">ラベルのついたカードは、同じラベルを持つアウトラインが詳細画面の右サイドバーに自動表示されます。</div>
     </section>
 
-    <!-- カード -->
-    <section class="tab-section" id="card">
-      <div class="tab-header">
-        <div class="tab-icon">🗂️</div>
-        <div>
-          <div class="tab-title">カード</div>
-          <div class="tab-sub">思考のストックを管理する知識ベース。</div>
+    <!-- メディア -->
+    <section class="guide-section" id="media">
+      <h2 class="guide-h2">メディア <span class="type-badge media">📎 メディア</span></h2>
+      <p class="guide-p">継続的に参照する媒体（ポッドキャスト・論文誌・書籍など）のカードです。エピソードや章番号を子アイテムとして蓄積します。</p>
+
+      <h3 class="guide-h3">メディアカードの作成</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">「カードで束ねる・集める」→「メディア」タブ→<strong>＋ メディアを追加</strong> を押す。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">タイトルを入力。サイトURL（配信URL）を入れると説明文が自動補完される。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">エピソード・サブアイテム欄にラベルとURLを追加。タイムラインで📎引用するときにエピソード単位で選択できるようになる。</div>
         </div>
       </div>
-      <div class="guide-body">
-        <p>アウトラインを「カード」として保存し、Cosenseのようなグリッド表示で一覧管理します。<strong>ラベル</strong>をつけて横断的に分類できます。</p>
-        <p>カードをクリックすると拡大表示され、ラベル追加・画像追加・アウトラインへの編集が可能です。</p>
-        <p>原稿や連載に使用したカードは「<strong>✓ 成仏させる</strong>」でマーク。「連載2026-06」のようにメモを残すと、何に使ったか後で確認できます。成仏済みのカードはグリッドで暗い背景色になり視覚的に区別されます。</p>
-        <p>カードはそのままノートの素材になります。「<strong>📝 カードから作成</strong>」でノートに読み込みます。</p>
-      </div>
 
-      <div class="tips">
-        <div class="tip"><strong>ラベルはテーマ横断で使う。</strong>「新書」「SLA」「授業設計」など、複数のカードに同じラベルをつけると関連カードがサイドバーに表示されます。</div>
-        <div class="tip"><strong>成仏は整理の習慣に。</strong>使ったものを成仏させると「まだ原稿になっていないカード」だけが残り、次の執筆候補が見えやすくなります。</div>
-      </div>
+      <div class="tip tip-media">引用メモ（「メモ・言及」セクション）には、このメディアに言及したタイムライン投稿が自動でまとめられます。</div>
     </section>
 
-    <!-- ── 執筆する ── -->
-    <div class="phase-banner write" style="margin-top:1rem;">
-      <div>
-        <div class="phase-badge">執筆する・本にする</div>
-        <div class="phase-banner-title" style="margin-top:5px;">ストックを原稿・書籍に仕立てる</div>
-        <div class="phase-banner-tabs">
-          <span class="phase-tab-chip">ノート</span>
-          <span class="phase-tab-chip">ブック</span>
+    <!-- スクラップ -->
+    <section class="guide-section" id="scrap">
+      <h2 class="guide-h2">スクラップ <span class="type-badge scrap">✂️ スクラップ</span></h2>
+      <p class="guide-p">Web記事・ページを切り取って蓄積します。URLから自動取得するか、手動でテキストを貼り付けるかを選べます。</p>
+
+      <h3 class="guide-h3">URLから読み込む</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">「スクラップ」タブ →<strong>✂️ スクラップを追加</strong> → 「URLから読み込む」を選択。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">URLを入力して「読み込む」を押す。タイトル・サイト名・本文が自動取得される。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">取得に失敗した場合は「本文・メモ」テキストエリアに手動でペースト。「再取得」ボタンで再挑戦も可能。</div>
         </div>
       </div>
-    </div>
+
+      <h3 class="guide-h3">手動で作成する</h3>
+      <p class="guide-p">「手動で作成」を選ぶと空のスクラップが開きます。あとからURL・本文・画像を個別に追加できます。URLを後から貼り付けてもOGP自動取得は起動しません（「再取得」ボタンで明示的に取得）。</p>
+
+      <h3 class="guide-h3">ハイライト・メモ</h3>
+      <p class="guide-p">スクラップ詳細の「ハイライト・メモ」セクションから、気になった箇所のテキスト＋コメントを追加できます。「→ タイムライン」ボタンで、ハイライトを引用テキストとしてコンポーズ欄に展開できます。</p>
+
+      <div class="tip tip-scrap">スクラップはフッターの 🖼️ ボタンから画像ファイルを添付できます。URLで追加することも可能です。</div>
+    </section>
+
+    <!-- ラベルと関連 -->
+    <section class="guide-section" id="label">
+      <h2 class="guide-h2">ラベルと関連オブジェクト</h2>
+      <p class="guide-p">アウトライン・メディア・スクラップすべてにラベル（タグ）を付与できます。</p>
+
+      <h3 class="guide-h3">ラベルの追加・削除</h3>
+      <p class="guide-p">各カード詳細の下部フッターにある「ラベルを追加…」入力欄にテキストを入力して <kbd>Enter</kbd> または「＋」ボタンで追加。タイトル下のラベルタグをクリックすると削除。</p>
+
+      <h3 class="guide-h3">ラベルフィルター</h3>
+      <p class="guide-p">アウトライン・メディア・スクラップ各タブの上部に、使用中のラベルがピルとして表示されます。クリックで絞り込み。</p>
+
+      <h3 class="guide-h3">関連オブジェクトの自動表示</h3>
+      <p class="guide-p">メディア・スクラップの詳細画面右サイドバーに、<strong>同じラベルを持つ他のメディア・スクラップ</strong>が自動表示されます（普通のアウトラインは対象外）。アウトラインの関連には普通のアウトラインのみが表示されます。</p>
+    </section>
 
     <!-- ノート -->
-    <section class="tab-section" id="note">
-      <div class="tab-header">
-        <div class="tab-icon">📝</div>
-        <div>
-          <div class="tab-title">ノート</div>
-          <div class="tab-sub">カードを原稿に仕上げる執筆スペース。</div>
+    <section class="guide-section" id="note">
+      <h2 class="guide-h2">ノート</h2>
+      <p class="guide-p">原稿を書くためのエディタです。アウトラインの内容をそのままドラフトとして取り込めます。</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">「記事を書く・本にする」→「ノート」タブ →「＋ 新規ノート」。</div>
         </div>
-      </div>
-      <div class="guide-body">
-        <p>カードの内容を1つの連続したテキストとして読み込み、原稿を書くためのシンプルなエディタです。カードのタイトルが見出しとして挿入されるので、構成のガイドラインとして使えます。</p>
-        <p>「<strong>🗂️ カードから作成</strong>」で使いたいカードを選択すると、本文が自動で生成されます。あとは好きなように編集するだけです。複数のカードを「続きに追加」することも可能です。</p>
-        <p>書き上げたノートは Obsidian MD またはテキストファイルとして書き出せます。</p>
-      </div>
-
-      <div class="tips">
-        <div class="tip teal"><strong>カードのタイトルはそのまま残さなくていい。</strong>書き出しの足がかりとして使い、執筆が進んだら削除や書き換えを。</div>
-        <div class="tip teal"><strong>行番号・行幅はノートごとに設定できます。</strong>ツールバーの「行幅 ○ 字」で1行の文字数を固定すると、原稿用紙感覚で執筆できます。</div>
-      </div>
-
-      <div class="flow">
-        <div class="flow-node">🗂️ カードを選択</div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node">📝 本文を自動生成</div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node">✍️ 加筆・編集</div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node">↓ 書き出し</div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">アウトラインから「本文を取り込む」ボタンを押すと、箇条書き形式で本文が挿入される。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">行番号・行幅はノートごとに設定可能。エディタ右上のメニューから変更できる。</div>
+        </div>
       </div>
     </section>
 
     <!-- ブック -->
-    <section class="tab-section" id="book">
-      <div class="tab-header">
-        <div class="tab-icon">📖</div>
-        <div>
-          <div class="tab-title">ブック</div>
-          <div class="tab-sub">ノートを章に束ねて本の構成を管理する。</div>
-        </div>
-      </div>
-      <div class="guide-body">
-        <p>ノートが増えてきたら、ブックで「本の全体像」を管理します。カードの項目を目次として読み込み、各章・節にノートを割り当てることで、書籍・連載・論文の構成を俯瞰できます。</p>
-        <p>目次の行をクリックすると右ペインにノートの本文がプレビュー表示されます。「<strong>→ 編集</strong>」でノートタブに直接ジャンプできます。</p>
-      </div>
-
+    <section class="guide-section" id="book">
+      <h2 class="guide-h2">ブック</h2>
+      <p class="guide-p">複数のノートをまとめて本の構成を管理します。</p>
       <div class="steps">
-        <div class="step write">
+        <div class="step">
           <div class="step-num">1</div>
-          <div class="step-body">左サイドバーの「＋」で新しい本を作成し、タイトルを入力する。</div>
+          <div class="step-body">「ブック」タブ →「＋ 新規ブック」→ タイトルを入力。</div>
         </div>
-        <div class="step write">
+        <div class="step">
           <div class="step-num">2</div>
-          <div class="step-body">「🗂️ カードから目次を作成」でカードを選択。カードの各項目が目次の章・節になる。</div>
+          <div class="step-body">「目次を生成」ボタンで任意のアウトラインの項目を目次として取り込む。</div>
         </div>
-        <div class="step write">
+        <div class="step">
           <div class="step-num">3</div>
-          <div class="step-body">各行の右端「＋ ノートを割り当て」から既存ノートを選択、または新規ノートを作成して割り当てる。</div>
+          <div class="step-body">目次の各項目にノートを割り当てる。目次はドラッグ&ドロップで並び替え、<kbd>Tab</kbd> でインデント変更が可能。</div>
         </div>
-        <div class="step write">
+        <div class="step">
           <div class="step-num">4</div>
-          <div class="step-body">割り当て済みの行をクリックすると右ペインに本文がプレビューされる。全体の流れを確認しながら執筆を進める。</div>
+          <div class="step-body">目次項目をクリックすると、割り当てたノートの本文がプレビュー表示される。</div>
         </div>
-      </div>
-
-      <div class="shortcuts">
-        <div class="shortcuts-head">目次の編集操作</div>
-        <table>
-          <tr><td><kbd class="kbd">Enter</kbd></td><td>同レベルの行を追加</td></tr>
-          <tr><td><kbd class="kbd">Tab</kbd> / <kbd class="kbd">Shift+Tab</kbd></td><td>章 → 節 / 節 → 章に変更</td></tr>
-          <tr><td><kbd class="kbd">Ctrl+↑</kbd> / <kbd class="kbd">Ctrl+↓</kbd></td><td>行を上下に移動（章の並び替え）</td></tr>
-          <tr><td><kbd class="kbd">Backspace</kbd>（空行）</td><td>行を削除</td></tr>
-        </table>
-      </div>
-
-      <div class="tips">
-        <div class="tip teal"><strong>カードの選択順が目次の順番になります。</strong>アウトラインで章立てを整理したカードを使うとスムーズです。</div>
-        <div class="tip teal"><strong>複数の本・プロジェクトを同時管理できます。</strong>連載・論文・新書をそれぞれ独立したブックとして管理しましょう。</div>
       </div>
     </section>
 
-  </div><!-- /content -->
-</div><!-- /layout -->
+    <!-- Bluesky -->
+    <section class="guide-section" id="bluesky">
+      <h2 class="guide-h2">Bluesky連携</h2>
+      <h3 class="guide-h3">初期設定</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">Blueskyの設定 →「アプリパスワード」で新しいパスワードを生成。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">ThinkNotesのトップバー右の 🦋 ボタンを押し、ハンドル（例：user.bsky.social）とアプリパスワードを入力して「接続」。</div>
+        </div>
+      </div>
+      <h3 class="guide-h3">投稿する</h3>
+      <p class="guide-p">コンポーズ欄の下部に「🦋 Bskyにも投稿」チェックボックスが表示されます。ONにして送信するとBlueskyにも同時投稿されます。</p>
+      <p class="guide-p">メディア・スクラップを引用した投稿をBlueskyに送る場合、カード名が <strong>#カード名</strong> のハッシュタグとして末尾に自動付加されます。</p>
+      <div class="tip">アプリパスワードはブラウザのlocalStorageに保存されます。アカウントのメインパスワードは絶対に使用しないでください。</div>
+    </section>
+
+  </main>
+
+</div>
 
 <footer>
-  ThinkNotes — 個人用知的生産ツール &nbsp;·&nbsp; 2024–2026
+  ThinkNotes — 個人用知的生産ワークスペース &nbsp;·&nbsp; 2024–2026
 </footer>
 
-<script>
-// サイドバーのアクティブ状態をスクロールで更新
-const sections=document.querySelectorAll('.tab-section');
-const links=document.querySelectorAll('.sidebar-link');
-const obs=new IntersectionObserver(entries=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting){
-      links.forEach(l=>l.classList.remove('active'));
-      const link=document.querySelector(`.sidebar-link[href="#${e.target.id}"]`);
-      if(link)link.classList.add('active');
-    }
-  });
-},{threshold:.4});
-sections.forEach(s=>obs.observe(s));
-</script>
 </body>
 </html>
