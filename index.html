@@ -5223,11 +5223,18 @@ function renderSourcePickerListForEdit(){
   const q=(document.getElementById('sourcePickerSearch')?.value||'').toLowerCase();
   const list=document.getElementById('sourcePickerList');
   if(!list)return;
-  const sources=outlines.filter(ol=>ol.isSource)
-    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q))
+  const objects=outlines.filter(ol=>ol.isSource||ol.isScrap)
+    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q)||(ol.scrapSiteName||'').toLowerCase().includes(q))
     .sort((a,b)=>(a.title||'').localeCompare(b.title||'','ja'));
-  if(!sources.length){list.innerHTML=`<div class="source-picker-none">媒体カードがありません</div>`;return;}
-  list.innerHTML=sources.map(ol=>{
+  if(!objects.length){list.innerHTML=`<div class="source-picker-none">媒体・スクラップがありません</div>`;return;}
+  list.innerHTML=objects.map(ol=>{
+    if(ol.isScrap){
+      return`<div class="source-picker-item" style="border-left:2px solid #3d6b45;">
+        <div class="source-picker-item-title" style="color:#3d6b45;">✂️ ${esc(ol.title||'無題')}</div>
+        <div class="source-picker-item-meta">${esc(ol.scrapSiteName||'')}${ol.scrapHighlights?.length?` · ${ol.scrapHighlights.length}件のメモ`:''}</div>
+        <div style="padding:4px 8px 6px;"><div class="source-picker-sub-item" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}',null)" style="color:#3d6b45;background:#f0f5f0;">引用する</div></div>
+      </div>`;
+    }
     const subs=ol.sourceSubItems||[];
     const subsHtml=subs.length?`
       <div class="source-picker-sub-list">
@@ -5236,7 +5243,7 @@ function renderSourcePickerListForEdit(){
       </div>`:
       `<div style="padding:4px 8px 6px;"><div class="source-picker-sub-item" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}',null)" style="color:var(--source);">引用する</div></div>`;
     return`<div class="source-picker-item">
-      <div class="source-picker-item-title">${esc(ol.title||'無題')}</div>
+      <div class="source-picker-item-title">📎 ${esc(ol.title||'無題')}</div>
       <div class="source-picker-item-meta">${subs.length?subs.length+'件のサブアイテム':''}</div>
       ${subsHtml}
     </div>`;
@@ -5248,7 +5255,8 @@ function editSourceRef(pid, outlineId, subItemId){
   if(!outlineId){delete p.sourceRef;save();renderFeed();return;}
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
   let subLabel='',url='';
-  if(subItemId){const si=(ol.sourceSubItems||[]).find(s=>s.id===subItemId);if(si){subLabel=si.label;url=si.url||ol.sourceUrl||'';}}
+  if(ol.isScrap){url=ol.scrapUrl||'';}
+  else if(subItemId){const si=(ol.sourceSubItems||[]).find(s=>s.id===subItemId);if(si){subLabel=si.label;url=si.url||ol.sourceUrl||'';}}
   else{url=ol.sourceUrl||'';}
   p.sourceRef={outlineId,title:ol.title||'無題',subItemId,subLabel,url};
   save();renderFeed();
