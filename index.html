@@ -1752,8 +1752,8 @@ function showApp(){
   const ub=document.getElementById('userBadge');
   ub.style.display='flex';
   document.getElementById('userEmail').textContent=currentUser.email||'';
-  // カレンダー設定をSupabaseから読み込む
   loadCalSettingsFromSupabase();
+  startRealtime();
 }
 async function signInWithPassword(){
   const email=document.getElementById('loginEmail').value.trim();
@@ -2064,6 +2064,7 @@ async function saveToSupabase(){
       if(error)throw error;
     }
     lastSaveOk=true;
+    _lastSaveTime=Date.now();
     setSyncDot('saved');
   }catch(e){
     lastSaveOk=false;
@@ -2145,6 +2146,43 @@ async function quickSyncDown(){
     alert('エラー: '+e.message);
   }
 }
+// ─── Supabase Realtime（他デバイスの変更を自動受信） ─────────
+let _realtimeChannel=null;
+let _lastSaveTime=0;
+
+function startRealtime(){
+  if(!currentUser||_realtimeChannel)return;
+  _realtimeChannel=sb.channel('thinkdata-sync')
+    .on('postgres_changes',{
+      event:'UPDATE',schema:'public',table:'thinkdata',
+      filter:`user_id=eq.${currentUser.id}`
+    },async()=>{
+      if(Date.now()-_lastSaveTime<3000)return; // 自分の書き込みは無視
+      console.log('📡 Realtime: 他デバイスからの変更を受信');
+      setSyncDot('syncing');
+      await _pullFromSupabase();
+    })
+    .subscribe();
+  console.log('📡 Realtime購読開始');
+}
+
+async function _pullFromSupabase(){
+  if(!currentUser)return;
+  const {data,error}=await sb.from('thinkdata')
+    .select('data_key,data_value').eq('user_id',currentUser.id);
+  if(error||!data)return;
+  const map={};data.forEach(r=>{map[r.data_key]=r.data_value;});
+  if(!map.posts?.length)return;
+  posts=map.posts;notes=map.notes||[];outlines=map.outlines||[];
+  posts.forEach(p=>{if(!p.replies)p.replies=[];});
+  notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
+  localStorage.setItem(KP,JSON.stringify(posts));
+  localStorage.setItem(KN,JSON.stringify(notes));
+  localStorage.setItem(KO,JSON.stringify(outlines));
+  setSyncDot('saved');
+  renderSidebar();renderFeed();
+}
+
 let _sbQueue=Promise.resolve();
 function sbRun(fn){
   _sbQueue=_sbQueue.then(()=>fn().catch(e=>console.warn('sbRun error:',e)));
