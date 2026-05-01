@@ -2040,6 +2040,10 @@ let lastSaveOk=true; // 最後の保存が成功したか
 
 async function saveToSupabase(){
   if(!currentUser)return;
+  if(!posts.length&&!notes.length&&!outlines.length){
+    console.warn('saveToSupabase: データが空のため保存をスキップ');
+    return;
+  }
   setSyncDot('syncing');
   const uid=currentUser.id;
   const ts=new Date().toISOString();
@@ -4112,15 +4116,16 @@ function save(){
   saveTimer=setTimeout(()=>sbRun(saveToSupabase),2000);
 }
 
-// ページが非表示になるとき・閉じるときに即保存
+// ページが非表示になるとき・閉じるときに即保存（起動後5秒以降のみ）
+const _appStartTime=Date.now();
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='hidden'&&currentUser){
+  if(document.visibilityState==='hidden'&&currentUser&&(Date.now()-_appStartTime>5000)){
     clearTimeout(saveTimer);
-    saveToSupabase();
+    if(posts.length>0)saveToSupabase();
   }
 });
 window.addEventListener('beforeunload',()=>{
-  if(currentUser){clearTimeout(saveTimer);sbRun(saveToSupabase);}
+  if(currentUser&&posts.length>0){clearTimeout(saveTimer);saveToSupabase();}
 });
 
 // ─── Helpers ─────────────────────────────────────────────
