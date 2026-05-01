@@ -1781,37 +1781,97 @@ async function signOut(){
 
 async function loadFromSupabase(force=false){
   if(!currentUser)return;
-  // ローカルデータを表示（DEMOなし）
+
+  // ローカルを読む（DEMOなし）
   let localPosts=[], localNotes=[], localOutlines=[];
   try{localPosts=JSON.parse(localStorage.getItem(KP)||'[]');}catch(e){}
   try{localNotes=JSON.parse(localStorage.getItem(KN)||'[]');}catch(e){}
   try{localOutlines=JSON.parse(localStorage.getItem(KO)||'[]');}catch(e){}
 
-  // ローカルにデータがあればそれを使う
+  // まずローカルを即表示
   if(localPosts.length>0){
     posts=localPosts;notes=localNotes;outlines=localOutlines;
     posts.forEach(p=>{if(!p.replies)p.replies=[];});
-    notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
-    setSyncDot('saved');
     renderSidebar();renderFeed();
-    return;
   }
 
-  // ローカルが空の場合のみSupabaseから取得
+  // Supabaseから取得して比較
   setSyncDot('syncing');
   const {data,error}=await sb.from('thinkdata')
     .select('data_key,data_value').eq('user_id',currentUser.id);
+
   if(error){setSyncDot('');return;}
+
   const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
-  if(!map.posts?.length){setSyncDot('saved');renderSidebar();renderFeed();return;}
+  const sbPosts=map.posts||[], sbNotes=map.notes||[], sbOutlines=map.outlines||[];
+
+  if(!sbPosts.length&&!localPosts.length){setSyncDot('saved');return;}
+
+  if(!sbPosts.length){
+    // Supabaseが空→ローカルをアップロード
+    await _rawSaveToSupabase(localPosts,localNotes,localOutlines);
+    setSyncDot('saved');return;
+  }
+
+  if(!localPosts.length){
+    // ローカルが空→Supabaseを使う
+    posts=sbPosts;notes=sbNotes;outlines=sbOutlines;
+    posts.forEach(p=>{if(!p.replies)p.replies=[];});
+    localStorage.setItem(KP,JSON.stringify(posts));
+    localStorage.setItem(KN,JSON.stringify(notes));
+    localStorage.setItem(KO,JSON.stringify(outlines));
+    setSyncDot('saved');renderSidebar();renderFeed();return;
+  }
+
+  // 両方ある→最新投稿のcreatedAtで比較
+  const latestLocal=Math.max(0,...localPosts.map(p=>p.createdAt||0));
+  const latestSb   =Math.max(0,...sbPosts.map(p=>p.createdAt||0));
+
+  if(latestSb>latestLocal){
+    // Supabaseが新しい→Supabaseに切り替え
+    posts=sbPosts;notes=sbNotes;outlines=sbOutlines;
+    posts.forEach(p=>{if(!p.replies)p.replies=[];});
+    localStorage.setItem(KP,JSON.stringify(posts));
+    localStorage.setItem(KN,JSON.stringify(notes));
+    localStorage.setItem(KO,JSON.stringify(outlines));
+    setSyncDot('saved');renderSidebar();renderFeed();
+  } else if(latestLocal>latestSb){
+    // ローカルが新しい→Supabaseにアップロード
+    await _rawSaveToSupabase(localPosts,localNotes,localOutlines);
+    setSyncDot('saved');
+  } else {
+    setSyncDot('saved');
+  }
+}
+
+async function _rawSaveToSupabase(p,n,o){
+  if(!currentUser)return;
+  try{
+    await sb.from('thinkdata').upsert([
+      {user_id:currentUser.id,data_key:'posts',   data_value:p,updated_at:new Date().toISOString()},
+      {user_id:currentUser.id,data_key:'notes',   data_value:n,updated_at:new Date().toISOString()},
+      {user_id:currentUser.id,data_key:'outlines',data_value:o,updated_at:new Date().toISOString()},
+    ],{onConflict:'user_id,data_key'});
+  }catch(e){console.error('_rawSaveToSupabase error:',e);}
+}
+
+// 手動同期：Supabase→ローカル（強制上書き）
+async function syncFromSupabase(){
+  if(!currentUser){alert('ログインが必要です');return;}
+  setSyncDot('syncing');
+  const {data,error}=await sb.from('thinkdata')
+    .select('data_key,data_value').eq('user_id',currentUser.id);
+  if(error){alert('取得エラー: '+error.message);setSyncDot('');return;}
+  const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
+  if(!map.posts?.length){alert('Supabaseにデータがありません');setSyncDot('');return;}
   posts=map.posts||[];notes=map.notes||[];outlines=map.outlines||[];
   posts.forEach(p=>{if(!p.replies)p.replies=[];});
-  notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
   localStorage.setItem(KP,JSON.stringify(posts));
   localStorage.setItem(KN,JSON.stringify(notes));
   localStorage.setItem(KO,JSON.stringify(outlines));
   setSyncDot('saved');
   renderSidebar();renderFeed();
+  alert('Supabaseから読み込みました（投稿'+posts.length+'件）');
 }
 
 // 手動同期：Supabase→ローカル（強制上書き）
