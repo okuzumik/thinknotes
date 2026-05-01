@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ThinkNotes</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -1802,6 +1802,7 @@ async function loadFromSupabase(force=false){
 
   const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
   const sbPosts=map.posts||[];
+  console.log(`📡 Supabase: 投稿${sbPosts.length}件 / ローカル: 投稿${localPosts.length}件`);
 
   if(sbPosts.length===0){
     // Supabaseが空 → ローカルをアップロード
@@ -2030,7 +2031,13 @@ function setSyncDot(state){
   if(state==='saved')setTimeout(()=>{if(dot.classList.contains('saved'))dot.className='sync-dot';},2000);
 }
 
-// getSession にタイムアウトを付けるラッパー
+// ─── Supabase DB呼び出しを直列化するキュー ────────────────
+let _sbQueue=Promise.resolve();
+function sbRun(fn){
+  _sbQueue=_sbQueue.then(()=>fn().catch(e=>console.warn('sbRun error:',e)));
+  return _sbQueue;
+}
+
 async function getSessionWithTimeout(ms=5000){
   return Promise.race([
     sb.auth.getSession(),
@@ -4046,7 +4053,7 @@ function save(){
   localStorage.setItem(KN,JSON.stringify(notes));
   localStorage.setItem(KO,JSON.stringify(outlines));
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(saveToSupabase,800); // 1.5s→0.8sに短縮
+  saveTimer=setTimeout(()=>sbRun(saveToSupabase),2000);
 }
 
 // ページが非表示になるとき・閉じるときに即保存
@@ -4057,7 +4064,7 @@ document.addEventListener('visibilitychange',()=>{
   }
 });
 window.addEventListener('beforeunload',()=>{
-  if(currentUser){clearTimeout(saveTimer);saveToSupabase();}
+  if(currentUser){clearTimeout(saveTimer);sbRun(saveToSupabase);}
 });
 
 // ─── Helpers ─────────────────────────────────────────────
