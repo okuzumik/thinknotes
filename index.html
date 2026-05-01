@@ -3886,25 +3886,39 @@ function importBackup(){
     try{
       const data=JSON.parse(await file.text());
       if(!data.posts||!data.notes){alert('有効なバックアップファイルではありません');return;}
-      if(!confirm(`復元しますか？\n投稿：${data.posts.length}件　ノート：${data.notes.length}件\n※現在のデータは上書きされます`))return;
-      posts=data.posts||[];notes=data.notes||[];outlines=data.outlines||[];
-      notes.forEach(n=>{
-        if(!n.items)n.items=[];if(!n.stickies)n.stickies=[];
-        if(!n.paragraphs)n.paragraphs=n.body?n.body.split('\n').filter(l=>l.trim()):[];
-      });
+      if(!confirm(`復元しますか？\n投稿：${data.posts.length}件\n※現在のデータは上書きされます`))return;
+
+      posts=data.posts||[];
+      notes=data.notes||[];
+      outlines=data.outlines||[];
       posts.forEach(p=>{if(!p.replies)p.replies=[];});
-      // まずlocalStorageに保存
+      notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
+
+      // 1. まずlocalStorageに書く
       localStorage.setItem(KP,JSON.stringify(posts));
       localStorage.setItem(KN,JSON.stringify(notes));
       localStorage.setItem(KO,JSON.stringify(outlines));
+
+      // 2. 画面を更新
       renderSidebar();renderFeed();
-      // Supabaseに即時保存（デバウンスなし）
+
+      // 3. Supabaseに書く（直接upsert、saveTimerなし）
       if(currentUser){
-        alert('✓ 復元しました。Supabaseに保存中…');
-        await saveToSupabase();
-        alert('✓ Supabaseへの保存も完了しました。');
+        setSyncDot('syncing');
+        try{
+          await sb.from('thinkdata').upsert([
+            {user_id:currentUser.id,data_key:'posts',data_value:posts,updated_at:new Date().toISOString()},
+            {user_id:currentUser.id,data_key:'notes',data_value:notes,updated_at:new Date().toISOString()},
+            {user_id:currentUser.id,data_key:'outlines',data_value:outlines,updated_at:new Date().toISOString()},
+          ],{onConflict:'user_id,data_key'});
+          setSyncDot('saved');
+          alert(`✅ 復元完了！投稿${posts.length}件をSupabaseに保存しました。\n他のデバイスでは「🔍診断」→「⬇ Supabase→ローカル」を押してください。`);
+        }catch(err){
+          setSyncDot('');
+          alert('⚠️ ローカルには復元しましたが、Supabaseへの保存でエラーが出ました: '+err.message);
+        }
       } else {
-        alert('✓ 復元が完了しました（ローカルのみ）。');
+        alert(`✅ ローカルに復元しました（投稿${posts.length}件）。`);
       }
     }catch(err){alert('読み込みエラー: '+err.message);}
   };
