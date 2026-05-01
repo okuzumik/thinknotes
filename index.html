@@ -1780,10 +1780,8 @@ async function signUpWithPassword(){
 async function signOut(){
   stopRealtime();
   clearTimeout(saveTimer);
-  try{await sb.auth.signOut();}catch(e){}
-  currentUser=null;
-  posts=[];notes=[];outlines=[];
-  showLogin();
+  try{await sb.auth.signOut();}catch(e){console.warn('signOut error:',e);}
+  location.reload();
 }
 
 async function loadFromSupabase(force=false){
