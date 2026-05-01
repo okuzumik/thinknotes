@@ -1706,42 +1706,27 @@ function getStoredSession(){
 }
 
 async function initAuth(){
-  // まずonAuthStateChangeを登録（イベントを取りこぼさないよう先に）
+  // 先にセッションを確認
+  const {data:{session}}=await sb.auth.getSession();
+
+  // onAuthStateChange（ログイン後のトークンリフレッシュ対応）
   sb.auth.onAuthStateChange(async(event,session)=>{
-    if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'){
-      if(session&&!currentUser){
-        currentUser=session.user;showApp();await loadFromSupabase();
-      }
+    if(event==='TOKEN_REFRESHED'&&session&&currentUser){
+      currentUser=session.user; // トークン更新のみ（再ロード不要）
+    } else if(event==='SIGNED_IN'&&session&&!currentUser){
+      currentUser=session.user;showApp();await loadFromSupabase();
     } else if(event==='SIGNED_OUT'){
       currentUser=null;showLogin();
     }
   });
 
-  // localStorageのセッションを試みる
-  const stored=getStoredSession();
-  if(stored){
-    try{
-      const {data,error}=await sb.auth.setSession({
-        access_token:stored.access_token,
-        refresh_token:stored.refresh_token||''
-      });
-      if(data?.session){
-        currentUser=data.session.user;
-        showApp();
-        await loadFromSupabase();
-        return;
-      }
-      // access_tokenが切れている場合はrefreshを試みる
-      const {data:rd}=await sb.auth.refreshSession();
-      if(rd?.session){
-        currentUser=rd.session.user;
-        showApp();
-        await loadFromSupabase();
-        return;
-      }
-    }catch(e){console.warn('initAuth error:',e);}
+  if(session){
+    currentUser=session.user;
+    showApp();
+    await loadFromSupabase();
+  } else {
+    showLogin();
   }
-  showLogin();
 }
 function showLogin(){
   document.getElementById('loginOverlay').style.display='flex';
@@ -1780,7 +1765,10 @@ async function signUpWithPassword(){
 async function signOut(){
   stopRealtime();
   clearTimeout(saveTimer);
-  try{await sb.auth.signOut();}catch(e){console.warn('signOut error:',e);}
+  try{await sb.auth.signOut();}catch(e){console.warn('signOut:',e);}
+  // セッショントークンを強制削除
+  Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k));
+  sessionStorage.clear();
   location.reload();
 }
 
