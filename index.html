@@ -1778,33 +1778,28 @@ async function signUpWithPassword(){
   else{msg.textContent='✓ 登録しました。そのままログインされます。';msg.className='login-msg ok';}
 }
 async function signOut(){
-  // Supabaseセッションキャッシュとアプリデータを両方削除
-  Object.keys(localStorage).forEach(k=>{
-    if(k.startsWith('sb-')||k.startsWith('tn_'))localStorage.removeItem(k);
-  });
+  stopRealtime();
+  clearTimeout(saveTimer);
   try{await sb.auth.signOut();}catch(e){}
-  location.reload();
+  currentUser=null;
+  posts=[];notes=[];outlines=[];
+  showLogin();
 }
 
 async function loadFromSupabase(force=false){
   if(!currentUser)return;
 
-  // ローカルを読む
-  let localPosts=[];
+  // ローカルを読む（DEMOなし）
+  let localPosts=[], localNotes=[], localOutlines=[];
   try{localPosts=JSON.parse(localStorage.getItem(KP)||'[]');}catch(e){}
+  try{localNotes=JSON.parse(localStorage.getItem(KN)||'[]');}catch(e){}
+  try{localOutlines=JSON.parse(localStorage.getItem(KO)||'[]');}catch(e){}
 
   if(localPosts.length>0){
-    // ローカルにデータあり → そのまま使う。Supabaseは触らない
-    try{
-      posts=localPosts;
-      notes=JSON.parse(localStorage.getItem(KN)||'[]');
-      outlines=JSON.parse(localStorage.getItem(KO)||'[]');
-    }catch(e){}
+    posts=localPosts;notes=localNotes;outlines=localOutlines;
     posts.forEach(p=>{if(!p.replies)p.replies=[];});
     setSyncDot('saved');
     renderSidebar();renderFeed();
-    // バックグラウンドでSupabaseにアップロード（上書きは一切しない）
-    sbRun(saveToSupabase);
     return;
   }
 
@@ -1824,11 +1819,11 @@ async function loadFromSupabase(force=false){
         localStorage.setItem(KO,JSON.stringify(outlines));
       }
     }
-  }catch(e){console.warn('Supabase load:',e);}
-
+  }catch(e){console.warn('load error:',e);}
   setSyncDot('saved');
   renderSidebar();renderFeed();
 }
+
 
 async function _rawSave(p,n,o){
   if(!currentUser)return;
