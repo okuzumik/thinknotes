@@ -815,9 +815,11 @@ body {
 .user-badge { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); display:flex; align-items:center; gap:6px; }
 .logout-btn { padding:2px 8px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); cursor:pointer; }
 .logout-btn:hover { border-color:var(--red); color:var(--red); }
-.sync-dot { width:6px; height:6px; border-radius:50%; background:var(--border2); flex-shrink:0; transition:background .3s; }
-.sync-dot.syncing { background:var(--accent-m); }
+.sync-dot { width:8px; height:8px; border-radius:50%; background:var(--border2); flex-shrink:0; transition:background .3s; cursor:default; }
+.sync-dot.syncing { background:#f0a020; animation:syncpulse .8s infinite alternate; }
 .sync-dot.saved { background:var(--teal); }
+.sync-dot.error { background:var(--red); cursor:pointer; }
+@keyframes syncpulse { from{opacity:1;} to{opacity:.4;} }
 
 /* Bluesky設定モーダル */
 /* モバイル用 日ビューパネル（スライドイン） */
@@ -1085,8 +1087,12 @@ body {
 <!-- ── Topbar ── -->
 <div class="topbar">
   <div class="app-name">ThinkNotes</div>
-  <!-- モバイル専用：Bsky設定ボタン -->
-  <button id="mobileBskyTopBtn" onclick="openBskySettings()" style="display:none;padding:5px 10px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:12px;color:var(--text2);cursor:pointer;white-space:nowrap;">🦋</button>
+  <!-- モバイル専用：同期ボタン＋Bsky設定 -->
+  <div id="mobileTopBtns" style="display:none;align-items:center;gap:5px;margin-left:auto;">
+    <button onclick="quickSyncUp()" id="mobileSyncUpBtn" style="padding:4px 9px;background:none;border:0.5px solid #a8c8a8;border-radius:20px;font-size:11px;color:#3d6b45;cursor:pointer;white-space:nowrap;">⬆</button>
+    <button onclick="quickSyncDown()" id="mobileSyncDownBtn" style="padding:4px 9px;background:none;border:0.5px solid var(--source-m);border-radius:20px;font-size:11px;color:var(--source);cursor:pointer;white-space:nowrap;">⬇</button>
+    <button id="mobileBskyTopBtn" onclick="openBskySettings()" style="padding:4px 9px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:11px;color:var(--text2);cursor:pointer;white-space:nowrap;">🦋</button>
+  </div>
   <div class="phase-steps" id="mainNav">
     <div class="nav-group g-log">
       <div class="nav-group-label">つぶやく・閲覧する</div>
@@ -1125,8 +1131,9 @@ body {
     <div class="user-badge" id="userBadge" style="display:none">
       <span id="userEmail" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <button class="logout-btn" onclick="exportBackup()" title="データをバックアップ" style="border-color:var(--border2)">💾 バックアップ</button>
+      <button class="logout-btn" onclick="quickSyncUp()" title="このデバイスのデータをSupabaseに送る" id="syncUpBtn" style="color:#3d6b45;border-color:#a8c8a8;">⬆ 送る</button>
+      <button class="logout-btn" onclick="quickSyncDown()" title="Supabaseのデータをこのデバイスに受け取る" id="syncDownBtn" style="color:var(--source);border-color:var(--source-m);">⬇ 受け取る</button>
       <button class="logout-btn" onclick="showDiag()" title="診断" id="diagBtn">🔍 診断</button>
-      <button class="logout-btn" onclick="forceSyncFromSupabase()" title="Supabaseから再読み込み" id="syncBtn">🔄 同期</button>
       <button class="logout-btn" onclick="openBskySettings()" id="bskySettingsBtn" title="Bluesky連携設定">🦋 Bsky設定</button>
       <button class="logout-btn" onclick="signOut()">ログアウト</button>
     </div>
@@ -2061,9 +2068,7 @@ async function saveToSupabase(){
   }catch(e){
     lastSaveOk=false;
     console.error('saveToSupabase error:',e);
-    // 保存失敗を赤で表示
-    const dot=document.getElementById('syncDot');
-    if(dot){dot.style.background='var(--red)';dot.title='保存失敗（ローカルには保存済み）: '+e.message;}
+    setSyncDot('error');
     // 再認証して再試行
     try{
       const {data:rd}=await sb.auth.refreshSession();
@@ -2084,14 +2089,62 @@ async function saveToSupabase(){
 }
 
 function setSyncDot(state){
-  const dot=document.getElementById('syncDot');
-  if(!dot)return;
+  const dot=document.getElementById('syncDot');if(!dot)return;
   dot.className='sync-dot'+(state?' '+state:'');
-  dot.title=state==='syncing'?'同期中…':state==='saved'?'保存済み':'';
-  if(state==='saved')setTimeout(()=>{if(dot.classList.contains('saved'))dot.className='sync-dot';},2000);
+  const titles={syncing:'保存中…',saved:'保存済み',error:'保存失敗 — クリックで再試行'};
+  dot.title=titles[state]||'';
+  if(state==='saved')setTimeout(()=>{if(dot.classList.contains('saved'))dot.className='sync-dot';},3000);
+  dot.onclick=state==='error'?()=>{dot.onclick=null;sbRun(saveToSupabase);}:null;
+  dot.style.cursor=state==='error'?'pointer':'';
 }
 
-// ─── Supabase DB呼び出しを直列化するキュー ────────────────
+
+// ── ワンボタン同期 ──────────────────────────────────────────
+async function quickSyncUp(){
+  // このデバイスのデータをSupabaseに送る
+  if(!currentUser){alert('ログインが必要です');return;}
+  if(!posts.length){alert('送るデータがありません');return;}
+  const btn=document.getElementById('syncUpBtn');
+  const mBtn=document.getElementById('mobileSyncUpBtn');
+  [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'…':'送信中…';b.disabled=true;}});
+  try{
+    await saveToSupabase();
+    [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'✅':'✅ 送信完了';setTimeout(()=>{b.textContent=b===mBtn?'⬆':'⬆ 送る';b.disabled=false;},2000);}});
+  }catch(e){
+    [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'⬆':'⬆ 送る';b.disabled=false;}});
+    alert('エラー: '+e.message);
+  }
+}
+
+async function quickSyncDown(){
+  // Supabaseのデータをこのデバイスに受け取る
+  if(!currentUser){alert('ログインが必要です');return;}
+  const btn=document.getElementById('syncDownBtn');
+  const mBtn=document.getElementById('mobileSyncDownBtn');
+  [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'…':'受信中…';b.disabled=true;}});
+  try{
+    const {data,error}=await sb.from('thinkdata')
+      .select('data_key,data_value').eq('user_id',currentUser.id);
+    if(error)throw error;
+    const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
+    if(!map.posts?.length){
+      [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'⬇':'⬇ 受け取る';b.disabled=false;}});
+      alert('Supabaseにデータがありません。まず別デバイスで「⬆ 送る」を押してください。');
+      return;
+    }
+    posts=map.posts;notes=map.notes||[];outlines=map.outlines||[];
+    posts.forEach(p=>{if(!p.replies)p.replies=[];});
+    notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
+    localStorage.setItem(KP,JSON.stringify(posts));
+    localStorage.setItem(KN,JSON.stringify(notes));
+    localStorage.setItem(KO,JSON.stringify(outlines));
+    renderSidebar();renderFeed();
+    [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'✅':'✅ 受信完了（'+posts.length+'件）';setTimeout(()=>{b.textContent=b===mBtn?'⬇':'⬇ 受け取る';b.disabled=false;},3000);}});
+  }catch(e){
+    [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'⬇':'⬇ 受け取る';b.disabled=false;}});
+    alert('エラー: '+e.message);
+  }
+}
 let _sbQueue=Promise.resolve();
 function sbRun(fn){
   _sbQueue=_sbQueue.then(()=>fn().catch(e=>console.warn('sbRun error:',e)));
