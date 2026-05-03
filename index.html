@@ -1089,8 +1089,20 @@ body {
 <div class="topbar">
   <div class="app-name">ThinkNotes</div>
   <!-- モバイル専用：⋯ メニュー -->
-  <div id="mobileTopBtns" style="display:none;align-items:center;gap:5px;margin-left:auto;">
+  <div id="mobileTopBtns" style="display:none;align-items:center;gap:5px;margin-left:auto;position:relative;">
     <button onclick="toggleUserMenu()" style="padding:4px 10px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;font-size:13px;color:var(--text2);cursor:pointer;">⋯</button>
+    <!-- モバイル用ドロップダウン（デスクトップのと別インスタンス） -->
+    <div id="mobileUserMenuDropdown" style="display:none;position:fixed;top:50px;right:8px;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--r);box-shadow:0 4px 20px rgba(0,0,0,.15);min-width:180px;z-index:500;overflow:hidden;">
+      <button onclick="quickSyncUp();closeMobileMenu()" class="user-menu-item" style="color:#3d6b45;">⬆ このデバイスから送る</button>
+      <button onclick="quickSyncDown();closeMobileMenu()" class="user-menu-item" style="color:var(--source);">⬇ 受け取る</button>
+      <div style="border-top:0.5px solid var(--border);margin:2px 0;"></div>
+      <button onclick="exportBackup();closeMobileMenu()" class="user-menu-item">💾 バックアップ</button>
+      <button onclick="importBackup();closeMobileMenu()" class="user-menu-item">📂 バックアップから復元</button>
+      <button onclick="showDiag();closeMobileMenu()" class="user-menu-item">🔍 診断</button>
+      <button onclick="openBskySettings();closeMobileMenu()" class="user-menu-item">🦋 Bsky設定</button>
+      <div style="border-top:0.5px solid var(--border);margin:2px 0;"></div>
+      <button onclick="signOut()" class="user-menu-item" style="color:var(--red);">ログアウト</button>
+    </div>
   </div>
   <div class="phase-steps" id="mainNav">
     <div class="nav-group g-log">
@@ -1135,6 +1147,7 @@ body {
         <button onclick="quickSyncDown();closeUserMenu()" class="user-menu-item" style="color:var(--source);" id="syncDownBtn">⬇ 受け取る</button>
         <div style="border-top:0.5px solid var(--border);margin:2px 0;"></div>
         <button onclick="exportBackup();closeUserMenu()" class="user-menu-item">💾 バックアップ</button>
+        <button onclick="importBackup();closeUserMenu()" class="user-menu-item">📂 バックアップから復元</button>
         <button onclick="showDiag();closeUserMenu()" class="user-menu-item">🔍 診断</button>
         <button onclick="openBskySettings();closeUserMenu()" class="user-menu-item">🦋 Bsky設定</button>
         <div style="border-top:0.5px solid var(--border);margin:2px 0;"></div>
@@ -1804,7 +1817,9 @@ async function loadFromSupabase(force=false){
         posts=map.posts;notes=map.notes||[];outlines=map.outlines||[];
         posts.forEach(p=>{if(!p.replies)p.replies=[];});
         notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
-        localStorage.setItem(KP,JSON.stringify(posts));
+        extractAndSaveImages(posts);
+        const stripped=posts.map(p=>({...p,images:(p.images||[]).filter(s=>!s.startsWith('data:')),replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))}));
+        localStorage.setItem(KP,JSON.stringify(stripped));
         localStorage.setItem(KN,JSON.stringify(notes));
         localStorage.setItem(KO,JSON.stringify(outlines));
       }
@@ -2066,10 +2081,12 @@ async function saveToSupabase(){
   setSyncDot('syncing');
   const uid=currentUser.id;
   const ts=new Date().toISOString();
+  // 画像を復元してからSupabaseに保存
+  const postsWithImages=mergeImages(posts);
   const rows=[
-    {user_id:uid,data_key:'posts',   data_value:posts,   updated_at:ts},
-    {user_id:uid,data_key:'notes',   data_value:notes,   updated_at:ts},
-    {user_id:uid,data_key:'outlines',data_value:outlines,updated_at:ts},
+    {user_id:uid,data_key:'posts',   data_value:postsWithImages,updated_at:ts},
+    {user_id:uid,data_key:'notes',   data_value:notes,          updated_at:ts},
+    {user_id:uid,data_key:'outlines',data_value:outlines,       updated_at:ts},
   ];
   try{
     const {error}=await sb.from('thinkdata')
@@ -2196,7 +2213,9 @@ async function _pullFromSupabase(){
   posts=map.posts;notes=map.notes||[];outlines=map.outlines||[];
   posts.forEach(p=>{if(!p.replies)p.replies=[];});
   notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
-  localStorage.setItem(KP,JSON.stringify(posts));
+  extractAndSaveImages(posts);
+  const _stripped=posts.map(p=>({...p,images:(p.images||[]).filter(s=>!s.startsWith('data:')),replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))}));
+  localStorage.setItem(KP,JSON.stringify(_stripped));
   localStorage.setItem(KN,JSON.stringify(notes));
   localStorage.setItem(KO,JSON.stringify(outlines));
   setSyncDot('saved');
@@ -4219,24 +4238,52 @@ let calCats=[
 
 // ─── Persist (local fallback) ─────────────────────────────
 function load(){loadLocal();}
-// localStorage保存用に画像base64を除去（Supabaseにだけ保存）
-function stripImagesForLocal(posts){
-  return posts.map(p=>({
+// 画像データを別キーに退避・復元
+const KI='tn_post_images_v20';
+
+function extractAndSaveImages(postsArr){
+  // base64画像だけ別キーに保存
+  const imgMap={};
+  postsArr.forEach(p=>{
+    const imgs=(p.images||[]).filter(s=>s.startsWith('data:'));
+    if(imgs.length)imgMap[p.id]=imgs;
+    (p.replies||[]).forEach(r=>{
+      const ri=(r.images||[]).filter(s=>s.startsWith('data:'));
+      if(ri.length)imgMap['r:'+r.id]=ri;
+    });
+  });
+  if(Object.keys(imgMap).length){
+    try{localStorage.setItem(KI,JSON.stringify(imgMap));}catch(e){}
+  }
+}
+
+function mergeImages(postsArr){
+  // 退避した画像を posts に戻す
+  let imgMap={};
+  try{imgMap=JSON.parse(localStorage.getItem(KI)||'{}');}catch(e){}
+  return postsArr.map(p=>({
     ...p,
-    images:(p.images||[]).filter(s=>!s.startsWith('data:')),
+    images:[...(p.images||[]).filter(s=>!s.startsWith('data:')),
+            ...(imgMap[p.id]||[])],
     replies:(p.replies||[]).map(r=>({
       ...r,
-      images:(r.images||[]).filter(s=>!s.startsWith('data:'))
+      images:[...(r.images||[]).filter(s=>!s.startsWith('data:')),
+              ...(imgMap['r:'+r.id]||[])]
     }))
   }));
 }
 
 function save(){
-  try{
-    localStorage.setItem(KP,JSON.stringify(stripImagesForLocal(posts)));
-  }catch(e){
-    // 容量オーバー時は画像なしで保存
-    console.warn('localStorage posts save error:',e.message);
+  // 画像を別キーに退避してからlocalStorageに保存
+  extractAndSaveImages(posts);
+  const stripped=posts.map(p=>({
+    ...p,
+    images:(p.images||[]).filter(s=>!s.startsWith('data:')),
+    replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))
+  }));
+  try{localStorage.setItem(KP,JSON.stringify(stripped));}catch(e){
+    console.warn('localStorage full, saving without images');
+    try{localStorage.setItem(KP,JSON.stringify(stripped));}catch(e2){}
   }
   try{localStorage.setItem(KN,JSON.stringify(notes));}catch(e){}
   try{localStorage.setItem(KO,JSON.stringify(outlines));}catch(e){}
@@ -6394,20 +6441,35 @@ function createBlankNote(){
   setTimeout(()=>document.getElementById('editorTitle').select(),50);
 }
 function toggleUserMenu(){
-  const d=document.getElementById('userMenuDropdown');
-  if(!d)return;
-  const open=d.style.display==='none';
-  d.style.display=open?'block':'none';
-  if(open)setTimeout(()=>document.addEventListener('click',_closeMenuOnOutside,{once:true}),0);
+  const isMobile=window.innerWidth<=640;
+  if(isMobile){
+    const d=document.getElementById('mobileUserMenuDropdown');
+    if(!d)return;
+    const open=d.style.display==='none'||!d.style.display;
+    d.style.display=open?'block':'none';
+    if(open)setTimeout(()=>document.addEventListener('click',_closeMobileMenuOnOutside,{once:true}),0);
+  } else {
+    const d=document.getElementById('userMenuDropdown');
+    if(!d)return;
+    const open=d.style.display==='none'||!d.style.display;
+    d.style.display=open?'block':'none';
+    if(open)setTimeout(()=>document.addEventListener('click',_closeMenuOnOutside,{once:true}),0);
+  }
 }
 function closeUserMenu(){
-  const d=document.getElementById('userMenuDropdown');
-  if(d)d.style.display='none';
+  document.getElementById('userMenuDropdown')?.style && (document.getElementById('userMenuDropdown').style.display='none');
+}
+function closeMobileMenu(){
+  document.getElementById('mobileUserMenuDropdown')?.style && (document.getElementById('mobileUserMenuDropdown').style.display='none');
 }
 function _closeMenuOnOutside(e){
   const menu=document.getElementById('userMenuDropdown');
   const btn=document.getElementById('userMenuBtn');
   if(menu&&!menu.contains(e.target)&&e.target!==btn)closeUserMenu();
+}
+function _closeMobileMenuOnOutside(e){
+  const menu=document.getElementById('mobileUserMenuDropdown');
+  if(menu&&!menu.contains(e.target))closeMobileMenu();
 }
 function saveNoteTitle(){
 const n=notes.find(x=>x.id===currentNoteId);if(!n)return;n.title=document.getElementById('editorTitle').value;n.updatedAt=Date.now();save();renderNotesList();}
