@@ -1823,21 +1823,32 @@ async function _rawSave(p,n,o){
 
 async function syncFromSupabase(){
   if(!currentUser){alert('ログインが必要です');return;}
-  if(!confirm('Supabaseのデータでローカルを上書きしますか？'))return;
-  setSyncDot('syncing');
-  const {data,error}=await sb.from('thinkdata')
-    .select('data_key,data_value').eq('user_id',currentUser.id);
-  if(error){alert('エラー: '+error.message);setSyncDot('');return;}
-  const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
-  if(!map.posts?.length){alert('Supabaseにデータがありません');setSyncDot('');return;}
-  posts=map.posts;notes=map.notes||[];outlines=map.outlines||[];
-  posts.forEach(p=>{if(!p.replies)p.replies=[];});
-  localStorage.setItem(KP,JSON.stringify(posts));
-  localStorage.setItem(KN,JSON.stringify(notes));
-  localStorage.setItem(KO,JSON.stringify(outlines));
-  setSyncDot('saved');
-  renderSidebar();renderFeed();
-  alert('完了（投稿'+posts.length+'件）');
+  const btn=document.getElementById('syncDownBtn');
+  const mBtn=document.getElementById('mobileSyncDownBtn');
+  [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'…':'受信中…';b.disabled=true;}});
+  try{
+    const {data,error}=await sb.from('thinkdata')
+      .select('data_key,data_value').eq('user_id',currentUser.id);
+    if(error)throw error;
+    const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
+    if(!map.posts?.length){
+      [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'⬇':'⬇ 受け取る';b.disabled=false;}});
+      alert('Supabaseにデータがありません。別デバイスで「⬆ 送る」を押してください。');
+      return;
+    }
+    posts=map.posts;notes=map.notes||[];outlines=map.outlines||[];
+    posts.forEach(p=>{if(!p.replies)p.replies=[];});
+    notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
+    localStorage.setItem(KP,JSON.stringify(posts));
+    localStorage.setItem(KN,JSON.stringify(notes));
+    localStorage.setItem(KO,JSON.stringify(outlines));
+    setSyncDot('saved');
+    renderSidebar();renderFeed();
+    [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'✅':'✅ 受信完了（'+posts.length+'件）';setTimeout(()=>{b.textContent=b===mBtn?'⬇':'⬇ 受け取る';b.disabled=false;},3000);}});
+  }catch(e){
+    [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'⬇':'⬇ 受け取る';b.disabled=false;}});
+    alert('エラー: '+e.message);
+  }
 }
 
 async function _rawSave(p,n,o){
@@ -2068,8 +2079,11 @@ function setSyncDot(state){
 
 // ── ワンボタン同期 ──────────────────────────────────────────
 async function quickSyncUp(){
-  // このデバイスのデータをSupabaseに送る
-  if(!currentUser){alert('ログインが必要です');return;}
+  if(!currentUser){
+    const {data:{session}}=await sb.auth.getSession();
+    if(session)currentUser=session.user;
+    else{alert('ログインが必要です');return;}
+  }
   if(!posts.length){alert('送るデータがありません');return;}
   const btn=document.getElementById('syncUpBtn');
   const mBtn=document.getElementById('mobileSyncUpBtn');
@@ -2084,8 +2098,12 @@ async function quickSyncUp(){
 }
 
 async function quickSyncDown(){
-  // Supabaseのデータをこのデバイスに受け取る
-  if(!currentUser){alert('ログインが必要です');return;}
+  // currentUserがnullでもセッションから取得を試みる
+  if(!currentUser){
+    const {data:{session}}=await sb.auth.getSession();
+    if(session)currentUser=session.user;
+    else{alert('ログインが必要です');return;}
+  }
   const btn=document.getElementById('syncDownBtn');
   const mBtn=document.getElementById('mobileSyncDownBtn');
   [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'…':'受信中…';b.disabled=true;}});
@@ -2096,7 +2114,7 @@ async function quickSyncDown(){
     const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
     if(!map.posts?.length){
       [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'⬇':'⬇ 受け取る';b.disabled=false;}});
-      alert('Supabaseにデータがありません。まず別デバイスで「⬆ 送る」を押してください。');
+      alert('Supabaseにデータがありません。別デバイスで「⬆ 送る」を押してください。');
       return;
     }
     posts=map.posts;notes=map.notes||[];outlines=map.outlines||[];
@@ -2106,7 +2124,10 @@ async function quickSyncDown(){
     localStorage.setItem(KN,JSON.stringify(notes));
     localStorage.setItem(KO,JSON.stringify(outlines));
     renderSidebar();renderFeed();
-    [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'✅':'✅ 受信完了（'+posts.length+'件）';setTimeout(()=>{b.textContent=b===mBtn?'⬇':'⬇ 受け取る';b.disabled=false;},3000);}});
+    [btn,mBtn].forEach(b=>{if(b){
+      b.textContent=b===mBtn?'✅':'✅ '+posts.length+'件';
+      setTimeout(()=>{b.textContent=b===mBtn?'⬇':'⬇ 受け取る';b.disabled=false;},3000);
+    }});
   }catch(e){
     [btn,mBtn].forEach(b=>{if(b){b.textContent=b===mBtn?'⬇':'⬇ 受け取る';b.disabled=false;}});
     alert('エラー: '+e.message);
