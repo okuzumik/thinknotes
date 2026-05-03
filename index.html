@@ -2003,10 +2003,26 @@ async function showDiag(){
     +'<div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:6px;">'
     +btn('diagForcePush()')+'⬆ ローカル→Supabase</button>'
     +btn('syncFromSupabase()')+'⬇ Supabase→ローカル</button>'
+    +btn('diagCleanImages()')+'🧹 画像データを除去</button>'
     +'</div>'
     +'<button onclick="document.getElementById(\'diagPanel\').remove()" style="margin-top:10px;padding:5px 16px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border2);border-radius:20px;cursor:pointer;font-size:11px;">閉じる</button>';
 }
 
+async function diagCleanImages(){
+  document.getElementById('diagPanel')?.remove();
+  // localStorageのpostsからbase64画像を除去
+  const p2=JSON.parse(localStorage.getItem(KP)||'[]');
+  const before=JSON.stringify(p2).length;
+  const cleaned=p2.map(p=>({
+    ...p,
+    images:(p.images||[]).filter(s=>!s.startsWith('data:')),
+    replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))
+  }));
+  localStorage.setItem(KP,JSON.stringify(cleaned));
+  const after=JSON.stringify(cleaned).length;
+  const saved=((before-after)/1024).toFixed(0);
+  alert(`🧹 完了！ ${saved}KB を解放しました。\n次に「⬇ 受け取る」でSupabaseから画像付きデータを取得してください。`);
+}
 async function diagForcePush(){
   document.getElementById('diagPanel')?.remove();
   await saveToSupabase();
