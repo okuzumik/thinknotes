@@ -4199,10 +4199,27 @@ let calCats=[
 
 // ─── Persist (local fallback) ─────────────────────────────
 function load(){loadLocal();}
+// localStorage保存用に画像base64を除去（Supabaseにだけ保存）
+function stripImagesForLocal(posts){
+  return posts.map(p=>({
+    ...p,
+    images:(p.images||[]).filter(s=>!s.startsWith('data:')),
+    replies:(p.replies||[]).map(r=>({
+      ...r,
+      images:(r.images||[]).filter(s=>!s.startsWith('data:'))
+    }))
+  }));
+}
+
 function save(){
-  localStorage.setItem(KP,JSON.stringify(posts));
-  localStorage.setItem(KN,JSON.stringify(notes));
-  localStorage.setItem(KO,JSON.stringify(outlines));
+  try{
+    localStorage.setItem(KP,JSON.stringify(stripImagesForLocal(posts)));
+  }catch(e){
+    // 容量オーバー時は画像なしで保存
+    console.warn('localStorage posts save error:',e.message);
+  }
+  try{localStorage.setItem(KN,JSON.stringify(notes));}catch(e){}
+  try{localStorage.setItem(KO,JSON.stringify(outlines));}catch(e){}
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>sbRun(saveToSupabase),2000);
 }
