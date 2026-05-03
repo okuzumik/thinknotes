@@ -2118,18 +2118,31 @@ let _lastSaveTime=0;
 
 function startRealtime(){
   if(!currentUser||_realtimeChannel)return;
-  _realtimeChannel=sb.channel('thinkdata-sync')
+  _realtimeChannel=sb.channel('thinkdata-changes-'+currentUser.id)
     .on('postgres_changes',{
-      event:'UPDATE',schema:'public',table:'thinkdata',
+      event:'*',schema:'public',table:'thinkdata',
       filter:`user_id=eq.${currentUser.id}`
-    },async()=>{
-      if(Date.now()-_lastSaveTime<3000)return; // 自分の書き込みは無視
-      console.log('📡 Realtime: 他デバイスからの変更を受信');
+    },async(payload)=>{
+      // 自分自身の書き込みは無視（3秒以内）
+      if(Date.now()-_lastSaveTime<3000){
+        console.log('📡 Realtime: 自分の書き込みなのでスキップ');
+        return;
+      }
+      console.log('📡 Realtime: 他デバイスからの変更を受信',payload.eventType);
       setSyncDot('syncing');
       await _pullFromSupabase();
     })
-    .subscribe();
-  console.log('📡 Realtime購読開始');
+    .subscribe((status,err)=>{
+      console.log('📡 Realtime status:',status,err||'');
+      if(status==='SUBSCRIBED'){
+        console.log('✅ Realtime購読成功');
+      } else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+        console.warn('⚠️ Realtime購読失敗:',status);
+        // 5秒後に再試行
+        _realtimeChannel=null;
+        setTimeout(startRealtime,5000);
+      }
+    });
 }
 
 async function _pullFromSupabase(){
