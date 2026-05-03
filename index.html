@@ -2028,45 +2028,30 @@ let lastSaveOk=true; // 最後の保存が成功したか
 
 async function saveToSupabase(){
   if(!currentUser)return;
-  if(!posts.length&&!notes.length&&!outlines.length){
-    console.warn('saveToSupabase: データが空のため保存をスキップ');
+  if(!posts.length&&!notes.length){
+    console.warn('saveToSupabase: データが空のためスキップ');
     return;
   }
   setSyncDot('syncing');
   const uid=currentUser.id;
   const ts=new Date().toISOString();
+  const rows=[
+    {user_id:uid,data_key:'posts',   data_value:posts,   updated_at:ts},
+    {user_id:uid,data_key:'notes',   data_value:notes,   updated_at:ts},
+    {user_id:uid,data_key:'outlines',data_value:outlines,updated_at:ts},
+  ];
   try{
-    const now=Date.now();localStorage.setItem('tn_saved_at',String(now));
-    for(const [key,val] of [['posts',posts],['notes',notes],['outlines',outlines],['saved_at',{t:now}]]){
-      const {error}=await sb.from('thinkdata').upsert(
-        {user_id:uid,data_key:key,data_value:val,updated_at:ts},
-        {onConflict:'user_id,data_key'}
-      );
-      if(error)throw error;
-    }
+    const {error}=await sb.from('thinkdata')
+      .upsert(rows,{onConflict:'user_id,data_key'});
+    if(error)throw error;
     lastSaveOk=true;
     _lastSaveTime=Date.now();
     setSyncDot('saved');
+    console.log('✅ Supabase保存完了 投稿'+posts.length+'件');
   }catch(e){
     lastSaveOk=false;
-    console.error('saveToSupabase error:',e);
+    console.error('saveToSupabase error:',e.message);
     setSyncDot('error');
-    // 再認証して再試行
-    try{
-      const {data:rd}=await sb.auth.refreshSession();
-      if(rd?.session){
-        currentUser=rd.session.user;
-        // 再試行
-        for(const [key,val] of [['posts',posts],['notes',notes],['outlines',outlines]]){
-          await sb.from('thinkdata').upsert(
-            {user_id:currentUser.id,data_key:key,data_value:val,updated_at:ts},
-            {onConflict:'user_id,data_key'}
-          );
-        }
-        lastSaveOk=true;
-        setSyncDot('saved');
-      }
-    }catch(e2){console.error('retry save failed:',e2);}
   }
 }
 
