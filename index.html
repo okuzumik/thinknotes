@@ -446,7 +446,8 @@ body {
 
 /* エディターペイン */
 .editor-pane { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; background:var(--bg3); }
-.editor-toolbar { display:flex; align-items:center; gap:6px; padding:8px 14px; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
+.user-menu-item { display:block; width:100%; padding:8px 14px; text-align:left; background:none; border:none; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text); cursor:pointer; white-space:nowrap; }
+.user-menu-item:hover { background:var(--bg3); } align-items:center; gap:6px; padding:8px 14px; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
 .editor-title-in { flex:1; background:transparent; border:none; outline:none; font-size:15px; font-weight:700; font-family:inherit; color:var(--text); }
 .editor-title-in::placeholder { color:var(--text3); }
 .et-sep { width:0.5px; height:16px; background:var(--border); }
@@ -1087,11 +1088,9 @@ body {
 <!-- ── Topbar ── -->
 <div class="topbar">
   <div class="app-name">ThinkNotes</div>
-  <!-- モバイル専用：同期ボタン＋Bsky設定 -->
+  <!-- モバイル専用：⋯ メニュー -->
   <div id="mobileTopBtns" style="display:none;align-items:center;gap:5px;margin-left:auto;">
-    <button onclick="quickSyncUp()" id="mobileSyncUpBtn" style="padding:4px 9px;background:none;border:0.5px solid #a8c8a8;border-radius:20px;font-size:11px;color:#3d6b45;cursor:pointer;white-space:nowrap;">⬆</button>
-    <button onclick="quickSyncDown()" id="mobileSyncDownBtn" style="padding:4px 9px;background:none;border:0.5px solid var(--source-m);border-radius:20px;font-size:11px;color:var(--source);cursor:pointer;white-space:nowrap;">⬇</button>
-    <button id="mobileBskyTopBtn" onclick="openBskySettings()" style="padding:4px 9px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:11px;color:var(--text2);cursor:pointer;white-space:nowrap;">🦋</button>
+    <button onclick="toggleUserMenu()" style="padding:4px 10px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;font-size:13px;color:var(--text2);cursor:pointer;">⋯</button>
   </div>
   <div class="phase-steps" id="mainNav">
     <div class="nav-group g-log">
@@ -1127,15 +1126,20 @@ body {
     </div>
     <div class="topbar-sep"></div>
     <div class="sync-dot" id="syncDot" title="保存状態"></div>
-    <a href="info.html" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);text-decoration:none;padding:2px 8px;border:0.5px solid var(--border2);border-radius:20px;" title="このアプリについて">ℹ️ 概要</a>
-    <div class="user-badge" id="userBadge" style="display:none">
-      <span id="userEmail" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-      <button class="logout-btn" onclick="exportBackup()" title="データをバックアップ" style="border-color:var(--border2)">💾 バックアップ</button>
-      <button class="logout-btn" onclick="quickSyncUp()" title="このデバイスのデータをSupabaseに送る" id="syncUpBtn" style="color:#3d6b45;border-color:#a8c8a8;">⬆ 送る</button>
-      <button class="logout-btn" onclick="quickSyncDown()" title="Supabaseのデータをこのデバイスに受け取る" id="syncDownBtn" style="color:var(--source);border-color:var(--source-m);">⬇ 受け取る</button>
-      <button class="logout-btn" onclick="showDiag()" title="診断" id="diagBtn">🔍 診断</button>
-      <button class="logout-btn" onclick="openBskySettings()" id="bskySettingsBtn" title="Bluesky連携設定">🦋 Bsky設定</button>
-      <button class="logout-btn" onclick="signOut()">ログアウト</button>
+    <div class="user-badge" id="userBadge" style="display:none;position:relative;">
+      <span id="userEmail" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text2);"></span>
+      <button onclick="toggleUserMenu()" id="userMenuBtn" style="padding:4px 10px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;font-size:12px;cursor:pointer;color:var(--text2);">⋯</button>
+      <!-- ドロップダウンメニュー -->
+      <div id="userMenuDropdown" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:160px;z-index:500;overflow:hidden;">
+        <button onclick="quickSyncUp();closeUserMenu()" class="user-menu-item" style="color:#3d6b45;" id="syncUpBtn">⬆ このデバイスから送る</button>
+        <button onclick="quickSyncDown();closeUserMenu()" class="user-menu-item" style="color:var(--source);" id="syncDownBtn">⬇ 受け取る</button>
+        <div style="border-top:0.5px solid var(--border);margin:2px 0;"></div>
+        <button onclick="exportBackup();closeUserMenu()" class="user-menu-item">💾 バックアップ</button>
+        <button onclick="showDiag();closeUserMenu()" class="user-menu-item">🔍 診断</button>
+        <button onclick="openBskySettings();closeUserMenu()" class="user-menu-item">🦋 Bsky設定</button>
+        <div style="border-top:0.5px solid var(--border);margin:2px 0;"></div>
+        <button onclick="signOut()" class="user-menu-item" style="color:var(--red);">ログアウト</button>
+      </div>
     </div>
     <div class="search-wrap" id="searchWrap">
       <span class="search-icon">🔍</span>
@@ -6389,7 +6393,24 @@ function createBlankNote(){
   notes.push(n);currentNoteId=n.id;save();renderNotesList();openNote(n.id);
   setTimeout(()=>document.getElementById('editorTitle').select(),50);
 }
-function saveNoteTitle(){const n=notes.find(x=>x.id===currentNoteId);if(!n)return;n.title=document.getElementById('editorTitle').value;n.updatedAt=Date.now();save();renderNotesList();}
+function toggleUserMenu(){
+  const d=document.getElementById('userMenuDropdown');
+  if(!d)return;
+  const open=d.style.display==='none';
+  d.style.display=open?'block':'none';
+  if(open)setTimeout(()=>document.addEventListener('click',_closeMenuOnOutside,{once:true}),0);
+}
+function closeUserMenu(){
+  const d=document.getElementById('userMenuDropdown');
+  if(d)d.style.display='none';
+}
+function _closeMenuOnOutside(e){
+  const menu=document.getElementById('userMenuDropdown');
+  const btn=document.getElementById('userMenuBtn');
+  if(menu&&!menu.contains(e.target)&&e.target!==btn)closeUserMenu();
+}
+function saveNoteTitle(){
+const n=notes.find(x=>x.id===currentNoteId);if(!n)return;n.title=document.getElementById('editorTitle').value;n.updatedAt=Date.now();save();renderNotesList();}
 function deleteCurrentNote(){
   if(!currentNoteId||!confirm('削除しますか？'))return;
   notes=notes.filter(x=>x.id!==currentNoteId);currentNoteId=null;save();renderNotesList();showEditorEmpty();
