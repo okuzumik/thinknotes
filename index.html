@@ -1457,8 +1457,24 @@ body {
   <!-- ═══ PHASE 8 — 写真 ═══ -->
   <div class="phase-screen" id="phase8">
     <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
-      <div style="padding:10px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">投稿・返信・カードに添付した画像</div>
+      <div style="padding:8px 1.5rem;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;display:flex;align-items:center;gap:10px;">
+        <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">投稿・カードに添付した画像</span>
+        <div style="display:flex;gap:3px;margin-left:auto;background:var(--bg2);border:0.5px solid var(--border2);border-radius:20px;padding:2px;">
+          <button id="photoViewGrid" onclick="setPhotoView('grid')" style="padding:3px 10px;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;background:var(--accent);color:#fff;font-weight:600;">グリッド</button>
+          <button id="photoViewCal" onclick="setPhotoView('cal')" style="padding:3px 10px;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;background:none;color:var(--text2);">カレンダー</button>
+        </div>
+      </div>
+      <!-- グリッドビュー -->
       <div id="matPhotoGrid" style="display:flex;flex-wrap:wrap;gap:8px;padding:1rem 1.5rem;overflow-y:auto;flex:1;"></div>
+      <!-- カレンダービュー -->
+      <div id="photoCalView" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 1.5rem;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+          <button onclick="movePhotoCal(-1)" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text2);padding:0 4px;">‹</button>
+          <span id="photoCalTitle" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px;font-weight:600;color:var(--text);flex:1;text-align:center;"></span>
+          <button onclick="movePhotoCal(1)" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text2);padding:0 4px;">›</button>
+        </div>
+        <div id="photoCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:8px;overflow-y:auto;flex:1;align-content:start;"></div>
+      </div>
     </div>
   </div>
 
@@ -1805,7 +1821,8 @@ async function loadFromSupabase(force=false){
   try{localOutlines=JSON.parse(localStorage.getItem(KO)||'[]');}catch(e){}
 
   if(localPosts.length>0){
-    posts=localPosts;notes=localNotes;outlines=localOutlines;
+    posts=mergeImages(localPosts); // KIから画像を復元
+    notes=localNotes;outlines=localOutlines;
     posts.forEach(p=>{if(!p.replies)p.replies=[];});
     setSyncDot('saved');
     renderSidebar();renderFeed();
@@ -1861,10 +1878,12 @@ async function syncFromSupabase(){
       alert('Supabaseにデータがありません。別デバイスで「⬆ 送る」を押してください。');
       return;
     }
-    posts=map.posts;notes=map.notes||[];outlines=map.outlines||[];
+    extractAndSaveImages(map.posts||[]);
+    posts=mergeImages(map.posts||[]);notes=map.notes||[];outlines=map.outlines||[];
     posts.forEach(p=>{if(!p.replies)p.replies=[];});
     notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
-    localStorage.setItem(KP,JSON.stringify(posts));
+    const _s1=posts.map(p=>({...p,images:(p.images||[]).filter(s=>!s.startsWith('data:')),replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))}));
+    localStorage.setItem(KP,JSON.stringify(_s1));
     localStorage.setItem(KN,JSON.stringify(notes));
     localStorage.setItem(KO,JSON.stringify(outlines));
     setSyncDot('saved');
@@ -2216,10 +2235,10 @@ async function _pullFromSupabase(){
   if(error||!data)return;
   const map={};data.forEach(r=>{map[r.data_key]=r.data_value;});
   if(!map.posts?.length)return;
-  posts=map.posts;notes=map.notes||[];outlines=map.outlines||[];
+  extractAndSaveImages(map.posts||[]);
+  posts=mergeImages(map.posts||[]);notes=map.notes||[];outlines=map.outlines||[];
   posts.forEach(p=>{if(!p.replies)p.replies=[];});
   notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
-  extractAndSaveImages(posts);
   const _stripped=posts.map(p=>({...p,images:(p.images||[]).filter(s=>!s.startsWith('data:')),replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))}));
   localStorage.setItem(KP,JSON.stringify(_stripped));
   localStorage.setItem(KN,JSON.stringify(notes));
@@ -6506,6 +6525,69 @@ function _closeMenuOnOutside(e){
 function _closeMobileMenuOnOutside(e){
   const menu=document.getElementById('mobileUserMenuDropdown');
   if(menu&&!menu.contains(e.target))closeMobileMenu();
+}
+// ── 写真タブ ビュー切り替え ─────────────────────────────────
+let _photoView='grid';
+let _photoCalYear=new Date().getFullYear();
+let _photoCalMonth=new Date().getMonth(); // 0-indexed
+
+function setPhotoView(mode){
+  _photoView=mode;
+  document.getElementById('matPhotoGrid').style.display=mode==='grid'?'flex':'none';
+  document.getElementById('photoCalView').style.display=mode==='cal'?'flex':'none';
+  const gBtn=document.getElementById('photoViewGrid');
+  const cBtn=document.getElementById('photoViewCal');
+  if(gBtn){gBtn.style.background=mode==='grid'?'var(--accent)':'none';gBtn.style.color=mode==='grid'?'#fff':'var(--text2)';gBtn.style.fontWeight=mode==='grid'?'600':'400';}
+  if(cBtn){cBtn.style.background=mode==='cal'?'var(--accent)':'none';cBtn.style.color=mode==='cal'?'#fff':'var(--text2)';cBtn.style.fontWeight=mode==='cal'?'600':'400';}
+  if(mode==='cal')renderPhotoCal();
+}
+
+function movePhotoCal(dir){
+  _photoCalMonth+=dir;
+  if(_photoCalMonth>11){_photoCalMonth=0;_photoCalYear++;}
+  if(_photoCalMonth<0){_photoCalMonth=11;_photoCalYear--;}
+  renderPhotoCal();
+}
+
+function renderPhotoCal(){
+  const title=document.getElementById('photoCalTitle');
+  const grid=document.getElementById('photoCalGrid');
+  if(!title||!grid)return;
+  title.textContent=`${_photoCalYear}年${_photoCalMonth+1}月`;
+
+  // この月の投稿から日付→最初の画像マップを作成
+  const imgByDate={};
+  posts.forEach(p=>{
+    const d=new Date(p.createdAt);
+    if(d.getFullYear()!==_photoCalYear||d.getMonth()!==_photoCalMonth)return;
+    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if(!imgByDate[key]){
+      // 最初の画像を探す
+      const imgs=[...(p.images||[]),...(p.replies||[]).flatMap(r=>r.images||[])];
+      if(imgs.length)imgByDate[key]=imgs[0];
+    }
+  });
+
+  // 曜日ヘッダー
+  const days=['日','月','火','水','木','金','土'];
+  const first=new Date(_photoCalYear,_photoCalMonth,1).getDay();
+  const last=new Date(_photoCalYear,_photoCalMonth+1,0).getDate();
+
+  let html=days.map(d=>`<div style="text-align:center;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);padding:4px 0;">${d}</div>`).join('');
+  // 空白
+  for(let i=0;i<first;i++) html+=`<div></div>`;
+  // 日付セル
+  for(let d=1;d<=last;d++){
+    const key=`${_photoCalYear}-${String(_photoCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const img=imgByDate[key];
+    const today=new Date();
+    const isToday=today.getFullYear()===_photoCalYear&&today.getMonth()===_photoCalMonth&&today.getDate()===d;
+    html+=`<div onclick="switchPhase(2);selectCalDate('${key}')" style="position:relative;aspect-ratio:1;border-radius:4px;overflow:hidden;cursor:pointer;background:${img?'transparent':'var(--bg3)'};border:${isToday?'2px solid var(--accent)':'0.5px solid var(--border)'};margin:1px;">
+      ${img?`<img src="${esc(img)}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:``}
+      <div style="position:absolute;bottom:2px;left:0;right:0;text-align:center;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;font-weight:600;color:${img?'#fff':'var(--text3)'};text-shadow:${img?'0 1px 2px rgba(0,0,0,.7)':'none'};">${d}</div>
+    </div>`;
+  }
+  grid.innerHTML=html;
 }
 function saveNoteTitle(){
 const n=notes.find(x=>x.id===currentNoteId);if(!n)return;n.title=document.getElementById('editorTitle').value;n.updatedAt=Date.now();save();renderNotesList();}
