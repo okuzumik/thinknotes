@@ -1878,10 +1878,13 @@ async function syncFromSupabase(){
       alert('Supabaseにデータがありません。別デバイスで「⬆ 送る」を押してください。');
       return;
     }
-    extractAndSaveImages(map.posts||[]);
+    // Supabaseのpostsは画像なし。既存KIの画像を使ってmerge
     posts=mergeImages(map.posts||[]);notes=map.notes||[];outlines=map.outlines||[];
     posts.forEach(p=>{if(!p.replies)p.replies=[];});
     notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
+    // Supabaseに画像があれば退避、なければKIはそのまま保持
+    const _hasImg=(map.posts||[]).some(p=>(p.images||[]).some(s=>s.startsWith('data:')));
+    if(_hasImg)extractAndSaveImages(map.posts||[]);
     const _s1=posts.map(p=>({...p,images:(p.images||[]).filter(s=>!s.startsWith('data:')),replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))}));
     localStorage.setItem(KP,JSON.stringify(_s1));
     localStorage.setItem(KN,JSON.stringify(notes));
@@ -2106,8 +2109,9 @@ async function saveToSupabase(){
   setSyncDot('syncing');
   const uid=currentUser.id;
   const ts=new Date().toISOString();
-  // 画像を復元してからSupabaseに保存
-  const postsWithImages=mergeImages(posts);
+  // KIの画像＋メモリの画像を両方マージしてSupabaseに保存
+  extractAndSaveImages(posts); // まずメモリ上の画像をKIに退避
+  const postsWithImages=mergeImages(posts); // KIから画像を復元してマージ
   const rows=[
     {user_id:uid,data_key:'posts',   data_value:postsWithImages,updated_at:ts},
     {user_id:uid,data_key:'notes',   data_value:notes,          updated_at:ts},
@@ -2235,7 +2239,8 @@ async function _pullFromSupabase(){
   if(error||!data)return;
   const map={};data.forEach(r=>{map[r.data_key]=r.data_value;});
   if(!map.posts?.length)return;
-  extractAndSaveImages(map.posts||[]);
+  const _hasImg2=(map.posts||[]).some(p=>(p.images||[]).some(s=>s.startsWith('data:')));
+  if(_hasImg2)extractAndSaveImages(map.posts||[]);
   posts=mergeImages(map.posts||[]);notes=map.notes||[];outlines=map.outlines||[];
   posts.forEach(p=>{if(!p.replies)p.replies=[];});
   notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
@@ -4267,16 +4272,19 @@ function load(){loadLocal();}
 const KI='tn_post_images_v20';
 
 function extractAndSaveImages(postsArr){
-  // base64画像だけ別キーに保存
-  const imgMap={};
+  // base64画像だけ別キーに保存（既存のKIとマージ）
+  let imgMap={};
+  try{imgMap=JSON.parse(localStorage.getItem(KI)||'{}');}catch(e){}
+  let updated=false;
   postsArr.forEach(p=>{
     const imgs=(p.images||[]).filter(s=>s.startsWith('data:'));
-    if(imgs.length)imgMap[p.id]=imgs;
+    if(imgs.length){imgMap[p.id]=imgs;updated=true;}
     (p.replies||[]).forEach(r=>{
       const ri=(r.images||[]).filter(s=>s.startsWith('data:'));
-      if(ri.length)imgMap['r:'+r.id]=ri;
+      if(ri.length){imgMap['r:'+r.id]=ri;updated=true;}
     });
   });
+  // 画像がなくてもKIに既存データがあれば保持（上書きしない）
   if(Object.keys(imgMap).length){
     try{localStorage.setItem(KI,JSON.stringify(imgMap));}catch(e){}
   }
