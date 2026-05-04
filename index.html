@@ -1341,9 +1341,15 @@ body {
         </div>
         <div class="cal-day-compose" id="calDayCompose" style="display:none;">
           <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;">
-            <textarea class="compose-ta" id="calComposeTA" placeholder="この日のつぶやきを追加…" onkeydown="onCalComposeKey(event)" style="min-height:52px;font-size:14px;"></textarea>
-            <div style="display:flex;justify-content:flex-end;padding:5px 10px;border-top:0.5px solid var(--border);">
-              <button class="compose-btn" onclick="submitCalPost()">投稿</button>
+            <textarea class="compose-ta" id="calComposeTA" placeholder="この日のつぶやきを追加…" onkeydown="onCalComposeKey(event)" onpaste="onNotePaste(event)" style="min-height:52px;font-size:14px;"></textarea>
+            <!-- 画像プレビュー -->
+            <div id="calImgPreview" style="display:flex;flex-wrap:wrap;gap:5px;padding:0 10px 5px;"></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-top:0.5px solid var(--border);">
+              <label style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">時刻</label>
+              <input type="time" id="calPostTime" style="border:0.5px solid var(--border2);border-radius:var(--rsm);padding:3px 6px;font-size:12px;color:var(--text);background:var(--bg);outline:none;">
+              <button onclick="document.getElementById('calImgIn').click()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--text3);" title="画像を追加">🖼️</button>
+              <input type="file" id="calImgIn" accept="image/*" multiple style="display:none" onchange="onCalImgSelect(event)">
+              <button class="compose-btn" style="margin-left:auto;" onclick="submitCalPost()">投稿</button>
             </div>
           </div>
         </div>
@@ -5279,19 +5285,49 @@ function onCalComposeKey(e){
   if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();submitCalPost();}
   setTimeout(()=>{const t=e.target;t.style.height='auto';t.style.height=Math.min(160,t.scrollHeight)+'px';},0);
 }
+let _calImgs=[];
+
+async function onCalImgSelect(e){
+  const files=Array.from(e.target.files||[]);
+  e.target.value='';
+  for(const f of files){
+    const dataUrl=await resizeImage(f,1200,0.85);
+    _calImgs.push(dataUrl);
+  }
+  renderCalImgPreview();
+}
+
+function renderCalImgPreview(){
+  const el=document.getElementById('calImgPreview');
+  if(!el)return;
+  el.innerHTML=_calImgs.map((src,i)=>`
+    <div style="position:relative;display:inline-block;">
+      <img src="${esc(src)}" style="height:48px;width:48px;object-fit:cover;border-radius:var(--rsm);">
+      <button onclick="_calImgs.splice(${i},1);renderCalImgPreview()" style="position:absolute;top:-4px;right:-4px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:9px;cursor:pointer;line-height:1;">✕</button>
+    </div>`).join('');
+}
+
 function submitCalPost(){
   const ta=document.getElementById('calComposeTA');if(!ta)return;
   const text=ta.value.trim();if(!text||!calSelectedDate)return;
-  // 指定日の23:59:59に投稿（タイムライン上では過去に並ぶ）
-  const endOfDay=new Date(calSelectedDate+'T23:59:59').getTime();
-  // 同日に複数あれば最後+1ms（日をまたがないよう同日内に収める）
-  const dayPosts=postsForDate(calSelectedDate);
-  const ts=dayPosts.length>0
-    ?Math.min(endOfDay, Math.max(...dayPosts.map(p=>p.createdAt))+1)
-    :endOfDay;
-  const p={id:uid(),content:text,createdAt:ts,updatedAt:ts,starred:false,replies:[]};
+  const timeVal=document.getElementById('calPostTime')?.value; // "HH:MM"
+  let ts;
+  if(timeVal){
+    ts=new Date(calSelectedDate+'T'+timeVal+':00').getTime();
+  } else {
+    // 時刻未指定：その日の既存投稿の最後+1msか、23:59:59
+    const endOfDay=new Date(calSelectedDate+'T23:59:59').getTime();
+    const dayPosts=postsForDate(calSelectedDate);
+    ts=dayPosts.length>0
+      ?Math.min(endOfDay, Math.max(...dayPosts.map(p=>p.createdAt))+1)
+      :endOfDay;
+  }
+  const p={id:uid(),content:text,createdAt:ts,updatedAt:ts,starred:false,replies:[],images:[..._calImgs]};
   posts.push(p);
   ta.value='';ta.style.height='';
+  _calImgs=[];renderCalImgPreview();
+  // 時刻入力をリセット
+  const ti=document.getElementById('calPostTime');if(ti)ti.value='';
   save();renderFeed();renderSidebar();
   renderCalendar();renderCalDayView(calSelectedDate);
 }
