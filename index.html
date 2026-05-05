@@ -1822,7 +1822,7 @@ async function loadFromSupabase(force=false){
   try{localNotes=JSON.parse(localStorage.getItem(KN)||'[]');}catch(e){}
   try{localOutlines=JSON.parse(localStorage.getItem(KO)||'[]');}catch(e){}
 
-  // ローカルを即表示（画面が空にならないように）
+  // ローカルを即表示（data:URLも含めてそのまま使う）
   if(localPosts.length>0){
     posts=localPosts;notes=localNotes;outlines=localOutlines;
     posts.forEach(p=>{if(!p.replies)p.replies=[];});
@@ -4341,14 +4341,11 @@ function mergeImages(postsArr){
 }
 
 function save(){
-  // https://URLはそのまま保存、data:（base64）だけ除去
-  const stripped=posts.map(p=>({
-    ...p,
-    images:(p.images||[]).filter(s=>!s.startsWith('data:')),
-    replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))
-  }));
-  try{localStorage.setItem(KP,JSON.stringify(stripped));}catch(e){
-    console.warn('localStorage save error:',e.message);
+  // localStorageにはdata:URLも含めて全部保存（表示に必要）
+  try{localStorage.setItem(KP,JSON.stringify(posts));}catch(e){
+    // 容量オーバーならdata:だけ除去して再試行
+    const s2=posts.map(p=>({...p,images:(p.images||[]).filter(i=>!i.startsWith('data:')),replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(i=>!i.startsWith('data:'))}))}));
+    try{localStorage.setItem(KP,JSON.stringify(s2));}catch(e2){console.warn('localStorage full:',e2.message);}
   }
   try{localStorage.setItem(KN,JSON.stringify(notes));}catch(e){}
   try{localStorage.setItem(KO,JSON.stringify(outlines));}catch(e){}
