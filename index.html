@@ -1804,9 +1804,11 @@ async function signUpWithPassword(){
 async function signOut(){
   stopRealtime();
   clearTimeout(saveTimer);
-  try{await sb.auth.signOut();}catch(e){console.warn('signOut:',e);}
-  // セッショントークンを強制削除
-  Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k));
+  try{await sb.auth.signOut({scope:'local'});}catch(e){}
+  // supabase関連のキーを全消去
+  Object.keys(localStorage).filter(k=>
+    k.startsWith('sb-')||k.startsWith('supabase')
+  ).forEach(k=>localStorage.removeItem(k));
   sessionStorage.clear();
   location.reload();
 }
@@ -2152,7 +2154,14 @@ async function saveToSupabase(){
     setSyncDot('saved');
     console.log('✅ 保存完了 投稿'+posts.length+'件 画像キー'+Object.keys(imgMap).length+'件');
   }catch(e){
-    lastSaveOk=false;console.error('saveToSupabase error:',e.message);setSyncDot('error');
+    lastSaveOk=false;
+    console.error('saveToSupabase error:',e.message);
+    setSyncDot('error');
+    // エラー内容をdotのtitleに表示（ホバーで確認可能）
+    const _dot=document.getElementById('syncDot');
+    if(_dot)_dot.title='保存エラー: '+e.message;
+    // モバイル向けにalert
+    if(window.innerWidth<=640)setTimeout(()=>alert('⚠️ 保存エラー:\n'+e.message),500);
   }
 }
 
