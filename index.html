@@ -2152,7 +2152,7 @@ async function saveToSupabase(){
     if(error)throw error;
     lastSaveOk=true;_lastSaveTime=Date.now();
     setSyncDot('saved');
-    console.log('✅ 保存完了 投稿'+posts.length+'件 画像キー'+Object.keys(imgMap).length+'件');
+    console.log('✅ 保存完了 投稿'+posts.length+'件');
   }catch(e){
     lastSaveOk=false;
     console.error('saveToSupabase error:',e.message);
