@@ -5292,7 +5292,6 @@ function openCalDoc(type,id){
 }
 
 function renderCalPost(p){
-function renderCalPost(p){
   const text=p.content.replace(/#[^\s#、。！？,.!?]+/g,'').trim();
   const tags=extractTags(p.content);
   const repliesHtml=(p.replies||[]).length?`<div style="padding-left:14px;border-left:2px solid var(--border2);margin-top:6px;">
@@ -5319,24 +5318,6 @@ function renderCalPost(p){
     <div id="calTagIn-${p.id}" style="display:none;margin-top:4px;">
       <input placeholder="#タグ名" style="padding:3px 8px;border:0.5px solid var(--border2);border-radius:20px;font-size:12px;font-family:inherit;outline:none;width:130px;"
         onkeydown="if(event.key==='Enter'&&!event.isComposing){calAddTag('${p.id}',this.value);this.value='';}">
-    </div>
-    ${imgsHtml}
-    ${repliesHtml}
-  </div>`;
-}
-  const repliesHtml=(p.replies||[]).length?`<div style="padding-left:14px;border-left:2px solid var(--border2);margin-top:6px;">
-    ${(p.replies||[]).map(r=>`<div style="padding:4px 0;">
-      <div style="font-size:13px;color:var(--text2);">${esc(r.content)}<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);margin-left:6px;">${fmtDt(r.createdAt)}</span></div>
-      ${(r.images&&r.images.length)?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${r.images.map(src=>`<img src="${src}" onclick="openLightbox('${src}')" loading="lazy" style="max-width:160px;max-height:120px;border-radius:var(--rsm);cursor:pointer;object-fit:cover;border:0.5px solid var(--border);">`).join('')}</div>`:''}
-    </div>`).join('')}
-  </div>`:'';
-  const imgsHtml=(p.images&&p.images.length)?`<div class="post-images" style="padding-left:0;margin-top:8px;">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:'';
-  return`<div class="post" id="calpost-${p.id}" style="padding:10px 0;">
-    <div class="post-text" style="font-size:14px;">${linkify(text)||'（空）'}</div>
-    <div class="post-meta" style="margin-top:4px;">
-      <span class="post-time">${fmtDt(p.createdAt)}</span>
-      ${tags.map(t=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--accent);margin-left:4px;">#${esc(t)}</span>`).join('')}
-      ${p.bskyUri?`<span class="bsky-post-status ok" style="font-size:9px;padding:1px 5px;margin-left:4px;">🦋</span>`:''}
     </div>
     ${imgsHtml}
     ${repliesHtml}
