@@ -1820,40 +1820,40 @@ async function loadFromSupabase(force=false){
   try{localNotes=JSON.parse(localStorage.getItem(KN)||'[]');}catch(e){}
   try{localOutlines=JSON.parse(localStorage.getItem(KO)||'[]');}catch(e){}
 
-  // ローカルを即表示（画像はKIからマージ）
+  // ローカルを即表示（画面が空にならないように）
   if(localPosts.length>0){
-    posts=mergeImages(localPosts);
-    notes=localNotes;outlines=localOutlines;
+    posts=localPosts;notes=localNotes;outlines=localOutlines;
     posts.forEach(p=>{if(!p.replies)p.replies=[];});
     renderSidebar();renderFeed();
   }
 
-  // 常にSupabaseのpost_imagesを取得してKIを更新
+  // 常にSupabaseを確認
   setSyncDot('syncing');
   try{
     const {data,error}=await sb.from('thinkdata')
       .select('data_key,data_value').eq('user_id',currentUser.id);
     if(error)throw error;
     const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
+    const sbPosts=map.posts||[];
 
-    // 画像キーを取得：ローカルKIとマージ（新しい画像を消さない）
-    if(map.post_images&&Object.keys(map.post_images).length){
-      let localKI={};
-      try{localKI=JSON.parse(localStorage.getItem(KI)||'{}');}catch(e){}
-      // Supabaseを基本とし、ローカルにしかないキーは保持
-      const merged={...map.post_images,...localKI};
-      try{localStorage.setItem(KI,JSON.stringify(merged));}catch(e){}
+    if(!sbPosts.length){
+      // Supabaseが空→ローカルをアップロード
+      if(localPosts.length)sbRun(saveToSupabase);
+      setSyncDot('saved');return;
     }
 
-    if(localPosts.length>0){
-      // ローカルあり→画像だけ更新して再レンダリング
-      posts=mergeImages(localPosts);
-      posts.forEach(p=>{if(!p.replies)p.replies=[];});
-      renderSidebar();renderFeed();
-    } else if(map.posts?.length){
-      // ローカルなし→Supabaseのテキストも取得
-      posts=mergeImages(map.posts||[]);
-      notes=map.notes||[];outlines=map.outlines||[];
+    // 最新投稿のcreatedAtで比較
+    const latestLocal=localPosts.length
+      ?Math.max(...localPosts.map(p=>p.createdAt||0)):0;
+    const latestSb=Math.max(...sbPosts.map(p=>p.createdAt||0));
+
+    console.log(`📊 ローカル最新: ${new Date(latestLocal).toLocaleString()}`);
+    console.log(`📊 Supabase最新: ${new Date(latestSb).toLocaleString()}`);
+
+    if(latestSb>latestLocal){
+      // Supabaseが新しい→採用
+      console.log('✅ Supabaseを採用');
+      posts=sbPosts;notes=map.notes||[];outlines=map.outlines||[];
       posts.forEach(p=>{if(!p.replies)p.replies=[];});
       notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
       const stripped=posts.map(p=>({...p,
@@ -1864,10 +1864,17 @@ async function loadFromSupabase(force=false){
       localStorage.setItem(KN,JSON.stringify(notes));
       localStorage.setItem(KO,JSON.stringify(outlines));
       renderSidebar();renderFeed();
+    } else if(latestLocal>latestSb){
+      // ローカルが新しい→Supabaseにアップロード
+      console.log('✅ ローカルを採用→アップロード');
+      sbRun(saveToSupabase);
+    } else {
+      console.log('✅ 同じ');
     }
   }catch(e){console.warn('load error:',e);}
   setSyncDot('saved');
 }
+
 
 
 
