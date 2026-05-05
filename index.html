@@ -5292,8 +5292,38 @@ function openCalDoc(type,id){
 }
 
 function renderCalPost(p){
+function renderCalPost(p){
   const text=p.content.replace(/#[^\s#、。！？,.!?]+/g,'').trim();
   const tags=extractTags(p.content);
+  const repliesHtml=(p.replies||[]).length?`<div style="padding-left:14px;border-left:2px solid var(--border2);margin-top:6px;">
+    ${(p.replies||[]).map(r=>`<div style="padding:4px 0;">
+      <div style="font-size:13px;color:var(--text2);">${esc(r.content)}</div>
+      ${(r.images&&r.images.length)?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${r.images.map(src=>`<img src="${src}" onclick="openLightbox('${src}')" loading="lazy" style="max-width:160px;max-height:120px;border-radius:var(--rsm);cursor:pointer;object-fit:cover;">`).join('')}</div>`:''}
+    </div>`).join('')}
+  </div>`:'';
+  const imgsHtml=(p.images&&p.images.length)?`<div class="post-images" style="padding-left:0;margin-top:8px;">
+    ${p.images.map((src,i)=>`<div style="position:relative;display:inline-block;margin:2px;">
+      <img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">
+      <button onclick="calRemoveImage('${p.id}',${i})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:1;">✕</button>
+    </div>`).join('')}
+  </div>`:'';
+  return`<div class="post" id="calpost-${p.id}" style="padding:10px 0;">
+    <div class="post-text" style="font-size:14px;">${linkify(text)||'（空）'}</div>
+    <div class="post-meta" style="margin-top:6px;display:flex;align-items:center;flex-wrap:wrap;gap:5px;">
+      <span class="post-time">${fmtDt(p.createdAt)}</span>
+      ${tags.map(t=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--accent);cursor:pointer;" onclick="calRemoveTag('${p.id}','${t}')">#${esc(t)} ✕</span>`).join('')}
+      ${p.bskyUri?`<span class="bsky-post-status ok" style="font-size:9px;">🦋</span>`:''}
+      <span onclick="calTagInput('${p.id}')" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);cursor:pointer;padding:1px 7px;border:0.5px dashed var(--border2);border-radius:20px;">＋タグ</span>
+      <label style="cursor:pointer;font-size:12px;color:var(--text3);" title="写真を追加">🖼️<input type="file" accept="image/*" multiple style="display:none" onchange="calAddImages(event,'${p.id}')"></label>
+    </div>
+    <div id="calTagIn-${p.id}" style="display:none;margin-top:4px;">
+      <input placeholder="#タグ名" style="padding:3px 8px;border:0.5px solid var(--border2);border-radius:20px;font-size:12px;font-family:inherit;outline:none;width:130px;"
+        onkeydown="if(event.key==='Enter'&&!event.isComposing){calAddTag('${p.id}',this.value);this.value='';}">
+    </div>
+    ${imgsHtml}
+    ${repliesHtml}
+  </div>`;
+}
   const repliesHtml=(p.replies||[]).length?`<div style="padding-left:14px;border-left:2px solid var(--border2);margin-top:6px;">
     ${(p.replies||[]).map(r=>`<div style="padding:4px 0;">
       <div style="font-size:13px;color:var(--text2);">${esc(r.content)}<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);margin-left:6px;">${fmtDt(r.createdAt)}</span></div>
@@ -5312,6 +5342,48 @@ function renderCalPost(p){
     ${repliesHtml}
   </div>`;
 }
+function calTagInput(postId){
+  const d=document.getElementById('calTagIn-'+postId);
+  if(!d)return;
+  const open=d.style.display==='none';
+  d.style.display=open?'block':'none';
+  if(open)d.querySelector('input')?.focus();
+}
+function calAddTag(postId,val){
+  const tag=(val||'').replace(/^#+/,'').trim();
+  if(!tag)return;
+  const p=posts.find(x=>x.id===postId);if(!p)return;
+  if(!p.content.includes('#'+tag))p.content+=' #'+tag;
+  p.updatedAt=Date.now();save();
+  renderCalDayView(calSelectedDate);
+}
+function calRemoveTag(postId,tag){
+  const p=posts.find(x=>x.id===postId);if(!p)return;
+  p.content=p.content.replace(new RegExp('\\s*#'+tag+'\\b','g'),'').trim();
+  p.updatedAt=Date.now();save();
+  renderCalDayView(calSelectedDate);
+}
+function calRemoveImage(postId,idx){
+  const p=posts.find(x=>x.id===postId);if(!p)return;
+  p.images=(p.images||[]);p.images.splice(idx,1);
+  p.updatedAt=Date.now();save();
+  renderCalDayView(calSelectedDate);
+}
+async function calAddImages(e,postId){
+  const files=Array.from(e.target.files||[]);e.target.value='';
+  const p=posts.find(x=>x.id===postId);if(!p)return;
+  if(!p.images)p.images=[];
+  const pending=[];
+  for(const f of files){
+    const dataUrl=await resizeImage(f,1200,0.85);
+    pending.push({dataUrl});
+  }
+  const urls=await uploadImagesToStorage(pending);
+  p.images.push(...urls);
+  p.updatedAt=Date.now();save();
+  renderCalDayView(calSelectedDate);
+}
+
 function calPrevMonth(){
   calMonth--;if(calMonth<0){calMonth=11;calYear--;}
   renderCalendar();
@@ -5363,26 +5435,30 @@ function renderCalImgPreview(){
     </div>`).join('');
 }
 
-function submitCalPost(){
+async function submitCalPost(){
   const ta=document.getElementById('calComposeTA');if(!ta)return;
-  const text=ta.value.trim();if(!text||!calSelectedDate)return;
-  const timeVal=document.getElementById('calPostTime')?.value; // "HH:MM"
+  const text=ta.value.trim();if(!text&&!_calImgs.length)return;
+  if(!calSelectedDate)return;
+  const timeVal=document.getElementById('calPostTime')?.value;
   let ts;
   if(timeVal){
     ts=new Date(calSelectedDate+'T'+timeVal+':00').getTime();
   } else {
-    // 時刻未指定：その日の既存投稿の最後+1msか、23:59:59
     const endOfDay=new Date(calSelectedDate+'T23:59:59').getTime();
     const dayPosts=postsForDate(calSelectedDate);
     ts=dayPosts.length>0
       ?Math.min(endOfDay, Math.max(...dayPosts.map(p=>p.createdAt))+1)
       :endOfDay;
   }
-  const p={id:uid(),content:text,createdAt:ts,updatedAt:ts,starred:false,replies:[],images:[..._calImgs]};
+  // 画像をStorageにアップロード
+  const localImgs=_calImgs.map(src=>({dataUrl:src}));
+  const imgUrls=localImgs.length>0
+    ?await uploadImagesToStorage(localImgs)
+    :[];
+  const p={id:uid(),content:text,createdAt:ts,updatedAt:ts,starred:false,replies:[],images:imgUrls};
   posts.push(p);
   ta.value='';ta.style.height='';
   _calImgs=[];renderCalImgPreview();
-  // 時刻入力をリセット
   const ti=document.getElementById('calPostTime');if(ti)ti.value='';
   save();renderFeed();renderSidebar();
   renderCalendar();renderCalDayView(calSelectedDate);
