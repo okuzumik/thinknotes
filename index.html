@@ -2133,13 +2133,10 @@ async function saveToSupabase(){
     images:(p.images||[]).filter(s=>!s.startsWith('data:')),
     replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))
   }));
-  let imgMap={};
-  try{imgMap=JSON.parse(localStorage.getItem(KI)||'{}');}catch(e){}
   const rows=[
-    {user_id:uid,data_key:'posts',      data_value:stripped, updated_at:ts},
-    {user_id:uid,data_key:'notes',      data_value:notes,    updated_at:ts},
-    {user_id:uid,data_key:'outlines',   data_value:outlines, updated_at:ts},
-    {user_id:uid,data_key:'post_images',data_value:imgMap,   updated_at:ts},
+    {user_id:uid,data_key:'posts',   data_value:stripped,updated_at:ts},
+    {user_id:uid,data_key:'notes',   data_value:notes,   updated_at:ts},
+    {user_id:uid,data_key:'outlines',data_value:outlines,updated_at:ts},
   ];
   try{
     const {error}=await sb.from('thinkdata').upsert(rows,{onConflict:'user_id,data_key'});
@@ -4316,32 +4313,26 @@ function extractAndSaveImages(postsArr){
 }
 
 function mergeImages(postsArr){
-  // 退避した画像を posts に戻す
-  let imgMap={};
-  try{imgMap=JSON.parse(localStorage.getItem(KI)||'{}');}catch(e){}
+  // https://URLはそのまま保持（base64のみ除去）
   return postsArr.map(p=>({
     ...p,
-    images:[...(p.images||[]).filter(s=>!s.startsWith('data:')),
-            ...(imgMap[p.id]||[])],
+    images:(p.images||[]).filter(s=>!s.startsWith('data:')),
     replies:(p.replies||[]).map(r=>({
       ...r,
-      images:[...(r.images||[]).filter(s=>!s.startsWith('data:')),
-              ...(imgMap['r:'+r.id]||[])]
+      images:(r.images||[]).filter(s=>!s.startsWith('data:'))
     }))
   }));
 }
 
 function save(){
-  // 画像を別キーに退避してからlocalStorageに保存
-  extractAndSaveImages(posts);
+  // https://URLはそのまま保存、data:（base64）だけ除去
   const stripped=posts.map(p=>({
     ...p,
     images:(p.images||[]).filter(s=>!s.startsWith('data:')),
     replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))
   }));
   try{localStorage.setItem(KP,JSON.stringify(stripped));}catch(e){
-    console.warn('localStorage full, saving without images');
-    try{localStorage.setItem(KP,JSON.stringify(stripped));}catch(e2){}
+    console.warn('localStorage save error:',e.message);
   }
   try{localStorage.setItem(KN,JSON.stringify(notes));}catch(e){}
   try{localStorage.setItem(KO,JSON.stringify(outlines));}catch(e){}
