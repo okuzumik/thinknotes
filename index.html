@@ -1814,43 +1814,57 @@ async function signOut(){
 async function loadFromSupabase(force=false){
   if(!currentUser)return;
 
-  // ローカルを読む（DEMOなし）
+  // ローカルを読む
   let localPosts=[], localNotes=[], localOutlines=[];
   try{localPosts=JSON.parse(localStorage.getItem(KP)||'[]');}catch(e){}
   try{localNotes=JSON.parse(localStorage.getItem(KN)||'[]');}catch(e){}
   try{localOutlines=JSON.parse(localStorage.getItem(KO)||'[]');}catch(e){}
 
+  // ローカルを即表示（画像はKIからマージ）
   if(localPosts.length>0){
-    posts=mergeImages(localPosts); // KIから画像を復元
+    posts=mergeImages(localPosts);
     notes=localNotes;outlines=localOutlines;
     posts.forEach(p=>{if(!p.replies)p.replies=[];});
-    setSyncDot('saved');
     renderSidebar();renderFeed();
-    return;
   }
 
-  // ローカルが空の場合のみSupabaseから取得
+  // 常にSupabaseのpost_imagesを取得してKIを更新
   setSyncDot('syncing');
   try{
     const {data,error}=await sb.from('thinkdata')
       .select('data_key,data_value').eq('user_id',currentUser.id);
-    if(!error&&data){
-      const map={};data.forEach(r=>{map[r.data_key]=r.data_value;});
-      if(map.posts?.length){
-        posts=map.posts;notes=map.notes||[];outlines=map.outlines||[];
-        posts.forEach(p=>{if(!p.replies)p.replies=[];});
-        notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
-        extractAndSaveImages(posts);
-        const stripped=posts.map(p=>({...p,images:(p.images||[]).filter(s=>!s.startsWith('data:')),replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))}));
-        localStorage.setItem(KP,JSON.stringify(stripped));
-        localStorage.setItem(KN,JSON.stringify(notes));
-        localStorage.setItem(KO,JSON.stringify(outlines));
-      }
+    if(error)throw error;
+    const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
+
+    // 画像キーを取得してKIを更新（空でなければ）
+    if(map.post_images&&Object.keys(map.post_images).length){
+      try{localStorage.setItem(KI,JSON.stringify(map.post_images));}catch(e){}
+    }
+
+    if(localPosts.length>0){
+      // ローカルあり→画像だけ更新して再レンダリング
+      posts=mergeImages(localPosts);
+      posts.forEach(p=>{if(!p.replies)p.replies=[];});
+      renderSidebar();renderFeed();
+    } else if(map.posts?.length){
+      // ローカルなし→Supabaseのテキストも取得
+      posts=mergeImages(map.posts||[]);
+      notes=map.notes||[];outlines=map.outlines||[];
+      posts.forEach(p=>{if(!p.replies)p.replies=[];});
+      notes.forEach(n=>{if(!n.items)n.items=[];if(!n.paragraphs)n.paragraphs=[];});
+      const stripped=posts.map(p=>({...p,
+        images:(p.images||[]).filter(s=>!s.startsWith('data:')),
+        replies:(p.replies||[]).map(r=>({...r,images:(r.images||[]).filter(s=>!s.startsWith('data:'))}))
+      }));
+      localStorage.setItem(KP,JSON.stringify(stripped));
+      localStorage.setItem(KN,JSON.stringify(notes));
+      localStorage.setItem(KO,JSON.stringify(outlines));
+      renderSidebar();renderFeed();
     }
   }catch(e){console.warn('load error:',e);}
   setSyncDot('saved');
-  renderSidebar();renderFeed();
 }
+
 
 
 async function _rawSave(p,n,o){
