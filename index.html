@@ -925,6 +925,9 @@ body {
 .source-quote-card { background:#fff; border:0.5px solid var(--source-m); border-left:3px solid var(--source); border-radius:var(--rsm); overflow:hidden; }
 .source-quote-card:hover .source-quote-actions { opacity:1; }
 .source-quote-body { padding:9px 12px; }
+.quote-body { background:var(--bg3); border-left:3px solid var(--border2); border-radius:0 var(--rsm) var(--rsm) 0; padding:8px 10px; margin-bottom:4px; }
+.quote-body::before { content:'❝'; font-size:10px; color:var(--text3); display:block; margin-bottom:2px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
+.post.is-quote .post-text { font-style:italic; color:var(--text2); }
 .source-quote-episode { display:inline-block; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--source); background:var(--source-l); border:0.5px solid var(--source-m); border-radius:20px; padding:1px 7px; margin-bottom:5px; }
 .source-quote-text { font-size:12.5px; line-height:1.75; color:var(--text2); font-style:italic; white-space:pre-wrap; word-break:break-word; border-left:2px solid var(--source-m); padding-left:8px; margin:0 0 6px; }
 .source-quote-comment { font-size:12.5px; line-height:1.7; color:var(--text); white-space:pre-wrap; word-break:break-word; }
@@ -950,12 +953,6 @@ body {
 .compose-source-sub { font-size:10px; color:var(--text2); font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
 .compose-source-dismiss { background:none; border:none; color:var(--text3); cursor:pointer; font-size:13px; flex-shrink:0; padding:0 2px; }
 /* 投稿のソースリンクカード */
-.post.is-quote { background:var(--bg3); margin-left:1.5rem; border-radius:0 var(--rsm) var(--rsm) 0; border-bottom:none; }
-.post.is-quote .quote-body { border-left:3px solid var(--border2); padding-left:8px; }
-.post.is-quote .post-text { font-style:italic; color:var(--text2); }
-.post.is-quote .thread-wrap { border-bottom:0.5px solid var(--border); margin-bottom:0; background:var(--bg); }
-.post.is-quote .reply-post:last-child { border-bottom:none; }
-.quote-body::before { content:'❝'; font-size:11px; color:var(--text3); display:block; margin-bottom:2px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
 .post-source-card { display:inline-flex; align-items:center; gap:5px; margin-top:5px; margin-left:1.5rem; padding:3px 10px 3px 8px; background:var(--source-l); border:0.5px solid var(--source-m); border-left:2px solid var(--source); border-radius:4px; cursor:pointer; transition:background .15s; text-decoration:none; max-width:320px; }
 .post-source-card:hover { background:#e8eaed; }
 .post-source-card-icon { font-size:10px; flex-shrink:0; }
@@ -5599,12 +5596,11 @@ function renderPost(p){
     </div>`:'';
 
   const isQuote=tags.includes('引用');
-  return`<div class="post ${sel?'selected':''} ${isQuote?'is-quote':''}" id="post-${p.id}">
-    ${isQuote?'<div class="quote-body">':''}
+  return`<div class="post ${sel?'selected':''}" id="post-${p.id}">
     <div class="post-row1">
       <div class="post-sel"><div class="post-sel-box ${sel?'checked':''}" onclick="toggleSel('${p.id}')"></div></div>
       <div class="post-body">
-        ${isEditing?'':`<div class="post-text">${linkify(displayText)||'（空）'}</div>`}
+        ${isEditing?'':`${isQuote?'<div class="quote-body">':''}<div class="post-text">${linkify(displayText)||'（空）'}</div>${isQuote?'</div>':''}`}
         <div class="post-meta">
           <span class="post-time">${fmtDt(p.createdAt)}</span>
           ${p.bskyUri?`<span class="bsky-post-status ok" style="font-size:9px;padding:1px 5px;">🦋</span>`:''}
@@ -5643,7 +5639,6 @@ function renderPost(p){
     ${p.quoteText?`<div style="margin-top:8px;margin-left:1rem;padding:7px 12px 7px 12px;border-left:3px solid var(--source);background:var(--source-l);border-radius:0 var(--rsm) var(--rsm) 0;"><div style="font-size:9px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--source);font-weight:600;margin-bottom:4px;letter-spacing:.05em;">引用</div><div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText)}</div></div>`:''}\n    ${(p.images&&p.images.length)?`<div class="post-images">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:''}
     ${p.ogp?`<div style="margin-top:6px;margin-left:1.5rem;">`+renderOgpCard(p.ogp)+`</div>`:''}
     ${p.sourceRef?`<div style="margin-top:6px;margin-left:1.5rem;">`+renderPostSourceCard(p.sourceRef)+`</div>`:''}
-    ${isQuote?'</div>':''}
     ${threadHtml}
     ${replyComposeHtml}
   </div>`;
