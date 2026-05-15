@@ -5630,15 +5630,16 @@ function renderPost(p){
         <button class="post-edit-btn save" onclick="savePostEdit('${p.id}')">保存</button>
         <button class="post-edit-btn cancel" onclick="cancelPostEdit()">キャンセル</button>
       </div></div>`:''}
+    ${p.quoteText?`<div style="margin-top:8px;margin-left:1rem;padding:7px 12px 7px 12px;border-left:3px solid var(--source);background:var(--source-l);border-radius:0 var(--rsm) var(--rsm) 0;"><div style="font-size:9px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--source);font-weight:600;margin-bottom:4px;letter-spacing:.05em;">引用</div><div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText)}</div></div>`:''}
+    ${(p.images&&p.images.length)?`<div class="post-images">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:''}
+    ${p.ogp?`<div style="margin-top:6px;">`+renderOgpCard(p.ogp)+`</div>`:''}
+    ${p.sourceRef?`<div style="margin-top:6px;">`+renderPostSourceCard(p.sourceRef)+`</div>`:''}
     <div class="post-tags-row">
       ${tagPills}
       ${isEditingTag
         ?`<span class="tag-input-wrap"><input class="tag-input" id="taginput-${p.id}" placeholder="タグ名" maxlength="20" onkeydown="onTagInputKey(event,'${p.id}')" onblur="cancelTagEdit('${p.id}')"></span>`
         :`<button class="tag-add-btn" onclick="startTagEdit('${p.id}')">＋ タグ</button>`}
     </div>
-    ${p.quoteText?`<div style="margin-top:8px;margin-left:1rem;padding:7px 12px 7px 12px;border-left:3px solid var(--source);background:var(--source-l);border-radius:0 var(--rsm) var(--rsm) 0;"><div style="font-size:9px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--source);font-weight:600;margin-bottom:4px;letter-spacing:.05em;">引用</div><div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText)}</div></div>`:''}\n    ${(p.images&&p.images.length)?`<div class="post-images">${p.images.map(src=>`<img class="post-image" src="${src}" onclick="openLightbox('${src}')" loading="lazy">`).join('')}</div>`:''}
-    ${p.ogp?`<div style="margin-top:6px;margin-left:1.5rem;">`+renderOgpCard(p.ogp)+`</div>`:''}
-    ${p.sourceRef?`<div style="margin-top:6px;margin-left:1.5rem;">`+renderPostSourceCard(p.sourceRef)+`</div>`:''}
     ${threadHtml}
     ${replyComposeHtml}
   </div>`;
