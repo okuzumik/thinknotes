@@ -950,6 +950,9 @@ body {
 .compose-source-sub { font-size:10px; color:var(--text2); font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
 .compose-source-dismiss { background:none; border:none; color:var(--text3); cursor:pointer; font-size:13px; flex-shrink:0; padding:0 2px; }
 /* 投稿のソースリンクカード */
+.post.is-quote { background:var(--bg3); border-left:3px solid var(--border2); margin-left:1.5rem; border-radius:0 var(--rsm) var(--rsm) 0; }
+.post.is-quote .post-text { font-style:italic; color:var(--text2); }
+.post.is-quote::before { content:'❝'; font-size:11px; color:var(--text3); display:block; margin-bottom:2px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
 .post-source-card { display:inline-flex; align-items:center; gap:5px; margin-top:5px; margin-left:1.5rem; padding:3px 10px 3px 8px; background:var(--source-l); border:0.5px solid var(--source-m); border-left:2px solid var(--source); border-radius:4px; cursor:pointer; transition:background .15s; text-decoration:none; max-width:320px; }
 .post-source-card:hover { background:#e8eaed; }
 .post-source-card-icon { font-size:10px; flex-shrink:0; }
@@ -1203,6 +1206,7 @@ body {
             <button class="img-attach-btn" onclick="openSourcePicker()" title="ソースを引用" style="font-size:13px;">📎</button>
             <input type="file" id="imageInput" accept="image/*" multiple style="display:none" onchange="onImageSelected(event)">
             <div class="compose-hint">Ctrl+Enter で投稿　<span>#タグ</span> は後から追加・削除できます</div>
+            <button onclick="toggleQuoteTag()" id="quoteTagBtn" title="#引用タグを付けて引用スタイルで投稿" style="padding:3px 10px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--text3);cursor:pointer;">❝ 引用</button>
             <label class="bsky-check-wrap" id="bskyCheckWrap" style="display:none">
               <input type="checkbox" id="bskyCheck">🦋 Bskyにも
             </label>
@@ -5591,7 +5595,8 @@ function renderPost(p){
       </div>
     </div>`:'';
 
-  return`<div class="post ${sel?'selected':''}" id="post-${p.id}">
+  const isQuote=tags.includes('引用');
+  return`<div class="post ${sel?'selected':''} ${isQuote?'is-quote':''}" id="post-${p.id}">
     <div class="post-row1">
       <div class="post-sel"><div class="post-sel-box ${sel?'checked':''}" onclick="toggleSel('${p.id}')"></div></div>
       <div class="post-body">
@@ -5663,6 +5668,21 @@ async function uploadImagesToStorage(pendingImgs){
 }
 
 // Post CRUD
+function toggleQuoteTag(){
+  const ta=document.getElementById('composeTA');
+  const btn=document.getElementById('quoteTagBtn');
+  if(!ta||!btn)return;
+  const hasTag=ta.value.includes('#引用');
+  if(hasTag){
+    ta.value=ta.value.replace(/\s*#引用/g,'').trim();
+    btn.style.background='none';btn.style.color='var(--text3)';btn.style.borderColor='var(--border2)';
+  } else {
+    ta.value=(ta.value.trim()+' #引用').trim();
+    btn.style.background='var(--accent-l)';btn.style.color='var(--accent-d)';btn.style.borderColor='var(--accent-m,#c8a860)';
+  }
+  ta.focus();
+}
+
 async function submitPost(){
   const ta=document.getElementById('composeTA');const text=ta.value.trim();
   if(!text&&!pendingImages.length&&!pendingOgp)return;
