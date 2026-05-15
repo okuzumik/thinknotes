@@ -5509,7 +5509,16 @@ function linkify(text){
     url=>{
       // 末尾の句読点・カッコ等を除去
       url=url.replace(/[。、）】』」.,!?:;]+$/,'');
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--teal);text-decoration:underline;word-break:break-all;font-size:.85em;">${url}</a>`;
+      // 表示用：ドメイン＋パスを短縮（40字超えたら末尾を…）
+      let label=url;
+      try{
+        const u=new URL(url);
+        const path=decodeURIComponent(u.pathname).replace(/\/$/,'');
+        const tail=path.split('/').pop()||'';
+        label=u.hostname+(tail?'/'+tail:'');
+      }catch(e){}
+      if(label.length>45)label=label.slice(0,44)+'…';
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" title="${url}" style="color:var(--teal);text-decoration:underline;word-break:break-all;">${esc(label)}</a>`;
     }
   );
 }
