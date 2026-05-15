@@ -5601,8 +5601,8 @@ function renderPost(p){
       <div class="post-sel"><div class="post-sel-box ${sel?'checked':''}" onclick="toggleSel('${p.id}')"></div></div>
       <div class="post-body">
         ${isEditing?'':`${isQuote?'<div class="quote-body">':''}<div class="post-text">${linkify(displayText)||'（空）'}</div>${isQuote?'</div>':''}`}
-        ${p.ogp?`<div style="margin-top:6px;margin-left:1.2rem;">`+renderOgpCard(p.ogp)+`</div>`:''}
-        ${p.sourceRef?`<div style="margin-top:6px;margin-left:1.2rem;">`+renderPostSourceCard(p.sourceRef)+`</div>`:''}
+        ${p.ogp?`<div style="margin-top:6px;">`+renderOgpCard(p.ogp)+`</div>`:''}
+        ${p.sourceRef?`<div style="margin-top:6px;">`+renderPostSourceCard(p.sourceRef)+`</div>`:''}
         <div class="post-meta">
           <span class="post-time">${fmtDt(p.createdAt)}</span>
           ${p.bskyUri?`<span class="bsky-post-status ok" style="font-size:9px;padding:1px 5px;">🦋</span>`:''}
