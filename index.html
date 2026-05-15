@@ -525,7 +525,6 @@ body {
 
 /* ─ Thread replies ─ */
 .thread-wrap { padding-left:27px; }
-.post.is-quote .thread-wrap { background:var(--bg); }
 .thread-line-area { display:flex; gap:0; }
 .thread-line { width:2px; background:var(--border2); border-radius:1px; flex-shrink:0; margin:0 11px 0 5px; }
 .thread-replies { flex:1; min-width:0; }
@@ -951,9 +950,11 @@ body {
 .compose-source-sub { font-size:10px; color:var(--text2); font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
 .compose-source-dismiss { background:none; border:none; color:var(--text3); cursor:pointer; font-size:13px; flex-shrink:0; padding:0 2px; }
 /* 投稿のソースリンクカード */
-.post.is-quote { background:var(--bg3); margin-left:1.5rem; border-radius:0 var(--rsm) var(--rsm) 0; }
+.post.is-quote { background:var(--bg3); margin-left:1.5rem; border-radius:0 var(--rsm) var(--rsm) 0; border-bottom:none; }
 .post.is-quote .quote-body { border-left:3px solid var(--border2); padding-left:8px; }
 .post.is-quote .post-text { font-style:italic; color:var(--text2); }
+.post.is-quote .thread-wrap { border-bottom:0.5px solid var(--border); margin-bottom:0; background:var(--bg); }
+.post.is-quote .reply-post:last-child { border-bottom:none; }
 .quote-body::before { content:'❝'; font-size:11px; color:var(--text3); display:block; margin-bottom:2px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; }
 .post-source-card { display:inline-flex; align-items:center; gap:5px; margin-top:5px; margin-left:1.5rem; padding:3px 10px 3px 8px; background:var(--source-l); border:0.5px solid var(--source-m); border-left:2px solid var(--source); border-radius:4px; cursor:pointer; transition:background .15s; text-decoration:none; max-width:320px; }
 .post-source-card:hover { background:#e8eaed; }
