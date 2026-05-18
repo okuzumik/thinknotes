@@ -2405,7 +2405,7 @@ function bskyAppendSourceTag(text, sourceTitle){
   return combined.length<=300?combined:text.slice(0,300-tag.length-1).trimEnd()+'\n'+tag;
 }
 
-async function postToBsky(text, replyRef=null, imageUrls=[]){
+async function postToBsky(text, replyRef=null, imageUrls=[], originalFiles=[]){
   if(!bskySession)return{ok:false,error:'未接続'};
   const bskyText=text.length>300?text.slice(0,297)+'…':text;
   // ハッシュタグfacet
@@ -2428,10 +2428,18 @@ async function postToBsky(text, replyRef=null, imageUrls=[]){
   // 画像をBskyにアップロードしてembedに追加
   if(imageUrls&&imageUrls.length>0){
     const blobs=[];
-    for(const url of imageUrls.slice(0,4)){ // Bskyは最大4枚
+    for(let i=0;i<Math.min(imageUrls.length,4);i++){
+      const url=imageUrls[i];
+      const origFile=originalFiles[i]||null;
       try{
-        const imgRes=await fetch(url);
-        const blob=await imgRes.blob();
+        let blob;
+        if(origFile){
+          // オリジナル画質をそのまま使用
+          blob=origFile;
+        } else {
+          const imgRes=await fetch(url);
+          blob=await imgRes.blob();
+        }
         const uploadRes=await fetch('https://bsky.social/xrpc/com.atproto.repo.uploadBlob',{
           method:'POST',
           headers:{'Content-Type':blob.type,'Authorization':'Bearer '+bskySession.accessJwt},
@@ -2439,7 +2447,9 @@ async function postToBsky(text, replyRef=null, imageUrls=[]){
         });
         if(uploadRes.ok){
           const d=await uploadRes.json();
-          blobs.push({image:d.blob,alt:''});
+          // アスペクト比を取得して空白を防ぐ
+          const imgEl=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.src=origFile?URL.createObjectURL(origFile):url;});
+          blobs.push({image:d.blob,alt:'',aspectRatio:{width:imgEl.naturalWidth||1,height:imgEl.naturalHeight||1}});
         }
       }catch(e){console.warn('blob upload error:',e);}
     }
@@ -4961,8 +4971,8 @@ async function onImageSelected(e){
   const files=[...e.target.files];
   e.target.value='';
   for(const file of files){
-    const dataUrl=await resizeImage(file,800,0.72);
-    pendingImages.push({dataUrl});
+    const dataUrl=await resizeImage(file,1200,0.82);
+    pendingImages.push({dataUrl, originalFile:file}); // 元ファイルをBsky用に保持
   }
   renderImgPreview();
   // 入力欄を展開
@@ -5740,7 +5750,7 @@ async function submitPost(){
   }
   if(postToBskyFlag){
     const bskyText=sourceRefData?bskyAppendSourceTag(text,sourceRefData.title):text;
-    const result=await postToBsky(bskyText,null,p.images||[]);
+    const result=await postToBsky(bskyText,null,p.images||[],localImgs.map(i=>i.originalFile).filter(Boolean));
     if(result.ok){p.bskyUri=result.uri;p.bskyCid=result.cid;save();showBskyPostStatus(p.id,true);}
     else showBskyPostStatus(p.id,false,null,result.error);
   }
@@ -5790,7 +5800,7 @@ async function onReplyImageSelected(e,pid){
   const files=[...e.target.files];e.target.value='';
   if(!pendingReplyImages[pid])pendingReplyImages[pid]=[];
   for(const file of files){
-    const dataUrl=await resizeImage(file,800,0.72);
+    const dataUrl=await resizeImage(file,1200,0.82);
     pendingReplyImages[pid].push({dataUrl});
   }
   renderReplyImgPreview(pid);
