@@ -4782,21 +4782,27 @@ function renderSourceUnifiedSection(outlineId){
       </div>`;
     } else {
       const p=item.p;
-      const sub=p.sourceRef?.subLabel?`<span style="font-size:9px;color:var(--text3);background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;padding:1px 6px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">${esc(p.sourceRef.subLabel)}</span>`:'';
-      const text=cleanText(p.content).slice(0,160);
+      const isQuotePost=extractTags(p.content).includes('引用');
+      const sub=p.sourceRef?.subLabel?`<span style="font-size:9px;color:${isQuotePost?"var(--source)":"var(--text3)"};background:${isQuotePost?"var(--source-l)":"var(--bg3)"};border:0.5px solid ${isQuotePost?"var(--source-m)":"var(--border2)"};border-radius:20px;padding:1px 6px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(p.sourceRef.subLabel)}</span>`:'';
+      const text=cleanText(p.content.replace(/#引用\b/g,'')).trim().slice(0,160);
       const replies=p.replies||[];
-      const repliesHtml=replies.length?replies.map(r=>`<div style='margin-top:6px;padding-left:10px;border-left:2px solid var(--border2);'><div style='font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-word;font-family:Hiragino Kaku Gothic ProN,sans-serif;'>${esc(cleanText(r.content).slice(0,120))}${r.content.length>120?'…':''}</div><div style='font-size:9px;color:var(--text3);margin-top:1px;'>${fmtDt(r.createdAt)}</div></div>`).join(''):'';
-      return`<div style="background:var(--bg);border:0.5px solid var(--border);border-left:3px solid var(--border2);border-radius:var(--rsm);padding:9px 12px;cursor:pointer;transition:background .12s;"
-        onclick="switchPhase(1);closeCardDetail();setTimeout(()=>{const el=document.getElementById('post-'+p.id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},120);" 
-        onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'var(--bg)\'">
+      const replyBorder=isQuotePost?'var(--source-m)':'var(--border2)';
+      const replyTextColor=isQuotePost?'var(--text)':'var(--text2)';
+      const repliesHtml=replies.length?replies.map(r=>`<div style='margin-top:6px;padding-left:10px;border-left:2px solid ${replyBorder};'><div style='font-size:12px;color:${replyTextColor};line-height:1.65;white-space:pre-wrap;word-break:break-word;'>${esc(cleanText(r.content).slice(0,120))}${r.content.length>120?'…':''}</div><div style='font-size:9px;color:var(--text3);margin-top:1px;font-family:"Hiragino Kaku Gothic ProN",sans-serif;'>${fmtDt(r.createdAt)}</div></div>`).join(''):'';
+      const borderColor=isQuotePost?'var(--source)':'var(--border2)';
+      const borderLightColor=isQuotePost?'var(--source-m)':'var(--border)';
+      const label=isQuotePost
+        ?`<span style="font-size:9px;background:var(--source-l);color:var(--source);border:0.5px solid var(--source-m);border-radius:20px;padding:1px 7px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">💬 引用メモ</span>`
+        :`<span style="font-size:9px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border2);border-radius:20px;padding:1px 7px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">🗒 つぶやき${replies.length?" +"+replies.length:""}</span>`;
+      return`<div style="background:var(--bg);border:0.5px solid ${borderLightColor};border-left:3px solid ${borderColor};border-radius:var(--rsm);padding:9px 12px;cursor:pointer;transition:background .12s;"
+        onclick="switchPhase(1);closeCardDetail();setTimeout(()=>{const el=document.getElementById('post-'+p.id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},120);"
+        onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg)'">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-          <span style="font-size:9px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border2);border-radius:20px;padding:1px 7px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">🗒 つぶやき${replies.length?" +"+replies.length:""}</span>
-          ${sub}
-          <span style="font-size:10px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;margin-left:auto;">${fmtDt(p.createdAt)}</span>
+          ${label}${sub}
+          <span style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-left:auto;">${fmtDt(p.createdAt)}</span>
         </div>
-        ${p.quoteText?`<div style="font-size:12px;color:var(--text2);font-style:italic;border-left:2px solid var(--border2);padding-left:7px;margin-bottom:5px;white-space:pre-wrap;">${esc(p.quoteText.slice(0,100))}${p.quoteText.length>100?'…':''}</div>`:''}
-        <div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">${esc(text)}${p.content.length>160?'…':''}</div>
-        ${p.ogp?`<div style="margin-top:4px;font-size:10px;color:var(--text3);">🔗 ${esc(p.ogp.title?.slice(0,50)||'')}</div>`:''}
+        ${p.quoteText?`<div style="font-size:12.5px;color:var(--text2);font-style:italic;border-left:2px solid var(--source-m);padding-left:8px;margin-bottom:6px;white-space:pre-wrap;">${esc(p.quoteText.slice(0,120))}${p.quoteText.length>120?'…':''}</div>`:''}
+        <div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;">${esc(text)}${text.length>=160?'…':''}</div>
         ${repliesHtml}
       </div>`;
     }
