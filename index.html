@@ -2819,7 +2819,7 @@ function wfRenderPicker(){
     // ピッカーの表示：引用テキスト（斜字体）＋コメント＋リプライを統一スタイルで
     const quoteHtml=isQuote&&quoteText?`<div style="font-size:11px;color:var(--text2);font-style:italic;border-left:2px solid var(--source-m);padding-left:6px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(quoteText.slice(0,80))}</div>`:'';
     const allComments=[
-      ...(displayText?[{content:displayText,isComment:true}]:[]),
+      ...(isQuote&&displayText?[{content:displayText,isComment:true}]:[]),
       ...replies.map((r,ri)=>({content:r.content,ri,isReply:true}))
     ];
     const commentsHtml=allComments.length?`<div class="wf-picker-replies">${allComments.map(c=>
