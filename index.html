@@ -4801,9 +4801,7 @@ function renderSourceUnifiedSection(outlineId){
         const editId='pqedit-'+p.id;
         const commentText=p.quoteText?text:'';
         const allComments=[...(commentText?[{content:commentText,createdAt:p.createdAt,_isComment:true}]:[]),...replies];
-        const repliesHtml=allComments.map(r=>r._isComment
-          ?`<div style='margin-top:8px;'><div style='font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;'>${esc(r.content)}</div><div style='font-size:9px;color:var(--text3);margin-top:2px;font-family:"Hiragino Kaku Gothic ProN",sans-serif;'>${fmtDt(r.createdAt)}</div></div>`
-          :`<div style='margin-top:6px;padding-left:10px;border-left:2px solid var(--source-m);'><div style='font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;'>${esc(cleanText(r.content).slice(0,200))}</div><div style='font-size:9px;color:var(--text3);margin-top:2px;font-family:"Hiragino Kaku Gothic ProN",sans-serif;'>${fmtDt(r.createdAt)}</div></div>`).join('');
+        const repliesHtml=allComments.map(r=>`<div style='margin-top:8px;'><div style='font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;'>${esc(cleanText(r.content).slice(0,200))}</div><div style='font-size:9px;color:var(--text3);margin-top:2px;font-family:"Hiragino Kaku Gothic ProN",sans-serif;'>${fmtDt(r.createdAt)}</div></div>`).join('');
         return`<div class="sq-unified-card" id="sqcard-post-${p.id}" style="background:var(--bg);border:0.5px solid var(--source-m);border-left:3px solid var(--source);border-radius:var(--rsm);overflow:hidden;">
           <div style="padding:9px 12px;cursor:pointer;" onclick="togglePostQuoteEdit('${p.id}')">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:${text||p.quoteText||repliesHtml?'6px':'0'};">
@@ -4814,6 +4812,13 @@ function renderSourceUnifiedSection(outlineId){
             ${(p.quoteText||text)?`<div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;border-left:2px solid var(--source-m);padding-left:8px;margin-bottom:0;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText||text)}</div>`:`<div style="font-size:11px;color:var(--text3);font-style:italic;">（コメントなし　クリックして編集）</div>`}
             
             ${repliesHtml}
+            <!-- コメント追加エリア -->
+            <div style="margin-top:8px;display:flex;gap:6px;align-items:flex-end;">
+              <textarea id="pqcomment-${p.id}" placeholder="コメントを追加…" rows="1"
+                style="flex:1;padding:5px 8px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:var(--bg2);outline:none;resize:none;line-height:1.5;"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();addCommentToPost('${p.id}');}"></textarea>
+              <button onclick="addCommentToPost('${p.id}')" style="padding:4px 10px;background:var(--source);color:#fff;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;">追加</button>
+            </div>
           </div>
           <div id="${editId}" style="display:none;padding:8px 12px;background:var(--source-l);border-top:0.5px solid var(--source-m);flex-direction:column;gap:6px;">
             <textarea id="${editId}-qt" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="引用テキスト（省略可）">${esc(p.quoteText||text)}</textarea>
@@ -4856,6 +4861,20 @@ function renderSourceUnifiedSection(outlineId){
     </div>
     <div style="display:flex;flex-direction:column;gap:6px;">${itemsHtml||`<div style="font-size:11px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;padding:4px 0;">まだメモも言及もありません</div>`}</div>`;
 }
+function addCommentToPost(postId){
+  const ta=document.getElementById('pqcomment-'+postId);
+  if(!ta)return;
+  const text=ta.value.trim();if(!text)return;
+  const p=posts.find(x=>x.id===postId);if(!p)return;
+  if(!p.replies)p.replies=[];
+  p.replies.push({id:uid(),content:text,createdAt:Date.now(),images:[]});
+  p.updatedAt=Date.now();
+  ta.value='';
+  save();
+  const outlineId=p.sourceRef?.outlineId;
+  if(outlineId)renderSourceUnifiedSection(outlineId);
+}
+
 function togglePostQuoteEdit(postId){
   const el=document.getElementById('pqedit-'+postId);
   if(!el)return;
