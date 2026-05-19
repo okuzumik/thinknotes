@@ -2811,24 +2811,31 @@ function wfRenderPicker(){
   feed.innerHTML=pool.map(p=>{
     const text=cleanText(p.content);
     const isQuote=extractTags(p.content).includes('引用');
-    const quoteHtml=(isQuote&&(p.quoteText||text))?`<div style="font-size:11px;color:var(--text2);font-style:italic;border-left:2px solid var(--source-m);padding-left:6px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc((p.quoteText||text).slice(0,80))}</div>`:'';
-    const commentText=p.quoteText?text:'';
-    const displayText=isQuote?(commentText||'（引用メモ）'):text;
+    const quoteText=p.quoteText||(!isQuote?'':text);
+    const commentText=p.quoteText?cleanText(p.content.replace(/#引用\b/g,'')).trim():'';
+    const displayText=isQuote?(commentText||''):text;
     const replies=p.replies||[];
-    const repliesHtml=replies.length?`<div class="wf-picker-replies">
-      ${replies.map((r,ri)=>`<div class="wf-picker-reply">
-        <span style="flex:1;">${esc(r.content.slice(0,60))}${r.content.length>60?'…':''}</span>
-        <button class="wf-picker-reply-add" data-pid="${p.id}" data-ri="${ri}" onclick="event.stopPropagation();wfInsertReply(this)">＋</button>
-      </div>`).join('')}
-    </div>`:'';
+
+    // ピッカーの表示：引用テキスト（斜字体）＋コメント＋リプライを統一スタイルで
+    const quoteHtml=isQuote&&quoteText?`<div style="font-size:11px;color:var(--text2);font-style:italic;border-left:2px solid var(--source-m);padding-left:6px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(quoteText.slice(0,80))}</div>`:'';
+    const allComments=[
+      ...(displayText?[{content:displayText,isComment:true}]:[]),
+      ...replies.map((r,ri)=>({content:r.content,ri,isReply:true}))
+    ];
+    const commentsHtml=allComments.length?`<div class="wf-picker-replies">${allComments.map(c=>
+      c.isComment
+        ?`<div class="wf-picker-reply"><span style="flex:1;color:var(--text);">${esc(c.content.slice(0,60))}${c.content.length>60?'…':''}</span></div>`
+        :`<div class="wf-picker-reply"><span style="flex:1;">${esc(c.content.slice(0,60))}${c.content.length>60?'…':''}</span><button class="wf-picker-reply-add" data-pid="${p.id}" data-ri="${c.ri}" onclick="event.stopPropagation();wfInsertReply(this)">＋</button></div>`
+    ).join('')}</div>`:'';
+
     return`<div class="wf-picker-post">
       ${quoteHtml}
-      <div class="wf-picker-post-text">${esc(displayText.slice(0,120))}${displayText.length>120?'…':''}</div>
-      ${repliesHtml}
+      ${!isQuote?`<div class="wf-picker-post-text">${esc(text.slice(0,120))}${text.length>120?'…':''}</div>`:''}
+      ${commentsHtml}
       <div class="wf-picker-post-meta">
         <span class="wf-picker-post-time">${fmtDt(p.createdAt)}</span>
         ${replies.length?`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">↩ ${replies.length}件</span>`:''}
-        ${replies.length?`<button class="wf-picker-add" style="background:var(--teal);" onclick="wfInsertThread('${p.id}')">＋ スレッドごと</button>`:''}
+        ${(replies.length||isQuote)?`<button class="wf-picker-add" style="background:var(--teal);" onclick="wfInsertThread('${p.id}')">＋ スレッドごと</button>`:''}
         <button class="wf-picker-add" onclick="wfInsertPost('${p.id}')">＋ 追加</button>
       </div>
     </div>`;
@@ -2838,15 +2845,26 @@ function wfRenderPicker(){
 let _lastParentLevel=0; // 直前に追加した親ツイのレベル
 
 function wfInsertThread(pid){
-  // 親ツイ＋全リプライを階層を維持してまとめて挿入
   const ol=wfGetOl();if(!ol)return;
   const p=posts.find(x=>x.id===pid);if(!p)return;
+  const isQuote=extractTags(p.content).includes('引用');
   const baseLvl=ol.items[wfCurrentFocus]?.level||0;
   _lastParentLevel=baseLvl;
-  const newItems=[
-    {id:uid(),text:cleanText(p.content),level:baseLvl},
-    ...(p.replies||[]).map(r=>({id:uid(),text:cleanText(r.content),level:baseLvl+1}))
-  ];
+  let newItems=[];
+  if(isQuote&&p.quoteText){
+    // 引用テキストを親、コメントと返信を子として挿入
+    const commentText=cleanText(p.content.replace(/#引用\b/g,'')).trim();
+    newItems=[
+      {id:uid(),text:p.quoteText,level:baseLvl},
+      ...(commentText?[{id:uid(),text:commentText,level:baseLvl+1}]:[]),
+      ...(p.replies||[]).map(r=>({id:uid(),text:cleanText(r.content),level:baseLvl+1}))
+    ];
+  } else {
+    newItems=[
+      {id:uid(),text:cleanText(p.content),level:baseLvl},
+      ...(p.replies||[]).map(r=>({id:uid(),text:cleanText(r.content),level:baseLvl+1}))
+    ];
+  }
   ol.items.splice(wfCurrentFocus+1,0,...newItems);
   ol.updatedAt=Date.now();save();wfRenderItems();
   wfFocusItem(wfCurrentFocus+newItems.length);
