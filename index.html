@@ -174,7 +174,7 @@ body {
 .post-images { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; padding-left:27px; }
 .post-image { max-width:280px; max-height:220px; border-radius:var(--rsm); cursor:pointer; border:0.5px solid var(--border); object-fit:cover; }
 /* OGP カード */
-.ogp-card { display:flex; gap:0; margin-top:6px; border:0.5px solid var(--border); border-radius:var(--rsm); overflow:hidden; cursor:pointer; background:var(--bg2); max-width:480px; width:100%; transition:background .15s; }
+.ogp-card { display:flex; gap:0; margin-top:6px; border:0.5px solid var(--border); border-radius:var(--rsm); overflow:hidden; cursor:pointer; background:var(--bg3); max-width:480px; width:100%; transition:background .15s; }
 .ogp-card:hover { background:var(--bg3); }
 .ogp-card-img { width:68px; flex-shrink:0; }
 .ogp-card-img img { width:100%; height:100%; object-fit:cover; display:block; min-height:44px; }
@@ -2810,6 +2810,10 @@ function wfRenderPicker(){
   if(!pool.length){feed.innerHTML=`<div style="padding:1rem;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text3);text-align:center;">投稿が見つかりません</div>`;return;}
   feed.innerHTML=pool.map(p=>{
     const text=cleanText(p.content);
+    const isQuote=extractTags(p.content).includes('引用');
+    const quoteHtml=(isQuote&&(p.quoteText||text))?`<div style="font-size:11px;color:var(--text2);font-style:italic;border-left:2px solid var(--source-m);padding-left:6px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc((p.quoteText||text).slice(0,80))}</div>`:'';
+    const commentText=p.quoteText?text:'';
+    const displayText=isQuote?(commentText||'（引用メモ）'):text;
     const replies=p.replies||[];
     const repliesHtml=replies.length?`<div class="wf-picker-replies">
       ${replies.map((r,ri)=>`<div class="wf-picker-reply">
@@ -2818,7 +2822,8 @@ function wfRenderPicker(){
       </div>`).join('')}
     </div>`:'';
     return`<div class="wf-picker-post">
-      <div class="wf-picker-post-text">${esc(text.slice(0,120))}${text.length>120?'…':''}</div>
+      ${quoteHtml}
+      <div class="wf-picker-post-text">${esc(displayText.slice(0,120))}${displayText.length>120?'…':''}</div>
       ${repliesHtml}
       <div class="wf-picker-post-meta">
         <span class="wf-picker-post-time">${fmtDt(p.createdAt)}</span>
@@ -2850,11 +2855,21 @@ function wfInsertThread(pid){
 function wfInsertPost(pid){
   const ol=wfGetOl();if(!ol)return;
   const p=posts.find(x=>x.id===pid);if(!p)return;
-  const text=cleanText(p.content);
+  const isQuote=extractTags(p.content).includes('引用');
   const lvl=ol.items[wfCurrentFocus]?.level||0;
-  _lastParentLevel=lvl; // 親ツイのレベルを記憶
-  ol.items.splice(wfCurrentFocus+1,0,{id:uid(),text,level:lvl});
-  ol.updatedAt=Date.now();save();wfRenderItems();wfFocusItem(wfCurrentFocus+1);
+  _lastParentLevel=lvl;
+  if(isQuote&&p.quoteText){
+    // 引用テキストを親、コメントを子として挿入
+    const commentText=cleanText(p.content.replace(/#引用\b/g,'')).trim();
+    const newItems=[{id:uid(),text:p.quoteText,level:lvl}];
+    if(commentText)newItems.push({id:uid(),text:commentText,level:lvl+1});
+    ol.items.splice(wfCurrentFocus+1,0,...newItems);
+    ol.updatedAt=Date.now();save();wfRenderItems();wfFocusItem(wfCurrentFocus+newItems.length);
+  } else {
+    const text=cleanText(p.content);
+    ol.items.splice(wfCurrentFocus+1,0,{id:uid(),text,level:lvl});
+    ol.updatedAt=Date.now();save();wfRenderItems();wfFocusItem(wfCurrentFocus+1);
+  }
 }
 
 function wfInsertReply(btn){
@@ -3075,10 +3090,16 @@ function openCardDetail(outlineId){
         <div class="source-detail-label" style="margin-top:8px;">エピソード・サブアイテム</div>
         <div class="source-sub-list" id="sourceSubList">
           ${(ol.sourceSubItems||[]).map((si,i)=>`
-            <div class="source-sub-item">
-              <span class="source-sub-label">${esc(si.label)}</span>
-              ${si.url?`<a href="${esc(si.url)}" target="_blank" class="source-sub-url" title="${esc(si.url)}" onclick="event.stopPropagation()">🔗 ${esc((()=>{try{return new URL(si.url).hostname;}catch{return si.url.slice(0,20);}})())}</a>`:''}
+            <div class="source-sub-item" id="ssi-${si.id}">
+              <span class="source-sub-label" onclick="editSourceSubItem(${i})" title="クリックして編集" style="cursor:text;flex:1;">${esc(si.label)}</span>
+              ${si.url?`<a href="${esc(si.url)}" target="_blank" class="source-sub-url" title="${esc(si.url)}" onclick="event.stopPropagation()">🔗 ${esc((()=>{try{return new URL(si.url).hostname;}catch(e){return si.url.slice(0,20);}})())}</a>`:''}
               <button class="source-sub-del" onclick="removeSourceSubItem(${i})">✕</button>
+            </div>
+            <div id="ssi-edit-${si.id}" style="display:none;gap:4px;padding:2px 0 4px;">
+              <input value="${esc(si.label)}" style="flex:1;padding:4px 8px;border:0.5px solid var(--border2);border-radius:var(--rsm);font-size:12px;font-family:inherit;outline:none;" id="ssi-label-${si.id}" onkeydown="if(event.key==='Enter'&&!event.isComposing)saveSourceSubItem(${i},'${si.id}')">
+              <input value="${esc(si.url||'')}" placeholder="URL" style="max-width:160px;padding:4px 8px;border:0.5px solid var(--border2);border-radius:var(--rsm);font-size:12px;font-family:inherit;outline:none;" id="ssi-url-${si.id}" onkeydown="if(event.key==='Enter'&&!event.isComposing)saveSourceSubItem(${i},'${si.id}')">
+              <button onclick="saveSourceSubItem(${i},'${si.id}')" style="padding:3px 10px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:11px;cursor:pointer;">保存</button>
+              <button onclick="cancelSourceSubItemEdit('${si.id}')" style="padding:3px 8px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:11px;cursor:pointer;">✕</button>
             </div>`).join('')}
           <div class="source-sub-add-row">
             <input class="source-sub-in" id="sourceSubLabelIn" placeholder="ラベル（例：#123「AIの倫理」）" onkeydown="if(event.key==='Enter'&&!event.isComposing)addSourceSubItem()">
@@ -4743,6 +4764,31 @@ function addSourceSubItem(){
   if(labelIn)labelIn.value='';
   if(urlIn)urlIn.value='';
   openCardDetail(currentCardOutlineId);
+}
+
+function editSourceSubItem(idx){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  const si=(ol.sourceSubItems||[])[idx];if(!si)return;
+  const row=document.getElementById('ssi-'+si.id);
+  const ed=document.getElementById('ssi-edit-'+si.id);
+  if(row)row.style.display='none';
+  if(ed){ed.style.display='flex';document.getElementById('ssi-label-'+si.id)?.focus();}
+}
+function saveSourceSubItem(idx,siId){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  const si=(ol.sourceSubItems||[])[idx];if(!si)return;
+  const label=(document.getElementById('ssi-label-'+siId)?.value||'').trim();
+  const url=(document.getElementById('ssi-url-'+siId)?.value||'').trim();
+  if(!label)return;
+  si.label=label;si.url=url;
+  ol.updatedAt=Date.now();save();
+  openCardDetail(currentCardOutlineId);
+}
+function cancelSourceSubItemEdit(siId){
+  const row=document.getElementById('ssi-'+siId);
+  const ed=document.getElementById('ssi-edit-'+siId);
+  if(row)row.style.display='flex';
+  if(ed)ed.style.display='none';
 }
 
 function removeSourceSubItem(idx){
