@@ -4799,7 +4799,9 @@ function renderSourceUnifiedSection(outlineId){
       if(isQuotePost){
         // #引用タグ付き → sourceQuoteカードと同じ見た目・挙動
         const editId='pqedit-'+p.id;
-        const repliesHtml=replies.map(r=>`<div style='margin-top:6px;padding-left:10px;border-left:2px solid var(--source-m);'><div style='font-size:12px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;'>${esc(cleanText(r.content).slice(0,160))}</div><div style='font-size:9px;color:var(--text3);margin-top:2px;font-family:"Hiragino Kaku Gothic ProN",sans-serif;'>${fmtDt(r.createdAt)}</div></div>`).join('');
+        const commentText=p.quoteText?text:'';
+        const allComments=[...(commentText?[{content:commentText,createdAt:p.createdAt}]:[]),...replies];
+        const repliesHtml=allComments.map(r=>`<div style='margin-top:6px;padding-left:10px;border-left:2px solid var(--source-m);'><div style='font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;'>${esc(cleanText(r.content).slice(0,200))}</div><div style='font-size:9px;color:var(--text3);margin-top:2px;font-family:"Hiragino Kaku Gothic ProN",sans-serif;'>${fmtDt(r.createdAt)}</div></div>`).join('');
         return`<div class="sq-unified-card" id="sqcard-post-${p.id}" style="background:var(--bg);border:0.5px solid var(--source-m);border-left:3px solid var(--source);border-radius:var(--rsm);overflow:hidden;">
           <div style="padding:9px 12px;cursor:pointer;" onclick="togglePostQuoteEdit('${p.id}')">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:${text||p.quoteText||repliesHtml?'6px':'0'};">
@@ -4808,7 +4810,7 @@ function renderSourceUnifiedSection(outlineId){
               <span style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-left:auto;">${fmtDt(p.createdAt)}</span>
             </div>
             ${(p.quoteText||text)?`<div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;border-left:2px solid var(--source-m);padding-left:8px;margin-bottom:0;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText||text)}</div>`:`<div style="font-size:11px;color:var(--text3);font-style:italic;">（コメントなし　クリックして編集）</div>`}
-            ${p.quoteText&&text?`<div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;margin-top:6px;">${esc(text)}</div>`:``}
+            
             ${repliesHtml}
           </div>
           <div id="${editId}" style="display:none;padding:8px 12px;background:var(--source-l);border-top:0.5px solid var(--source-m);flex-direction:column;gap:6px;">
@@ -5629,12 +5631,16 @@ function renderPost(p){
   const isEditingTag=editingTagPostId===p.id;
 
   // スレッド部分（返信）
-  const threadHtml=replies.length?`
+  // #引用 + quoteText があればdisplayTextをぶら下がりコメントとして追加
+  const commentReplies=(isQuote&&p.quoteText&&displayText.trim())
+    ?[{id:'__comment__',content:displayText,createdAt:p.createdAt,images:[]},...replies]
+    :replies;
+  const threadHtml=commentReplies.length?`
     <div class="thread-wrap">
       <div class="thread-line-area">
         <div class="thread-line"></div>
         <div class="thread-replies">
-          ${replies.map((r,ri)=>{
+          ${commentReplies.map((r,ri)=>{
             const rkey=p.id+':'+ri;
             const isEditingR=editingReplyKey===rkey;
             return`<div class="reply-post" id="reply-${p.id}-${ri}">
@@ -5688,7 +5694,7 @@ function renderPost(p){
     <div class="post-row1">
       <div class="post-sel"><div class="post-sel-box ${sel?'checked':''}" onclick="toggleSel('${p.id}')"></div></div>
       <div class="post-body">
-        ${isEditing?'':`${isQuote?'<div class="quote-body">':''}<div class="post-text">${linkify(displayText)||'（空）'}</div>${isQuote?'</div>':''}`}
+        ${isEditing?'':(isQuote&&p.quoteText?`<div class="quote-body"><div class="post-text">${linkify(p.quoteText)}</div></div>`:isQuote?`<div class="quote-body"><div class="post-text">${linkify(displayText)||'（空）'}</div></div>`:`<div class="post-text">${linkify(displayText)||'（空）'}</div>`)}
         ${p.ogp?`<div style="margin-top:6px;">`+renderOgpCard(p.ogp)+`</div>`:''}
         ${p.sourceRef?`<div style="margin-top:6px;">`+renderPostSourceCard(p.sourceRef)+`</div>`:''}
         <div class="post-meta">
