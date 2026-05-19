@@ -4807,8 +4807,8 @@ function renderSourceUnifiedSection(outlineId){
               ${sub}
               <span style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-left:auto;">${fmtDt(p.createdAt)}</span>
             </div>
-            ${p.quoteText?`<div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;border-left:2px solid var(--source-m);padding-left:8px;margin-bottom:${text?'6px':'0'};white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText)}</div>`:''}
-            ${text?`<div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;">${esc(text)}</div>`:`<div style="font-size:11px;color:var(--text3);font-style:italic;">（コメントなし　クリックして編集）</div>`}
+            ${(p.quoteText||text)?`<div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;border-left:2px solid var(--source-m);padding-left:8px;margin-bottom:0;white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText||text)}</div>`:`<div style="font-size:11px;color:var(--text3);font-style:italic;">（コメントなし　クリックして編集）</div>`}
+            ${p.quoteText&&text?`<div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;margin-top:6px;">${esc(text)}</div>`:``}
             ${repliesHtml}
           </div>
           <div id="${editId}" style="display:none;padding:8px 12px;background:var(--source-l);border-top:0.5px solid var(--source-m);flex-direction:column;gap:6px;">
