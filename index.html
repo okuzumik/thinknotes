@@ -4812,8 +4812,8 @@ function renderSourceUnifiedSection(outlineId){
             ${repliesHtml}
           </div>
           <div id="${editId}" style="display:none;padding:8px 12px;background:var(--source-l);border-top:0.5px solid var(--source-m);flex-direction:column;gap:6px;">
-            <textarea id="${editId}-qt" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="引用テキスト（省略可）">${esc(p.quoteText||'')}</textarea>
-            <textarea id="${editId}-cm" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="コメント・感想（省略可）">${esc(text)}</textarea>
+            <textarea id="${editId}-qt" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="引用テキスト（省略可）">${esc(p.quoteText||text)}</textarea>
+            <textarea id="${editId}-cm" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="コメント・感想（省略可）">${esc(p.quoteText?text:'')}</textarea>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
               <button onclick="savePostQuoteEdit('${p.id}')" style="padding:5px 14px;background:var(--source);color:#fff;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;white-space:nowrap;">保存</button>
               <button onclick="switchPhase(1);closeCardDetail();setTimeout(()=>{const el=document.getElementById('post-'+p.id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},120);" style="padding:5px 12px;background:none;color:var(--source);border:0.5px solid var(--source-m);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;white-space:nowrap;">タイムラインへ</button>
@@ -4866,16 +4866,17 @@ function savePostQuoteEdit(postId){
   const p=posts.find(x=>x.id===postId);if(!p)return;
   const qt=(document.getElementById('pqedit-'+postId+'-qt')?.value||'').trim();
   const cm=(document.getElementById('pqedit-'+postId+'-cm')?.value||'').trim();
-  // quoteTextを更新
+  // quoteText = 引用テキスト欄
   p.quoteText=qt||null;
-  // contentからタグ以外を更新（#引用タグは維持）
+  // content = コメント + #引用タグ（他のタグも保持）
   const tags=extractTags(p.content).map(t=>'#'+t).join(' ');
-  p.content=(cm+' '+tags).trim();
+  p.content=((cm?cm+' ':'')+tags).trim()||'#引用';
   p.updatedAt=Date.now();
   save();
-  // 再描画
+  // 再描画（メディアビュー + タイムライン）
   const outlineId=p.sourceRef?.outlineId;
   if(outlineId)renderSourceUnifiedSection(outlineId);
+  renderFeed();
 }
 
 function toggleAddQuoteForm(id){
@@ -4907,7 +4908,23 @@ function addSourceQuote(){
   if(!quoteText&&!comment)return;
   if(!ol.sourceQuotes)ol.sourceQuotes=[];
   ol.sourceQuotes.push({id:uid(),quoteText,comment,subItemId,createdAt:Date.now()});
-  ol.updatedAt=Date.now();save();
+  ol.updatedAt=Date.now();
+
+  // タイムラインにも投稿を作成
+  const subItem=(ol.sourceSubItems||[]).find(s=>s.id===subItemId);
+  const p={
+    id:uid(),
+    content:(comment||'')+(comment?' ':'')+' #引用',
+    quoteText:quoteText||null,
+    createdAt:Date.now(),updatedAt:Date.now(),
+    starred:false,replies:[],images:[],
+    sourceRef:{outlineId:ol.id,title:ol.title,subItemId:subItemId||null,subLabel:subItem?.label||null}
+  };
+  p.content=p.content.trim();
+  if(p.content==='#引用')p.content='#引用';
+  posts.push(p);
+
+  save();
   renderSourceUnifiedSection(ol.id);
 }
 function deleteSourceQuote(outlineId,quoteId){
