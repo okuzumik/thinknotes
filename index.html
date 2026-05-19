@@ -2410,12 +2410,22 @@ async function postToBsky(text, replyRef=null, imageUrls=[], originalFiles=[]){
   const bskyText=text.length>300?text.slice(0,297)+'…':text;
   // ハッシュタグfacet
   const facets=[];
+  const enc=new TextEncoder();
+  let m;
+  // ハッシュタグ
   const tagRe=/#([^\s#、。！？,.!?]+)/g;
-  let m;const enc=new TextEncoder();
   while((m=tagRe.exec(bskyText))!==null){
     const start=enc.encode(bskyText.slice(0,m.index)).length;
     const end=enc.encode(bskyText.slice(0,m.index+m[0].length)).length;
     facets.push({index:{byteStart:start,byteEnd:end},features:[{'$type':'app.bsky.richtext.facet#tag',tag:m[1]}]});
+  }
+  // URLリンク
+  const urlRe=/https?:\/\/[^\s<>"'）】』」。]+/g;
+  while((m=urlRe.exec(bskyText))!==null){
+    const url=m[0].replace(/[。、）】』」.,!?:;]+$/,'');
+    const start=enc.encode(bskyText.slice(0,m.index)).length;
+    const end=enc.encode(bskyText.slice(0,m.index+url.length)).length;
+    facets.push({index:{byteStart:start,byteEnd:end},features:[{'$type':'app.bsky.richtext.facet#link',uri:url}]});
   }
   const record={$type:'app.bsky.feed.post',text:bskyText,createdAt:new Date().toISOString()};
   if(facets.length)record.facets=facets;
