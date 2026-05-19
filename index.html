@@ -4783,29 +4783,48 @@ function renderSourceUnifiedSection(outlineId){
     } else {
       const p=item.p;
       const isQuotePost=extractTags(p.content).includes('引用');
-      const sub=p.sourceRef?.subLabel?`<span style="font-size:9px;color:${isQuotePost?"var(--source)":"var(--text3)"};background:${isQuotePost?"var(--source-l)":"var(--bg3)"};border:0.5px solid ${isQuotePost?"var(--source-m)":"var(--border2)"};border-radius:20px;padding:1px 6px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(p.sourceRef.subLabel)}</span>`:'';
-      const text=cleanText(p.content.replace(/#引用\b/g,'')).trim().slice(0,160);
+      const sub=p.sourceRef?.subLabel?`<span style="font-size:9px;color:var(--source);background:var(--source-l);border:0.5px solid var(--source-m);border-radius:20px;padding:1px 6px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(p.sourceRef.subLabel)}</span>`:'';
+      const text=cleanText(p.content.replace(/#引用\b/g,'')).trim();
       const replies=p.replies||[];
-      const replyBorder=isQuotePost?'var(--source-m)':'var(--border2)';
-      const replyTextColor=isQuotePost?'var(--text)':'var(--text2)';
-      const repliesHtml=replies.length?replies.map(r=>`<div style='margin-top:6px;padding-left:10px;border-left:2px solid ${replyBorder};'><div style='font-size:12px;color:${replyTextColor};line-height:1.65;white-space:pre-wrap;word-break:break-word;'>${esc(cleanText(r.content).slice(0,120))}${r.content.length>120?'…':''}</div><div style='font-size:9px;color:var(--text3);margin-top:1px;font-family:"Hiragino Kaku Gothic ProN",sans-serif;'>${fmtDt(r.createdAt)}</div></div>`).join(''):'';
-      const borderColor=isQuotePost?'var(--source)':'var(--border2)';
-      const borderLightColor=isQuotePost?'var(--source-m)':'var(--border)';
-      const label=isQuotePost
-        ?`<span style="font-size:9px;background:var(--source-l);color:var(--source);border:0.5px solid var(--source-m);border-radius:20px;padding:1px 7px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">💬 引用メモ</span>`
-        :`<span style="font-size:9px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border2);border-radius:20px;padding:1px 7px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">🗒 つぶやき${replies.length?" +"+replies.length:""}</span>`;
-      return`<div style="background:var(--bg);border:0.5px solid ${borderLightColor};border-left:3px solid ${borderColor};border-radius:var(--rsm);padding:9px 12px;cursor:pointer;transition:background .12s;"
-        onclick="switchPhase(1);closeCardDetail();setTimeout(()=>{const el=document.getElementById('post-'+p.id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},120);"
-        onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg)'">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-          ${label}${sub}
-          <span style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-left:auto;">${fmtDt(p.createdAt)}</span>
-        </div>
-        ${p.quoteText?`<div style="font-size:12.5px;color:var(--text2);font-style:italic;border-left:2px solid var(--source-m);padding-left:8px;margin-bottom:6px;white-space:pre-wrap;">${esc(p.quoteText.slice(0,120))}${p.quoteText.length>120?'…':''}</div>`:''}
-        <div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;">${esc(text)}${text.length>=160?'…':''}</div>
-        ${repliesHtml}
-      </div>`;
-    }
+      if(isQuotePost){
+        // #引用タグ付き → sourceQuoteカードと同じ見た目・挙動
+        const editId='pqedit-'+p.id;
+        const repliesHtml=replies.map(r=>`<div style='margin-top:6px;padding-left:10px;border-left:2px solid var(--source-m);'><div style='font-size:12px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;'>${esc(cleanText(r.content).slice(0,160))}</div><div style='font-size:9px;color:var(--text3);margin-top:2px;font-family:"Hiragino Kaku Gothic ProN",sans-serif;'>${fmtDt(r.createdAt)}</div></div>`).join('');
+        return`<div class="sq-unified-card" id="sqcard-post-${p.id}" style="background:var(--bg);border:0.5px solid var(--source-m);border-left:3px solid var(--source);border-radius:var(--rsm);overflow:hidden;">
+          <div style="padding:9px 12px;cursor:pointer;" onclick="togglePostQuoteEdit('${p.id}')">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:${text||p.quoteText||repliesHtml?'6px':'0'};">
+              <span style="font-size:9px;background:var(--source-l);color:var(--source);border:0.5px solid var(--source-m);border-radius:20px;padding:1px 7px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">💬 引用メモ</span>
+              ${sub}
+              <span style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-left:auto;">${fmtDt(p.createdAt)}</span>
+            </div>
+            ${p.quoteText?`<div style="font-size:12.5px;color:var(--text2);font-style:italic;line-height:1.7;border-left:2px solid var(--source-m);padding-left:8px;margin-bottom:${text?'6px':'0'};white-space:pre-wrap;word-break:break-word;">${esc(p.quoteText)}</div>`:''}
+            ${text?`<div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;">${esc(text)}</div>`:`<div style="font-size:11px;color:var(--text3);font-style:italic;">（コメントなし　クリックして編集）</div>`}
+            ${repliesHtml}
+          </div>
+          <div id="${editId}" style="display:none;padding:8px 12px;background:var(--source-l);border-top:0.5px solid var(--source-m);flex-direction:column;gap:6px;">
+            <textarea id="${editId}-qt" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="引用テキスト（省略可）">${esc(p.quoteText||'')}</textarea>
+            <textarea id="${editId}-cm" style="width:100%;padding:6px 9px;border:0.5px solid var(--source-m);border-radius:var(--rsm);font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:44px;box-sizing:border-box;" placeholder="コメント・感想（省略可）">${esc(text)}</textarea>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <button onclick="savePostQuoteEdit('${p.id}')" style="padding:5px 14px;background:var(--source);color:#fff;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;white-space:nowrap;">保存</button>
+              <button onclick="switchPhase(1);closeCardDetail();setTimeout(()=>{const el=document.getElementById('post-'+p.id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},120);" style="padding:5px 12px;background:none;color:var(--source);border:0.5px solid var(--source-m);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;white-space:nowrap;">タイムラインへ</button>
+            </div>
+          </div>
+        </div>`;
+      } else {
+        // 通常のつぶやき
+        const repliesHtml=replies.map(r=>`<div style='margin-top:6px;padding-left:10px;border-left:2px solid var(--border2);'><div style='font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-word;'>${esc(cleanText(r.content).slice(0,120))}${r.content.length>120?'…':''}</div><div style='font-size:9px;color:var(--text3);margin-top:1px;'>${fmtDt(r.createdAt)}</div></div>`).join('');
+        return`<div style="background:var(--bg);border:0.5px solid var(--border);border-left:3px solid var(--border2);border-radius:var(--rsm);padding:9px 12px;cursor:pointer;transition:background .12s;"
+          onclick="switchPhase(1);closeCardDetail();setTimeout(()=>{const el=document.getElementById('post-'+p.id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},120);"
+          onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg)'">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+            <span style="font-size:9px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border2);border-radius:20px;padding:1px 7px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">🗒 つぶやき${replies.length?" +"+replies.length:""}</span>
+            <span style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-left:auto;">${fmtDt(p.createdAt)}</span>
+          </div>
+          <div style="font-size:12.5px;color:var(--text);line-height:1.65;white-space:pre-wrap;word-break:break-word;">${esc(text.slice(0,160))}${text.length>160?'…':''}</div>
+          ${repliesHtml}
+        </div>`;
+      }
+  }
   }).join('');
   section.innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
@@ -4823,6 +4842,32 @@ function renderSourceUnifiedSection(outlineId){
     </div>
     <div style="display:flex;flex-direction:column;gap:6px;">${itemsHtml||`<div style="font-size:11px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;padding:4px 0;">まだメモも言及もありません</div>`}</div>`;
 }
+function togglePostQuoteEdit(postId){
+  const el=document.getElementById('pqedit-'+postId);
+  if(!el)return;
+  const hidden=el.style.display==='none'||!el.style.display;
+  el.style.display=hidden?'flex':'none';
+  if(hidden)el.querySelector('textarea')?.focus();
+}
+
+function savePostQuoteEdit(postId){
+  const el=document.getElementById('pqedit-'+postId);
+  if(!el)return;
+  const p=posts.find(x=>x.id===postId);if(!p)return;
+  const qt=(document.getElementById('pqedit-'+postId+'-qt')?.value||'').trim();
+  const cm=(document.getElementById('pqedit-'+postId+'-cm')?.value||'').trim();
+  // quoteTextを更新
+  p.quoteText=qt||null;
+  // contentからタグ以外を更新（#引用タグは維持）
+  const tags=extractTags(p.content).map(t=>'#'+t).join(' ');
+  p.content=(cm+' '+tags).trim();
+  p.updatedAt=Date.now();
+  save();
+  // 再描画
+  const outlineId=p.sourceRef?.outlineId;
+  if(outlineId)renderSourceUnifiedSection(outlineId);
+}
+
 function toggleAddQuoteForm(id){
   const el=document.getElementById(id);if(!el)return;
   const hidden=el.style.display==='none'||el.style.display==='';
