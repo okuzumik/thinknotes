@@ -5631,16 +5631,16 @@ function renderPost(p){
   const isEditingTag=editingTagPostId===p.id;
 
   // スレッド部分（返信）
-  // #引用 + quoteText があればdisplayTextをぶら下がりコメントとして追加
-  const commentReplies=(isQuote&&p.quoteText&&displayText.trim())
-    ?[{id:'__comment__',content:displayText,createdAt:p.createdAt,images:[]},...replies]
-    :replies;
-  const threadHtml=commentReplies.length?`
+  // #引用 + quoteText があればdisplayTextをコメントとして別枠表示
+  const commentHtml=(isQuote&&p.quoteText&&displayText.trim())
+    ?`<div class="thread-wrap" style="border-bottom:none;"><div class="thread-line-area"><div class="thread-line" style="height:100%;"></div><div class="thread-replies"><div class="reply-post"><div class="reply-text">${linkify(displayText)}</div><div class="reply-meta"><span class="reply-time">${fmtDt(p.createdAt)}</span></div></div></div></div></div>`
+    :'';
+  const threadHtml=replies.length?`
     <div class="thread-wrap">
       <div class="thread-line-area">
         <div class="thread-line"></div>
         <div class="thread-replies">
-          ${commentReplies.map((r,ri)=>{
+          ${replies.map((r,ri)=>{
             const rkey=p.id+':'+ri;
             const isEditingR=editingReplyKey===rkey;
             return`<div class="reply-post" id="reply-${p.id}-${ri}">
@@ -5734,6 +5734,7 @@ function renderPost(p){
         ?`<span class="tag-input-wrap"><input class="tag-input" id="taginput-${p.id}" placeholder="タグ名" maxlength="20" onkeydown="onTagInputKey(event,'${p.id}')" onblur="cancelTagEdit('${p.id}')"></span>`
         :`<button class="tag-add-btn" onclick="startTagEdit('${p.id}')">＋ タグ</button>`}
     </div>
+    ${commentHtml}
     ${threadHtml}
     ${replyComposeHtml}
   </div>`;
