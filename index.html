@@ -5631,10 +5631,6 @@ function renderPost(p){
   const isEditingTag=editingTagPostId===p.id;
 
   // スレッド部分（返信）
-  // #引用 + quoteText があればdisplayTextをコメントとして別枠表示
-  const commentHtml=(isQuote&&p.quoteText&&displayText.trim())
-    ?`<div class="thread-wrap" style="border-bottom:none;"><div class="thread-line-area"><div class="thread-line" style="height:100%;"></div><div class="thread-replies"><div class="reply-post"><div class="reply-text">${linkify(displayText)}</div><div class="reply-meta"><span class="reply-time">${fmtDt(p.createdAt)}</span></div></div></div></div></div>`
-    :'';
   const threadHtml=replies.length?`
     <div class="thread-wrap">
       <div class="thread-line-area">
@@ -5690,6 +5686,11 @@ function renderPost(p){
     </div>`:'';
 
   const isQuote=tags.includes('引用');
+  // #引用 + quoteText があればdisplayTextをコメントとして別枠表示
+  const commentHtml=(isQuote&&p.quoteText&&displayText.trim())
+    ?`<div class="thread-wrap" style="border-bottom:none;"><div class="thread-line-area"><div class="thread-line" style="height:100%;"></div><div class="thread-replies"><div class="reply-post"><div class="reply-text">${linkify(displayText)}</div><div class="reply-meta"><span class="reply-time">${fmtDt(p.createdAt)}</span></div></div></div></div></div>`
+    :'';
+
   return`<div class="post ${sel?'selected':''}" id="post-${p.id}">
     <div class="post-row1">
       <div class="post-sel"><div class="post-sel-box ${sel?'checked':''}" onclick="toggleSel('${p.id}')"></div></div>
