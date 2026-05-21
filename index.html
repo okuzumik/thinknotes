@@ -4821,11 +4821,11 @@ function renderSourceUnifiedSection(outlineId){
   if(!section)return;
   const ol=outlines.find(x=>x.id===outlineId);
   if(!ol)return;
-  const quotes=(ol.sourceQuotes||[]).map(q=>({type:'quote',date:q.createdAt,q}));
+  const quotes=[];  // sourceQuotesは廃止→タイムライン投稿で統一
   const linkedPosts=posts
     .filter(p=>p.sourceRef&&p.sourceRef.outlineId===outlineId)
     .map(p=>({type:'post',date:p.createdAt,p}));
-  const items=[...quotes,...linkedPosts].sort((a,b)=>b.date-a.date);
+  const items=[...linkedPosts].sort((a,b)=>b.date-a.date);
   const subs=ol.sourceSubItems||[];
   const addFormId='sqAddForm-'+outlineId;
   const subOpts=subs.map(s=>`<option value="${esc(s.id)}">${esc(s.label)}</option>`).join('');
@@ -4993,24 +4993,20 @@ function addSourceQuote(){
   const comment=(document.getElementById('sqComment')?.value||'').trim();
   const subItemId=(document.getElementById('sqEpisodeSel')?.value||'')||null;
   if(!quoteText&&!comment)return;
-  if(!ol.sourceQuotes)ol.sourceQuotes=[];
-  ol.sourceQuotes.push({id:uid(),quoteText,comment,subItemId,createdAt:Date.now()});
-  ol.updatedAt=Date.now();
 
-  // タイムラインにも投稿を作成
+  // タイムライン投稿のみで管理（sourceQuotesは使わない）
   const subItem=(ol.sourceSubItems||[]).find(s=>s.id===subItemId);
+  const content=((comment?comment+' ':'')+'#引用').trim();
   const p={
     id:uid(),
-    content:(comment||'')+(comment?' ':'')+' #引用',
+    content,
     quoteText:quoteText||null,
     createdAt:Date.now(),updatedAt:Date.now(),
     starred:false,replies:[],images:[],
     sourceRef:{outlineId:ol.id,title:ol.title,subItemId:subItemId||null,subLabel:subItem?.label||null}
   };
-  p.content=p.content.trim();
-  if(p.content==='#引用')p.content='#引用';
   posts.push(p);
-
+  ol.updatedAt=Date.now();
   save();
   renderSourceUnifiedSection(ol.id);
 }
