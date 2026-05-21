@@ -2407,6 +2407,16 @@ function bskyAppendSourceTag(text, sourceTitle){
 
 async function postToBsky(text, replyRef=null, imageUrls=[], originalFiles=[]){
   if(!bskySession)return{ok:false,error:'未接続'};
+  // トークンの有効期限確認・リフレッシュ
+  try{
+    const expiry=new Date(bskySession.accessJwt.split('.').map((p,i)=>i===1?JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/'))+'=='.slice((4-p.length%4)%4)):null).find(Boolean)?.exp*1000||0);
+    if(expiry&&expiry<Date.now()+60000){
+      const res=await fetch('https://bsky.social/xrpc/com.atproto.server.refreshSession',{
+        method:'POST',headers:{'Authorization':'Bearer '+bskySession.refreshJwt}
+      });
+      if(res.ok){const d=await res.json();bskySession.accessJwt=d.accessJwt;bskySession.refreshJwt=d.refreshJwt;localStorage.setItem('bsky_session',JSON.stringify(bskySession));}
+    }
+  }catch(e){console.warn('Bsky token refresh error:',e);}
   const bskyText=text.length>300?text.slice(0,297)+'…':text;
   // ハッシュタグfacet
   const facets=[];
@@ -5921,6 +5931,8 @@ async function submitPost(){
     if(result.ok){p.bskyUri=result.uri;p.bskyCid=result.cid;save();showBskyPostStatus(p.id,true);}
     else showBskyPostStatus(p.id,false,null,result.error);
   }
+  // チェックボックスをリセット
+  if(bskyCheck)bskyCheck.checked=false;
 }
 
 async function postExistingToBsky(pid){
