@@ -880,12 +880,6 @@ body {
 .card-detail-item { display:flex; align-items:baseline; gap:8px; padding:3px 0; line-height:1.8; }
 .card-detail-bullet { color:var(--accent-m); flex-shrink:0; font-size:12px; }
 .card-detail-text { font-size:14px; color:var(--text); white-space:pre-wrap; word-break:break-word; }
-/* カード詳細：編集可能アウトライン項目 */
-.card-detail-item-edit { display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px; padding:2px 0; line-height:1.85; min-height:1.85em; }
-.card-detail-item-edit .card-detail-bullet { padding-top:5px; user-select:none; cursor:default; }
-.card-detail-row { flex:1; min-width:0; font-size:14px; font-family:inherit; color:var(--text); white-space:pre-wrap; word-break:break-word; outline:none; min-height:1.85em; padding:2px 0; caret-color:var(--accent); }
-.card-detail-row:empty::before { content:attr(data-placeholder); color:var(--text3); pointer-events:none; }
-.wf-picker.wf-picker-floating { position:fixed; top:0; right:0; bottom:0; width:340px; height:100vh; z-index:1500; box-shadow:-4px 0 16px rgba(0,0,0,.08); border-left:0.5px solid var(--border); }
 /* ラベル */
 .card-label-filters { display:flex; gap:5px; flex-wrap:nowrap; overflow-x:auto; flex:1; padding:0 4px; }
 .card-label-filters::-webkit-scrollbar { display:none; }
@@ -2253,22 +2247,38 @@ function startRealtime(){
       event:'*',schema:'public',table:'thinkdata',
       filter:`user_id=eq.${currentUser.id}`
     },async(payload)=>{
-      // 自分自身の書き込みは無視（3秒以内）
-      if(Date.now()-_lastSaveTime<3000){
+      if(Date.now()-_lastSaveTime<5000){
         console.log('📡 Realtime: 自分の書き込みなのでスキップ');
         return;
       }
-      console.log('📡 Realtime: 他デバイスからの変更を受信',payload.eventType);
+      // タイムスタンプ比較：Supabaseが新しい場合のみ更新
+      const {data,error}=await sb.from('thinkdata')
+        .select('data_key,data_value').eq('user_id',currentUser.id);
+      if(error||!data)return;
+      const map={};data.forEach(r=>{map[r.data_key]=r.data_value;});
+      const sbPosts=map.posts||[];
+      if(!sbPosts.length)return;
+      const latestLocal=posts.length?Math.max(...posts.map(p=>p.updatedAt||p.createdAt||0)):0;
+      const latestSb=Math.max(...sbPosts.map(p=>p.updatedAt||p.createdAt||0));
+      if(latestSb<=latestLocal){
+        console.log('📡 Realtime: ローカルの方が新しいのでスキップ (local:'+new Date(latestLocal).toLocaleTimeString()+' sb:'+new Date(latestSb).toLocaleTimeString()+')');
+        return;
+      }
+      console.log('📡 Realtime: Supabaseが新しいので更新');
       setSyncDot('syncing');
-      await _pullFromSupabase();
+      posts=sbPosts;notes=map.notes||[];outlines=map.outlines||[];
+      posts.forEach(p=>{if(!p.replies)p.replies=[];});
+      localStorage.setItem(KP,JSON.stringify(posts));
+      localStorage.setItem(KN,JSON.stringify(notes));
+      localStorage.setItem(KO,JSON.stringify(outlines));
+      setSyncDot('saved');
+      renderSidebar();renderFeed();
     })
     .subscribe((status,err)=>{
       console.log('📡 Realtime status:',status,err||'');
-      if(status==='SUBSCRIBED'){
-        console.log('✅ Realtime購読成功');
-      } else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+      if(status==='SUBSCRIBED')console.log('✅ Realtime購読成功');
+      else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
         console.warn('⚠️ Realtime購読失敗:',status);
-        // 5秒後に再試行
         _realtimeChannel=null;
         setTimeout(startRealtime,5000);
       }
@@ -2796,11 +2806,8 @@ function createNoteFromCards(){
 
 
 let wfPickerTag=null;
-let wfPickerMode='editor'; // 'editor' | 'card'
 
 function wfTogglePicker(){
-  // カード詳細から開いている場合は閉じるだけ
-  if(wfPickerMode==='card'){cdClosePicker();return;}
   const picker=document.getElementById('wfPicker');
   if(!picker)return;
   const open=picker.style.display!=='none';
@@ -2864,7 +2871,6 @@ function wfRenderPicker(){
 let _lastParentLevel=0; // 直前に追加した親ツイのレベル
 
 function wfInsertThread(pid){
-  if(wfPickerMode==='card')return cdInsertThread(pid);
   const ol=wfGetOl();if(!ol)return;
   const p=posts.find(x=>x.id===pid);if(!p)return;
   const isQuote=extractTags(p.content).includes('引用');
@@ -2891,7 +2897,6 @@ function wfInsertThread(pid){
 }
 
 function wfInsertPost(pid){
-  if(wfPickerMode==='card')return cdInsertPost(pid);
   const ol=wfGetOl();if(!ol)return;
   const p=posts.find(x=>x.id===pid);if(!p)return;
   const isQuote=extractTags(p.content).includes('引用');
@@ -2912,7 +2917,6 @@ function wfInsertPost(pid){
 }
 
 function wfInsertReply(btn){
-  if(wfPickerMode==='card')return cdInsertReply(btn);
   const pid=btn.dataset.pid;
   const ri=parseInt(btn.dataset.ri);
   const p=posts.find(x=>x.id===pid);
@@ -3060,6 +3064,23 @@ function openCardDetail(outlineId){
   const labels=ol.labels||[];
   const images=ol.images||[];
 
+  // カードスタイルの詳細ビュー
+  const itemsHtml=ol.items.map((it,i)=>{
+    const lvl=it.level||0;
+    let text=it.text||'';
+    if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
+    if(!text.trim())return'';
+    let postImgsHtml='';
+    if(it.id&&!it.id.startsWith('reply:')){
+      const p=posts.find(x=>x.id===it.id);
+      if(p?.images?.length)postImgsHtml=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${p.images.map(src=>`<img src="${src}" onclick="openLightbox('${src}')" class="card-detail-card-image" loading="lazy">`).join('')}</div>`;
+    }
+    return`<div class="card-detail-item" style="padding-left:${lvl*24}px;">
+      <span class="card-detail-bullet">•</span>
+      <div><div class="card-detail-text">${linkify(text)}</div>${postImgsHtml}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+
   // カード自体の画像
   const cardImgsHtml=images.length?`<div class="card-detail-card-images">${images.map((src,i)=>`
     <div style="position:relative;display:inline-block;">
@@ -3132,16 +3153,16 @@ function openCardDetail(outlineId){
         </div>
       </div>
     </div>`:''}\n    ${cardImgsHtml}
-    ${!ol.isSource?`<div class="card-detail-card-content"><div id="cardDetailItems"></div></div>`:''}
+    ${!ol.isSource?`<div class="card-detail-card-content">${itemsHtml||'<div style="color:var(--text3);font-size:13px;">項目がありません</div>'}</div>`:''}
   </div>
   <!-- 共通フッター -->
   <div style="max-width:720px;margin:.5rem auto 0;display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:4px 0;">
-    ${!ol.isSource&&!ol.isScrap?`<button class="card-img-upload-btn" onclick="cdOpenPicker()" style="font-size:11px;" title="つぶやきから追加">📥 つぶやき</button>`:''}\
+    ${!ol.isSource&&!ol.isScrap?`<button class="card-img-upload-btn" onclick="wfOpenFromCard(currentCardOutlineId)" style="font-size:11px;">✏️ 編集</button>`:''}\
     ${!ol.usedAt&&!ol.isSource&&!ol.isScrap?`<input id="cardUsedNoteIn" placeholder="成仏メモ…" style="width:110px;padding:4px 9px;border:0.5px solid var(--border2);border-radius:20px;font-size:11px;font-family:inherit;color:var(--text);background:var(--bg3);outline:none;" onkeydown="if(event.key==='Enter'&&!event.isComposing)toggleCardUsed()"><button class="card-img-upload-btn" onclick="toggleCardUsed()" style="white-space:nowrap;font-size:11px;">✓ 成仏</button>`:''}\
     <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" style="flex:1;min-width:80px;max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
     <button class="card-img-upload-btn" onclick="addCardLabel()" style="font-size:11px;">＋</button>
     ${!ol.isScrap?`<button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()" style="font-size:11px;">🖼️</button><input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)"><button class="card-img-upload-btn" onclick="openImgLibrary('card')" style="font-size:11px;">📂</button>`:''}\
-    <button onclick="${ol.isSource?'deleteSourceCardConfirm':ol.isScrap?'deleteScrapCard':'cdDeleteCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>\
+    ${ol.isSource||ol.isScrap?`<button onclick="${ol.isSource?'deleteSourceCardConfirm':'deleteScrapCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>`:''}\
   </div>
   <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>`;
 
@@ -3154,9 +3175,6 @@ function openCardDetail(outlineId){
     renderObjectRelated(ol);
   } else if(ol.isScrap){
     renderObjectRelated(ol);
-  } else {
-    // 通常アウトライン：編集可能なアイテムを描画
-    cdRenderItems();
   }
   const related=document.getElementById('cardRelated');
   if(related){
@@ -3298,8 +3316,6 @@ function wfOpenFromCard(outlineId){
 function closeCardDetail(){
   const detail=document.getElementById('cardDetail');
   if(detail)detail.style.display='none';
-  // 開いていればピッカーも閉じる
-  if(wfPickerMode==='card')cdClosePicker();
   currentCardOutlineId=null;
   // メディアタブから開いた場合はグリッドを再描画
   if(currentPhase===10)renderMediaGrid();
@@ -3307,261 +3323,6 @@ function closeCardDetail(){
   else if(currentPhase===9)renderScrapGrid();
   else if(currentPhase===10)renderObjectGrid();
   else if(currentPhase===5)renderCardGrid();
-}
-
-// ── カード詳細：編集可能アウトライン項目 ──
-let cdCurrentFocus=0;
-let cdSaveTimer=null;
-
-function cdGetOl(){return outlines.find(x=>x.id===currentCardOutlineId);}
-
-function cdResolveItemText(it){
-  if(it.text)return it.text;
-  if(it.id&&!String(it.id).startsWith('reply:')){
-    const p=posts.find(x=>x.id===it.id);
-    if(p)return cleanText(p.content);
-  }
-  if(it._replyContent)return it._replyContent;
-  return '';
-}
-
-function cdRenderItems(){
-  const ol=cdGetOl();if(!ol)return;
-  if(!ol.items.length)ol.items=[{id:uid(),text:'',level:0}];
-  const container=document.getElementById('cardDetailItems');if(!container)return;
-  container.innerHTML='';
-  ol.items.forEach((item,i)=>{
-    const indent=(item.level||0)*24;
-    const row=document.createElement('div');
-    row.className='card-detail-item-edit';
-    row.style.paddingLeft=indent+'px';
-    row.dataset.idx=i;
-    const bullet=document.createElement('span');
-    bullet.className='card-detail-bullet';
-    bullet.textContent='•';
-    row.appendChild(bullet);
-    const div=document.createElement('div');
-    div.className='card-detail-row';
-    div.contentEditable='true';
-    div.spellcheck=false;
-    div.dataset.idx=i;
-    div.dataset.placeholder='ここに入力…';
-    div.textContent=cdResolveItemText(item);
-    div.addEventListener('input',()=>cdOnInput(i,div));
-    div.addEventListener('keydown',(e)=>cdOnKey(e,i,div));
-    div.addEventListener('focus',()=>{cdCurrentFocus=i;});
-    row.appendChild(div);
-    // 紐づく投稿に画像があれば表示
-    if(item.id&&!String(item.id).startsWith('reply:')){
-      const p=posts.find(x=>x.id===item.id);
-      if(p?.images?.length){
-        const wrap=document.createElement('div');
-        wrap.style.cssText='flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;margin-left:'+(indent+20)+'px;';
-        p.images.forEach(src=>{
-          const img=document.createElement('img');
-          img.src=src;img.loading='lazy';img.className='card-detail-card-image';
-          img.onclick=()=>openLightbox(src);
-          wrap.appendChild(img);
-        });
-        row.appendChild(wrap);
-      }
-    }
-    container.appendChild(row);
-  });
-}
-
-function cdOnInput(i,div){
-  const ol=cdGetOl();if(!ol||!ol.items[i])return;
-  ol.items[i].text=div.textContent;
-  ol.updatedAt=Date.now();
-  clearTimeout(cdSaveTimer);
-  cdSaveTimer=setTimeout(()=>save(),600);
-}
-
-function cdOnKey(e,i,div){
-  const ol=cdGetOl();if(!ol)return;
-  // Ctrl+↑ → 行を上に
-  if(e.key==='ArrowUp'&&(e.ctrlKey||e.metaKey)&&!e.shiftKey){
-    e.preventDefault();
-    if(i>0){
-      ol.items[i].text=div.textContent;
-      [ol.items[i-1],ol.items[i]]=[ol.items[i],ol.items[i-1]];
-      ol.updatedAt=Date.now();save();cdRenderItems();cdFocusItem(i-1,true);
-    }
-    return;
-  }
-  // Ctrl+↓ → 行を下に
-  if(e.key==='ArrowDown'&&(e.ctrlKey||e.metaKey)&&!e.shiftKey){
-    e.preventDefault();
-    if(i<ol.items.length-1){
-      ol.items[i].text=div.textContent;
-      [ol.items[i],ol.items[i+1]]=[ol.items[i+1],ol.items[i]];
-      ol.updatedAt=Date.now();save();cdRenderItems();cdFocusItem(i+1,true);
-    }
-    return;
-  }
-  // Tab → インデント深く
-  if(e.key==='Tab'&&!e.shiftKey){
-    e.preventDefault();
-    if((ol.items[i].level||0)<6){
-      ol.items[i].text=div.textContent;
-      ol.items[i].level=(ol.items[i].level||0)+1;
-      ol.updatedAt=Date.now();save();cdRenderItems();cdFocusItem(i,true);
-    }
-    return;
-  }
-  // Shift+Tab → インデント浅く
-  if(e.key==='Tab'&&e.shiftKey){
-    e.preventDefault();
-    if((ol.items[i].level||0)>0){
-      ol.items[i].text=div.textContent;
-      ol.items[i].level--;
-      ol.updatedAt=Date.now();save();cdRenderItems();cdFocusItem(i,true);
-    }
-    return;
-  }
-  // Enter → 新規行
-  if(e.key==='Enter'&&!e.shiftKey){
-    if(e.isComposing||e.keyCode===229)return;
-    e.preventDefault();
-    ol.items[i].text=div.textContent;
-    ol.items.splice(i+1,0,{id:uid(),text:'',level:ol.items[i].level||0});
-    ol.updatedAt=Date.now();save();cdRenderItems();cdFocusItem(i+1);
-    return;
-  }
-  // Backspace で空行削除
-  if(e.key==='Backspace'&&div.textContent===''&&ol.items.length>1){
-    e.preventDefault();
-    ol.items.splice(i,1);
-    ol.updatedAt=Date.now();save();cdRenderItems();cdFocusItem(Math.max(0,i-1),true);
-    return;
-  }
-  // ArrowUp 行頭で前の行へ
-  if(e.key==='ArrowUp'){
-    const sel=window.getSelection();
-    if(sel.anchorOffset===0){e.preventDefault();cdFocusItem(Math.max(0,i-1),true);}
-    return;
-  }
-  // ArrowDown 行末で次の行へ
-  if(e.key==='ArrowDown'){
-    const sel=window.getSelection();
-    if(sel.anchorOffset===div.textContent.length){e.preventDefault();cdFocusItem(Math.min(ol.items.length-1,i+1));}
-    return;
-  }
-}
-
-function cdFocusItem(i,toEnd=false){
-  setTimeout(()=>{
-    const rows=document.querySelectorAll('#cardDetailItems .card-detail-row');
-    if(!rows[i])return;
-    rows[i].focus();
-    const range=document.createRange();
-    const sel=window.getSelection();
-    const node=rows[i].firstChild||rows[i];
-    try{
-      if(toEnd&&rows[i].firstChild){
-        range.setStart(rows[i].firstChild,rows[i].textContent.length);
-      } else {
-        range.setStart(node,0);
-      }
-      range.collapse(true);
-      sel.removeAllRanges();sel.addRange(range);
-    }catch(e){}
-  },10);
-}
-
-// ── カード詳細：つぶやきピッカー（wf-pickerを共有・浮動表示） ──
-let _wfPickerOriginalParent=null;
-
-function cdOpenPicker(){
-  const picker=document.getElementById('wfPicker');if(!picker)return;
-  // 既に開いていれば閉じる
-  if(wfPickerMode==='card'&&picker.style.display!=='none'){cdClosePicker();return;}
-  wfPickerMode='card';
-  if(!_wfPickerOriginalParent)_wfPickerOriginalParent=picker.parentNode;
-  if(picker.parentNode!==document.body)document.body.appendChild(picker);
-  picker.classList.add('wf-picker-floating');
-  picker.style.display='flex';
-  wfRenderPickerTags();wfRenderPicker();
-}
-
-function cdClosePicker(){
-  const picker=document.getElementById('wfPicker');if(!picker)return;
-  picker.style.display='none';
-  picker.classList.remove('wf-picker-floating');
-  if(_wfPickerOriginalParent&&picker.parentNode!==_wfPickerOriginalParent){
-    _wfPickerOriginalParent.appendChild(picker);
-  }
-  wfPickerMode='editor';
-}
-
-function cdInsertPost(pid){
-  const ol=cdGetOl();if(!ol)return;
-  const p=posts.find(x=>x.id===pid);if(!p)return;
-  const isQuote=extractTags(p.content).includes('引用');
-  const lvl=ol.items[cdCurrentFocus]?.level||0;
-  if(isQuote&&p.quoteText){
-    const commentText=cleanText(p.content.replace(/#引用\b/g,'')).trim();
-    const newItems=[{id:uid(),text:p.quoteText,level:lvl}];
-    if(commentText)newItems.push({id:uid(),text:commentText,level:lvl+1});
-    ol.items.splice(cdCurrentFocus+1,0,...newItems);
-    ol.updatedAt=Date.now();save();cdRenderItems();cdFocusItem(cdCurrentFocus+newItems.length);
-  } else {
-    const text=cleanText(p.content);
-    ol.items.splice(cdCurrentFocus+1,0,{id:uid(),text,level:lvl});
-    ol.updatedAt=Date.now();save();cdRenderItems();cdFocusItem(cdCurrentFocus+1);
-  }
-}
-
-function cdInsertReply(btn){
-  const pid=btn.dataset.pid;
-  const ri=parseInt(btn.dataset.ri);
-  const p=posts.find(x=>x.id===pid);
-  if(!p||!p.replies||!p.replies[ri])return;
-  const ol=cdGetOl();if(!ol)return;
-  const parentIdx=ol.items.findIndex(it=>it.text===cleanText(p.content));
-  const baseLvl=parentIdx>=0?(ol.items[parentIdx].level||0):(ol.items[cdCurrentFocus]?.level||0);
-  const insertAt=cdCurrentFocus+1;
-  ol.items.splice(insertAt,0,{id:uid(),text:p.replies[ri].content,level:Math.min(6,baseLvl+1)});
-  ol.updatedAt=Date.now();save();cdRenderItems();cdFocusItem(insertAt);
-}
-
-function cdDeleteCard(){
-  const ol=cdGetOl();if(!ol)return;
-  if(!confirm(`「${ol.title||'無題'}」を削除しますか？`))return;
-  outlines=outlines.filter(x=>x.id!==currentCardOutlineId);
-  // Phase 3 のサイドバー側を編集中だった場合は閉じる
-  if(typeof wfCurrentId!=='undefined'&&wfCurrentId===currentCardOutlineId){
-    wfCurrentId=null;
-    const empty=document.getElementById('wfEmpty');if(empty)empty.style.display='';
-    const doc=document.getElementById('wfDoc');if(doc)doc.style.display='none';
-  }
-  save();
-  if(typeof wfRenderSidebar==='function')wfRenderSidebar();
-  closeCardDetail();
-}
-
-function cdInsertThread(pid){
-  const ol=cdGetOl();if(!ol)return;
-  const p=posts.find(x=>x.id===pid);if(!p)return;
-  const isQuote=extractTags(p.content).includes('引用');
-  const baseLvl=ol.items[cdCurrentFocus]?.level||0;
-  let newItems=[];
-  if(isQuote&&p.quoteText){
-    const commentText=cleanText(p.content.replace(/#引用\b/g,'')).trim();
-    newItems=[
-      {id:uid(),text:p.quoteText,level:baseLvl},
-      ...(commentText?[{id:uid(),text:commentText,level:baseLvl+1}]:[]),
-      ...(p.replies||[]).map(r=>({id:uid(),text:cleanText(r.content),level:baseLvl+1}))
-    ];
-  } else {
-    newItems=[
-      {id:uid(),text:cleanText(p.content),level:baseLvl},
-      ...(p.replies||[]).map(r=>({id:uid(),text:cleanText(r.content),level:baseLvl+1}))
-    ];
-  }
-  ol.items.splice(cdCurrentFocus+1,0,...newItems);
-  ol.updatedAt=Date.now();save();cdRenderItems();cdFocusItem(cdCurrentFocus+newItems.length);
 }
 
 function outlineToCosensetText(ol){
