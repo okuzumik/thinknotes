@@ -2258,8 +2258,18 @@ function startRealtime(){
       const map={};data.forEach(r=>{map[r.data_key]=r.data_value;});
       const sbPosts=map.posts||[];
       if(!sbPosts.length)return;
-      const latestLocal=posts.length?Math.max(...posts.map(p=>p.updatedAt||p.createdAt||0)):0;
-      const latestSb=Math.max(...sbPosts.map(p=>p.updatedAt||p.createdAt||0));
+      const latestLocal=Math.max(
+        ...posts.map(p=>p.updatedAt||p.createdAt||0),
+        ...notes.map(n=>n.updatedAt||0),
+        ...outlines.map(o=>o.updatedAt||0),
+        0
+      );
+      const latestSb=Math.max(
+        ...sbPosts.map(p=>p.updatedAt||p.createdAt||0),
+        ...(map.notes||[]).map(n=>n.updatedAt||0),
+        ...(map.outlines||[]).map(o=>o.updatedAt||0),
+        0
+      );
       if(latestSb<=latestLocal){
         console.log('📡 Realtime: ローカルの方が新しいのでスキップ (local:'+new Date(latestLocal).toLocaleTimeString()+' sb:'+new Date(latestSb).toLocaleTimeString()+')');
         return;
