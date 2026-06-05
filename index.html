@@ -3033,6 +3033,63 @@ function renderCardGrid(){
   }).join('');
 }
 
+function renderCardSourceRefSection(ol){
+  if(!ol)return'';
+  const mediaList=outlines.filter(x=>x.isSource&&x.id!==ol.id);
+  if(!mediaList.length)return'';
+  const linked=ol.cardSourceRef;
+  const linkedMedia=linked?outlines.find(x=>x.id===linked.outlineId):null;
+  const subItems=linkedMedia?.sourceSubItems||[];
+  return`<div style="max-width:720px;margin:.5rem auto 0;padding:8px 12px;background:var(--bg3);border-radius:var(--rsm);border:0.5px solid var(--border);">
+    <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);margin-bottom:6px;">📎 メディアに紐付ける</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <select id="cardSourceRefSel" onchange="updateCardSourceRefEpisodes()" style="flex:1;padding:4px 8px;border:0.5px solid var(--border2);border-radius:var(--rsm);font-size:12px;font-family:inherit;background:var(--bg);outline:none;">
+        <option value="">（なし）</option>
+        ${mediaList.map(m=>`<option value="${esc(m.id)}" ${linked?.outlineId===m.id?'selected':''}>${esc(m.title||'無題')}</option>`).join('')}
+      </select>
+      <select id="cardSourceSubSel" style="max-width:160px;padding:4px 8px;border:0.5px solid var(--border2);border-radius:var(--rsm);font-size:12px;font-family:inherit;background:var(--bg);outline:none;">
+        <option value="">エピソード（省略可）</option>
+        ${subItems.map(s=>`<option value="${esc(s.id)}" ${linked?.subItemId===s.id?'selected':''}>${esc(s.label)}</option>`).join('')}
+      </select>
+      <button onclick="saveCardSourceRef()" style="padding:4px 12px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;white-space:nowrap;">保存</button>
+      ${linked?`<button onclick="clearCardSourceRef()" style="padding:4px 8px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;cursor:pointer;">解除</button>`:''}
+    </div>
+    ${linkedMedia?`<div style="margin-top:6px;font-size:11px;color:var(--source);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">現在: ${esc(linkedMedia.title)}${linked?.subItemId?(' · '+(subItems.find(s=>s.id===linked.subItemId)?.label||'')):''}
+    </div>`:''}
+  </div>`;
+}
+
+function updateCardSourceRefEpisodes(){
+  const sel=document.getElementById('cardSourceRefSel');
+  const subSel=document.getElementById('cardSourceSubSel');
+  if(!sel||!subSel)return;
+  const mediaId=sel.value;
+  const media=outlines.find(x=>x.id===mediaId);
+  const subs=media?.sourceSubItems||[];
+  subSel.innerHTML='<option value="">エピソード（省略可）</option>'+
+    subs.map(s=>`<option value="${esc(s.id)}">${esc(s.label)}</option>`).join('');
+}
+
+function saveCardSourceRef(){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  const mediaId=document.getElementById('cardSourceRefSel')?.value||'';
+  const subItemId=document.getElementById('cardSourceSubSel')?.value||'';
+  if(!mediaId){ol.cardSourceRef=null;}
+  else{
+    const media=outlines.find(x=>x.id===mediaId);
+    const sub=(media?.sourceSubItems||[]).find(s=>s.id===subItemId);
+    ol.cardSourceRef={outlineId:mediaId,title:media?.title||'',subItemId:subItemId||null,subLabel:sub?.label||null};
+  }
+  ol.updatedAt=Date.now();save();
+  openCardDetail(currentCardOutlineId);
+}
+
+function clearCardSourceRef(){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  ol.cardSourceRef=null;ol.updatedAt=Date.now();save();
+  openCardDetail(currentCardOutlineId);
+}
+
 function openCardDetail(outlineId){
   currentCardOutlineId=outlineId;
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
@@ -3065,7 +3122,9 @@ function openCardDetail(outlineId){
         <button onclick="openImgLibrary('scrap')" class="card-img-upload-btn" style="font-size:11px;" title="ライブラリから選択">📂</button>
         <button onclick="deleteScrapCard()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>
       </div>
-      <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>`;
+      <!-- メディア紐付け -->
+    ${ol.isSource?'':renderCardSourceRefSection(ol)}
+    <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>`;
     if(detail)detail.style.display='flex';
     renderObjectRelated(ol);
     return;
@@ -4857,7 +4916,21 @@ function renderSourceUnifiedSection(outlineId){
   if(!section)return;
   const ol=outlines.find(x=>x.id===outlineId);
   if(!ol)return;
-  const quotes=[];  // sourceQuotesは廃止→タイムライン投稿で統一
+  // 紐付けられたアウトライン・カードも表示
+  const linkedCards=outlines.filter(x=>x.cardSourceRef?.outlineId===outlineId&&!x.isSource);
+  const linkedCardsHtml=linkedCards.length?`
+    <div style="margin-bottom:10px;">
+      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px;">📋 関連カード（${linkedCards.length}件）</div>
+      ${linkedCards.map(card=>`
+        <div onclick="openCardDetail('${card.id}')" style="background:var(--bg);border:0.5px solid var(--border);border-left:3px solid var(--accent-m,#c8a860);border-radius:var(--rsm);padding:8px 12px;margin-bottom:6px;cursor:pointer;transition:background .12s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg)'">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;">${esc(card.title||'無題')}</div>
+          <div style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;display:flex;gap:8px;flex-wrap:wrap;">
+            <span>${card.items?.length||0}項目</span>
+            <span>${fmtDate(card.updatedAt)}</span>
+            ${card.cardSourceRef?.subLabel?`<span style="color:var(--accent-d);">${esc(card.cardSourceRef.subLabel)}</span>`:''}
+          </div>
+        </div>`).join('')}
+    </div>`:'';
   const linkedPosts=posts
     .filter(p=>p.sourceRef&&p.sourceRef.outlineId===outlineId)
     .map(p=>({type:'post',date:p.createdAt,p}));
@@ -4945,7 +5018,7 @@ function renderSourceUnifiedSection(outlineId){
       }
   }
   }).join('');
-  section.innerHTML=`
+  section.innerHTML=linkedCardsHtml+`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
       <div style="font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:11px;font-weight:700;color:var(--text2);">メモ・言及</div>
       <span style="font-size:10px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">${items.length}件</span>
