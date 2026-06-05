@@ -3462,50 +3462,8 @@ function openCardDetail(outlineId){
   if(ol.isSource){
     const linkedSection=document.getElementById('cardLinkedPostsSection');
     if(linkedSection) renderSourceUnifiedSection(outlineId);
-    renderObjectRelated(ol);
-  } else if(ol.isScrap){
-    renderObjectRelated(ol);
   }
-  const related=document.getElementById('cardRelated');
-  if(related){
-    const labels=ol.labels||[];
-    const relatedItems=labels.length
-      ? outlines.filter(x=>x.id!==outlineId&&!x.isSource&&!x.isScrap)
-          .map(x=>{
-            const matchLabels=(x.labels||[]).filter(l=>labels.includes(l));
-            return matchLabels.length?{ol:x,matchLabels}:null;
-          })
-          .filter(Boolean)
-          .sort((a,b)=>b.matchLabels.length-a.matchLabels.length)
-          .slice(0,20)
-      : [];
-    if(relatedItems.length){
-      related.style.display='flex';
-      related.innerHTML=`<div class="card-related-hd">関連カード</div>`
-        +relatedItems.map(({ol:ro,matchLabels})=>{
-          const img=ro.images?.[0]||null;
-          const items=ro.items||[];
-          const maxLines=img?3:5;
-          const textLines=items.slice(0,10).map(it=>{
-            let text=it.text||'';
-            if(!text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
-            return text.split('\n')[0].slice(0,38);
-          }).filter(Boolean).slice(0,maxLines);
-          return`<div class="card-related-thumb" onclick="openCardDetail('${ro.id}')">
-            <div class="card-related-thumb-title">${esc(ro.title||'無題')}</div>
-            ${img?`<img src="${img}" loading="lazy">`:''}
-            <div style="flex:1;overflow:hidden;">
-              ${textLines.map(l=>`<div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text2);line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(l)}</div>`).join('')}
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">
-              ${matchLabels.map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent);color:#fff;">${esc(l)}</span>`).join('')}
-            </div>
-          </div>`;
-        }).join('');
-    } else {
-      related.style.display='none';
-    }
-  }
+  renderObjectRelated(ol);
 }
 function toggleCardUsed(){
   const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
