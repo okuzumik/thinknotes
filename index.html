@@ -7368,11 +7368,11 @@ function rwToggleEditor(){
   const isOpen=right.style.display==='flex';
   if(isOpen){
     right.style.display='none';
-    left.style.maxWidth='780px';
+    left.style.maxWidth='none';
     if(btn)btn.textContent='＋ 新しいカードを作成';btn.style.background='var(--accent)';
   } else {
     right.style.display='flex';
-    left.style.maxWidth='none';
+    left.style.flex='1';
     if(btn)btn.textContent='✕ エディタを閉じる';btn.style.background='var(--accent)';
     setTimeout(()=>document.getElementById('rwNewTitle')?.focus(),80);
   }
@@ -7392,11 +7392,11 @@ function openReadWriteMode(){
       if(!text.trim())return'';
       return`<div style="display:flex;gap:8px;padding:3px 0 3px ${lvl*20}px;line-height:1.75;">
         <span style="color:var(--text3);flex-shrink:0;font-size:12px;">•</span>
-        <span style="font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word;">${linkifyCard(esc(text))}</span>
+        <span style="font-size:12px;color:var(--text);white-space:pre-wrap;word-break:break-word;">${linkifyCard(esc(text))}</span>
       </div>`;
     }).filter(Boolean).join('');
     const lbHtml=(ol.labels||[]).map(l=>`<span style="font-size:9px;padding:1px 7px;border-radius:20px;background:var(--accent);color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('');
-    return`<div style="margin-bottom:1rem;padding:1.2rem 1.5rem;background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);">
+    return`<div style="margin-bottom:0.5rem;padding:1rem 1.3rem;background:var(--bg2);border-radius:var(--rsm);border:0.5px solid var(--border);">
       <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;cursor:pointer;" onclick="closeReadWriteMode();openCardDetail('${ol.id}')">${esc(ol.title||'無題')}</div>
       ${lbHtml?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">${lbHtml}</div>`:''}
       <div style="border-top:0.5px solid var(--border);margin-bottom:10px;"></div>
@@ -7405,7 +7405,7 @@ function openReadWriteMode(){
   }).join('');
 
   _rwItems=[{id:uid(),text:'',level:0}];
-  document.getElementById('rwNewTitle').textContent='';
+  document.getElementById('rwNewTitle').textContent='新しいカード';
   const right=document.getElementById('rwRight');
   if(right)right.style.display='none';
   const btn=document.getElementById('rwOpenEditorBtn');
@@ -7500,12 +7500,12 @@ function rwSaveNewCard(){
   save();
   // 右ペインをリセット
   _rwItems=[{id:uid(),text:'',level:0}];
-  document.getElementById('rwNewTitle').textContent='';
+  document.getElementById('rwNewTitle').textContent='新しいカード';
   rwRenderItems();
   document.getElementById('rwNewTitle').focus();
   // 一時フィードバック
   const btn=document.querySelector('#readWriteOverlay button[onclick="rwSaveNewCard()"]');
-  if(btn){const orig=btn.textContent;btn.textContent='✅ 保存しました';setTimeout(()=>btn.textContent=orig,2000);}
+  if(btn){const orig=btn.textContent;btn.textContent='✅ 保存しました';setTimeout(()=>{btn.textContent=orig;document.getElementById('rwNewTitle').textContent='新しいカード';},2000);}
 }
 let _photoView='grid';
 let _photoCalYear=new Date().getFullYear();
@@ -8043,9 +8043,9 @@ if(window.innerWidth<=640){
   <!-- ボディ -->
   <div style="display:flex;flex:1;overflow:hidden;">
     <!-- 左：全文閲覧（スクロール） -->
-    <div id="rwLeft" style="flex:1;overflow-y:auto;padding:1.5rem 2rem;max-width:780px;margin:0 auto;"></div>
+    <div id="rwLeft" style="flex:1;overflow-y:auto;padding:1.2rem 1.5rem;border-right:1px solid var(--border);"></div>
     <!-- 右：カード作成エディタ（初期非表示） -->
-    <div id="rwRight" style="display:none;width:380px;flex-shrink:0;border-left:1px solid var(--border);overflow-y:auto;padding:1.2rem;display:flex;flex-direction:column;gap:10px;">
+    <div id="rwRight" style="display:none;flex:1;overflow-y:auto;padding:1.2rem;display:flex;flex-direction:column;gap:10px;">
       <div class="card-detail-card" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
         <div contenteditable="true" spellcheck="false" id="rwNewTitle"
           style="font-size:18px;font-weight:700;color:var(--text);outline:none;cursor:text;border-bottom:1.5px dashed transparent;transition:border-color .15s;padding-bottom:4px;"
