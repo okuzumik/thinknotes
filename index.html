@@ -3112,7 +3112,98 @@ function navigateCard(dir){
 }
 
 
-// ── カード詳細ミニアウトライナー ──────────────────────────────
+// ── カードリンクサジェスト ([[補完) ──────────────────────────
+let _cdSuggestDiv=null, _cdSuggestTarget=null, _cdSuggestIdx=0;
+
+function cdOnInput(div){
+  const text=div.textContent;
+  const sel=window.getSelection();
+  if(!sel.rangeCount)return;
+  const range=sel.getRangeAt(0);
+  const offset=range.startOffset;
+  // カーソル前のテキストで[[を探す
+  const before=text.slice(0,offset);
+  const m=before.match(/\[\[([^\]]*)$/);
+  if(!m){cdHideSuggest();return;}
+  const q=m[1].toLowerCase();
+  // 候補リスト
+  const cands=outlines.filter(ol=>!ol.isSource&&!ol.isScrap&&ol.id!==div.dataset.ol)
+    .filter(ol=>(ol.title||'').toLowerCase().includes(q))
+    .sort((a,b)=>{ // 前方一致を優先
+      const at=(a.title||'').toLowerCase().startsWith(q)?0:1;
+      const bt=(b.title||'').toLowerCase().startsWith(q)?0:1;
+      return at-bt||(a.title||'').localeCompare(b.title||'');
+    })
+    .slice(0,10);
+  if(!cands.length){cdHideSuggest();return;}
+  _cdSuggestTarget=div;
+  _cdSuggestIdx=0;
+  // ドロップダウンの位置
+  const rect=range.getBoundingClientRect();
+  const popup=document.getElementById('cardLinkSuggest');
+  popup.style.left=rect.left+'px';
+  popup.style.top=(rect.bottom+4)+'px';
+  popup.style.display='block';
+  popup.innerHTML=cands.map((ol,i)=>`
+    <div class="cls-item${i===0?' cls-active':''}" data-title="${esc(ol.title)}" data-i="${i}"
+      style="padding:7px 12px;cursor:pointer;font-size:13px;color:var(--text);border-bottom:0.5px solid var(--border);font-family:'Hiragino Kaku Gothic ProN',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+      onmousedown="event.preventDefault();cdSuggestSelect('${esc(ol.title)}')"
+      onmouseover="cdSuggestHover(${i})"
+    >${esc(ol.title||'無題')}</div>`).join('');
+  _cdSuggestDiv=popup;
+}
+
+function cdSuggestHover(i){
+  _cdSuggestIdx=i;
+  document.querySelectorAll('#cardLinkSuggest .cls-item').forEach((el,j)=>{
+    el.style.background=j===i?'var(--bg3)':'';
+  });
+}
+
+function cdSuggestSelect(title){
+  if(!_cdSuggestTarget)return;
+  const div=_cdSuggestTarget;
+  const text=div.textContent;
+  const sel=window.getSelection();
+  const offset=sel.rangeCount?sel.getRangeAt(0).startOffset:text.length;
+  const before=text.slice(0,offset);
+  const after=text.slice(offset);
+  const newBefore=before.replace(/\[\[[^\]]*$/,'[['+title+']]');
+  div.textContent=newBefore+after;
+  // カーソルを]]の後ろに移動
+  const newOffset=newBefore.length;
+  const range=document.createRange();
+  range.setStart(div.firstChild||div,Math.min(newOffset,(div.firstChild?.length||0)));
+  range.collapse(true);
+  sel.removeAllRanges();sel.addRange(range);
+  cdHideSuggest();
+}
+
+function cdHideSuggest(){
+  const popup=document.getElementById('cardLinkSuggest');
+  if(popup)popup.style.display='none';
+  _cdSuggestTarget=null;
+}
+
+// キーボード操作（↑↓Enterでサジェスト選択、Escで閉じる）をonCardDetailItemKeyに追加
+const _origCardDetailKey=onCardDetailItemKey;
+function onCardDetailItemKey(e,div,olId,idx){
+  const popup=document.getElementById('cardLinkSuggest');
+  if(popup&&popup.style.display!=='none'){
+    const items=popup.querySelectorAll('.cls-item');
+    if(e.key==='ArrowDown'){e.preventDefault();_cdSuggestIdx=Math.min(_cdSuggestIdx+1,items.length-1);cdSuggestHover(_cdSuggestIdx);return;}
+    if(e.key==='ArrowUp'){e.preventDefault();_cdSuggestIdx=Math.max(_cdSuggestIdx-1,0);cdSuggestHover(_cdSuggestIdx);return;}
+    if(e.key==='Enter'&&!e.isComposing){const active=items[_cdSuggestIdx];if(active){e.preventDefault();cdSuggestSelect(active.dataset.title);return;}}
+    if(e.key==='Escape'){cdHideSuggest();return;}
+  }
+  _origCardDetailKey(e,div,olId,idx);
+}
+
+// クリックで閉じる
+document.addEventListener('mousedown',e=>{
+  if(!e.target.closest('#cardLinkSuggest'))cdHideSuggest();
+});
+
 function cdOnFocus(div){
   // フォーカス時：プレーンテキストに切り替え
   const text=div.dataset.text||'';
@@ -3366,6 +3457,7 @@ function openCardDetail(outlineId){
           onfocus="cdOnFocus(this)"
           onblur="cdOnBlur(this)"
           onkeydown="onCardDetailItemKey(event,this,'${ol.id}',${i})"
+          oninput="cdOnInput(this)"
         >${linkifyCard(text)}</div>
         ${postImgsHtml}
       </div>
@@ -7833,7 +7925,9 @@ if(window.innerWidth<=640){
   </div>
 </div>
 
-<!-- ═══ 読み書きモード ═══ -->
+<!-- カードリンクサジェスト -->
+<div id="cardLinkSuggest" style="display:none;position:fixed;z-index:9000;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;min-width:200px;max-width:320px;"></div>
+</body>
 <div id="readWriteOverlay" style="display:none;position:fixed;inset:0;z-index:400;background:var(--bg);flex-direction:column;">
   <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;">
     <button onclick="closeReadWriteMode()" style="padding:4px 12px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:12px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--text2);cursor:pointer;">✕ 閉じる</button>
