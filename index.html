@@ -3541,7 +3541,7 @@ function openCardDetail(outlineId){
       style="outline:none;cursor:text;border-bottom:1.5px dashed transparent;transition:border-color .15s;${ol.isSource?'color:var(--source);':''}"
     >${esc(ol.title||'無題')}</div>
     <div class="card-detail-card-meta">
-      <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">${ol.isSource?(ol.sourceSubItems||[]).length+'件のサブアイテム':ol.items.length+'項目'} · ${fmtDate(ol.updatedAt)}</span>
+      <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">${fmtDate(ol.updatedAt)}</span>
       ${ol.isSource?`<span class="source-badge">📎 メディア</span>`:''}
       ${labels.map((lb,i)=>`<span class="card-label-tag" style="cursor:pointer;" onclick="removeCardLabel(${i})" title="クリックで削除">${esc(lb)} ✕</span>`).join('')}
     </div>
