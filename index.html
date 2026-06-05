@@ -3446,14 +3446,12 @@ function openCardDetail(outlineId){
   </div>
   <!-- 共通フッター -->
   <div style="max-width:720px;margin:.5rem auto 0;display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:4px 0;">
-    ${!ol.usedAt&&!ol.isSource&&!ol.isScrap?`<input id="cardUsedNoteIn" placeholder="成仏メモ…" style="width:110px;padding:4px 9px;border:0.5px solid var(--border2);border-radius:20px;font-size:11px;font-family:inherit;color:var(--text);background:var(--bg3);outline:none;" onkeydown="if(event.key==='Enter'&&!event.isComposing)toggleCardUsed()"><button class="card-img-upload-btn" onclick="toggleCardUsed()" style="white-space:nowrap;font-size:11px;">✓ 成仏</button>`:''}\
     <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" style="flex:1;min-width:80px;max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
     <button class="card-img-upload-btn" onclick="addCardLabel()" style="font-size:11px;">＋</button>
     ${!ol.isScrap?`<button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()" style="font-size:11px;">🖼️</button><input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)"><button class="card-img-upload-btn" onclick="openImgLibrary('card')" style="font-size:11px;">📂</button>`:''}\
     ${`<button onclick="${ol.isSource?'deleteSourceCardConfirm':ol.isScrap?'deleteScrapCard':'deleteNormalCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>`}\
   </div>
   <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>
-  ${renderBacklinksSection(currentCardOutlineId)}
   ${ol.isSource?'':renderCardSourceRefSection(ol)}`;
 
   if(detail)detail.style.display='flex';
