@@ -3282,7 +3282,8 @@ function openCardDetail(outlineId){
     ${!ol.isScrap?`<button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()" style="font-size:11px;">🖼️</button><input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)"><button class="card-img-upload-btn" onclick="openImgLibrary('card')" style="font-size:11px;">📂</button>`:''}\
     ${ol.isSource||ol.isScrap?`<button onclick="${ol.isSource?'deleteSourceCardConfirm':'deleteScrapCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>`:''}\
   </div>
-  <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>`;
+  <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>
+  ${ol.isSource?'':renderCardSourceRefSection(ol)}`;
 
   if(detail)detail.style.display='flex';
 
