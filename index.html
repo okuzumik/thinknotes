@@ -3084,6 +3084,46 @@ function navigateCard(dir){
 }
 
 
+function saveCardItemText(div){
+  const olId=div.dataset.ol;
+  const idx=parseInt(div.dataset.idx);
+  const ol=outlines.find(x=>x.id===olId);if(!ol||!ol.items[idx])return;
+  ol.items[idx].text=div.textContent;
+  ol.updatedAt=Date.now();
+  save();
+}
+
+function onCardDetailItemKey(e,div,olId,idx){
+  if(e.key==='Enter'&&!e.isComposing){
+    e.preventDefault();
+    // 新しい項目を追加して次の行にフォーカス
+    const ol=outlines.find(x=>x.id===olId);if(!ol)return;
+    ol.items[idx].text=div.textContent;
+    const newItem={id:uid(),text:'',level:ol.items[idx].level||0};
+    ol.items.splice(idx+1,0,newItem);
+    ol.updatedAt=Date.now();save();
+    openCardDetail(olId);
+    // 次の行にフォーカス
+    setTimeout(()=>{
+      const rows=document.querySelectorAll('.card-detail-text[contenteditable]');
+      if(rows[idx+1])rows[idx+1].focus();
+    },50);
+    return;
+  }
+  if(e.key==='Backspace'&&div.textContent===''&&!e.isComposing){
+    e.preventDefault();
+    const ol=outlines.find(x=>x.id===olId);if(!ol||ol.items.length<=1)return;
+    ol.items.splice(idx,1);
+    ol.updatedAt=Date.now();save();
+    openCardDetail(olId);
+    setTimeout(()=>{
+      const rows=document.querySelectorAll('.card-detail-text[contenteditable]');
+      const prev=rows[Math.max(0,idx-1)];
+      if(prev){prev.focus();const range=document.createRange();range.selectNodeContents(prev);range.collapse(false);window.getSelection().removeAllRanges();window.getSelection().addRange(range);}
+    },50);
+  }
+}
+
 function renderCardSourceRefSection(ol){
   if(!ol)return'';
   const mediaList=outlines.filter(x=>x.isSource&&x.id!==ol.id);
@@ -3227,7 +3267,15 @@ function openCardDetail(outlineId){
     }
     return`<div class="card-detail-item" style="padding-left:${lvl*24}px;">
       <span class="card-detail-bullet">•</span>
-      <div><div class="card-detail-text">${linkifyCard(linkify(text))}</div>${postImgsHtml}</div>
+      <div style="flex:1;">
+        <div class="card-detail-text" contenteditable="true" spellcheck="false"
+          data-ol="${ol.id}" data-idx="${i}"
+          style="outline:none;cursor:text;min-width:20px;"
+          onblur="saveCardItemText(this)"
+          onkeydown="onCardDetailItemKey(event,this,'${ol.id}',${i})"
+        >${text}</div>
+        ${postImgsHtml}
+      </div>
     </div>`;
   }).filter(Boolean).join('');
 
