@@ -3318,6 +3318,7 @@ function onCardDetailItemKey(e,div,olId,idx){
   }
 }
 
+
 function renderCardSourceRefSection(ol){
   if(!ol)return'';
   const mediaList=outlines.filter(x=>x.isSource&&x.id!==ol.id);
@@ -3325,8 +3326,12 @@ function renderCardSourceRefSection(ol){
   const linked=ol.cardSourceRef;
   const linkedMedia=linked?outlines.find(x=>x.id===linked.outlineId):null;
   const subItems=linkedMedia?.sourceSubItems||[];
-  return`<div style="max-width:720px;margin:.5rem auto 0;padding:8px 12px;background:var(--bg3);border-radius:var(--rsm);border:0.5px solid var(--border);">
-    <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);margin-bottom:6px;">📎 メディアに紐付ける</div>
+  const badge=linkedMedia?`<span style="font-size:9px;color:var(--source);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">📎${esc(linkedMedia.title.slice(0,10))}</span>`:'';
+  return`${badge}<div id="cardSourceRefPanel" style="display:none;max-width:720px;margin:.5rem auto 0;padding:8px 12px;background:var(--bg3);border-radius:var(--rsm);border:0.5px solid var(--border);">
+    <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;justify-content:space-between;">
+      <span>📎 メディアに紐付ける</span>
+      <button onclick="document.getElementById('cardSourceRefPanel').style.display='none'" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:0 4px;">✕</button>
+    </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
       <select id="cardSourceRefSel" onchange="updateCardSourceRefEpisodes()" style="flex:1;padding:4px 8px;border:0.5px solid var(--border2);border-radius:var(--rsm);font-size:12px;font-family:inherit;background:var(--bg);outline:none;">
         <option value="">（なし）</option>
@@ -3343,6 +3348,12 @@ function renderCardSourceRefSection(ol){
     </div>`:''}
   </div>`;
 }
+
+function toggleCardSourceRefPanel(){
+  const p=document.getElementById('cardSourceRefPanel');
+  if(p)p.style.display=p.style.display==='none'?'block':'none';
+}
+
 
 function updateCardSourceRefEpisodes(){
   const sel=document.getElementById('cardSourceRefSel');
@@ -3574,7 +3585,7 @@ function openCardDetail(outlineId){
   <div style="max-width:720px;margin:.5rem auto 0;display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:4px 0;">
     <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" style="flex:1;min-width:80px;max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
     <button class="card-img-upload-btn" onclick="addCardLabel()" style="font-size:11px;">＋</button>
-    ${!ol.isScrap?`<button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()" style="font-size:11px;">🖼️</button><input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)"><button class="card-img-upload-btn" onclick="openImgLibrary('card')" style="font-size:11px;">📂</button>`:''}\
+    ${!ol.isScrap?`<button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()" style="font-size:11px;">🖼️</button><input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)"><button class="card-img-upload-btn" onclick="openImgLibrary('card')" style="font-size:11px;">📂</button><button class="card-img-upload-btn" onclick="toggleCardSourceRefPanel()" style="font-size:11px;" title="メディアに紐付ける">📎</button>`:''}\
     ${`<button onclick="${ol.isSource?'deleteSourceCardConfirm':ol.isScrap?'deleteScrapCard':'deleteNormalCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>`}\
   </div>
   <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>
