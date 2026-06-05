@@ -879,7 +879,9 @@ body {
 .card-detail-card-image { max-width:260px; max-height:180px; border-radius:8px; cursor:pointer; object-fit:cover; border:0.5px solid var(--border); }
 .card-detail-item { display:flex; align-items:baseline; gap:8px; padding:3px 0; line-height:1.8; }
 .card-detail-bullet { color:var(--accent-m); flex-shrink:0; font-size:12px; }
-.card-detail-text { font-size:14px; color:var(--text); white-space:pre-wrap; word-break:break-word; }
+.card-link { color:var(--accent-d); text-decoration:none; border-bottom:1px solid var(--accent-m,#c8a860); cursor:pointer; border-radius:2px; padding:0 2px; }
+.card-link:hover { background:var(--accent-l); }
+.card-link.broken { color:var(--text3); border-bottom-style:dashed; }
 /* ラベル */
 .card-label-filters { display:flex; gap:5px; flex-wrap:nowrap; overflow-x:auto; flex:1; padding:0 4px; }
 .card-label-filters::-webkit-scrollbar { display:none; }
@@ -3139,6 +3141,36 @@ function clearCardSourceRef(){
   openCardDetail(currentCardOutlineId);
 }
 
+// ── カード間リンク [[カード名]] ─────────────────────────────
+function linkifyCard(text){
+  if(!text)return'';
+  return esc(text).replace(/\[\[([^\]]+)\]\]/g,(match,title)=>{
+    const target=outlines.find(x=>x.title===title&&!x.isSource&&!x.isScrap);
+    if(target)return`<span class="card-link" onclick="openCardDetail('${target.id}')">[[${esc(title)}]]</span>`;
+    return`<span class="card-link broken" title="該当カードなし">[[${esc(title)}]]</span>`;
+  });
+}
+
+function getBacklinks(outlineId){
+  // このカードにリンクしているカードを返す
+  const target=outlines.find(x=>x.id===outlineId);
+  if(!target)return[];
+  const title=target.title||'';
+  return outlines.filter(ol=>{
+    if(ol.id===outlineId||ol.isSource||ol.isScrap)return false;
+    return(ol.items||[]).some(it=>(it.text||'').includes('[['+title+']]'));
+  });
+}
+
+function renderBacklinksSection(outlineId){
+  const links=getBacklinks(outlineId);
+  if(!links.length)return'';
+  return`<div style="max-width:720px;margin:.5rem auto 0;padding:8px 12px;background:var(--bg3);border-radius:var(--rsm);border:0.5px solid var(--border);">
+    <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px;">🔗 このカードへのリンク（${links.length}件）</div>
+    ${links.map(ol=>`<div onclick="openCardDetail('${ol.id}')" style="font-size:13px;color:var(--accent-d);cursor:pointer;padding:3px 0;border-bottom:0.5px solid var(--border);" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">${esc(ol.title||'無題')}</div>`).join('')}
+  </div>`;
+}
+
 function openCardDetail(outlineId){
   currentCardOutlineId=outlineId;
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
@@ -3195,7 +3227,7 @@ function openCardDetail(outlineId){
     }
     return`<div class="card-detail-item" style="padding-left:${lvl*24}px;">
       <span class="card-detail-bullet">•</span>
-      <div><div class="card-detail-text">${linkify(text)}</div>${postImgsHtml}</div>
+      <div><div class="card-detail-text">${linkifyCard(linkify(text))}</div>${postImgsHtml}</div>
     </div>`;
   }).filter(Boolean).join('');
 
@@ -3283,6 +3315,7 @@ function openCardDetail(outlineId){
     ${ol.isSource||ol.isScrap?`<button onclick="${ol.isSource?'deleteSourceCardConfirm':'deleteScrapCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>`:''}\
   </div>
   <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>
+  ${renderBacklinksSection(currentCardOutlineId)}
   ${ol.isSource?'':renderCardSourceRefSection(ol)}`;
 
   if(detail)detail.style.display='flex';
