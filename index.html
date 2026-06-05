@@ -853,13 +853,21 @@ body {
 .card-grid-count { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); }
 .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(185px,1fr)); gap:10px; padding:1rem 1.5rem 3rem; overflow-y:auto; align-content:start; flex:1; }
 .card-grid-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; text-align:center; line-height:1.8; }
-.card-cell { position:relative; background:var(--bg2); border:0.5px solid var(--border); border-left:2px solid var(--border2); border-radius:var(--rsm); padding:11px 11px 11px 28px; cursor:pointer; transition:border-color .12s,box-shadow .12s; display:flex; flex-direction:column; gap:5px; height:190px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.card-cell { position:relative; background:var(--bg2); border:0.5px solid var(--border); border-left:2px solid var(--border2); border-radius:var(--rsm); padding:11px; cursor:pointer; transition:border-color .12s,box-shadow .12s; display:flex; flex-direction:column; gap:5px; height:190px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); }
 .card-cell.used { background:#eae8e2; border-color:#c8c4bc; opacity:.82; }
-.card-cell.used .card-cell-title { color:var(--text2); }
+.card-cell.used .card-cb-row { display:none; align-items:center; gap:6px; margin-bottom:0; flex-shrink:0; }
+body.card-select-mode .card-cb-row { display:flex !important; }
+body.card-select-mode .card-cell > .card-cell-title { display:none !important; }
+
+.card-cell-title { color:var(--text2); }
 .card-used-badge { display:inline-flex; align-items:center; gap:4px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:#888; background:#dedad3; border:0.5px solid #c4c0b8; border-radius:20px; padding:1px 7px; flex-shrink:0; }
 .card-used-badge.in-detail { font-size:11px; padding:3px 10px; cursor:pointer; }
 .card-used-badge.in-detail:hover { background:#d0ccc4; }
 .card-cell:hover { border-color:var(--border2); box-shadow:0 2px 8px rgba(0,0,0,.07); }
+.card-cb-row { display:none; align-items:center; gap:6px; margin-bottom:0; flex-shrink:0; }
+body.card-select-mode .card-cb-row { display:flex !important; }
+body.card-select-mode .card-cell > .card-cell-title { display:none !important; }
+
 .card-cell-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; font-weight:700; color:var(--text); line-height:1.4; flex-shrink:0; }
 .card-cell-body { flex:1; overflow:hidden; }
 .card-cell-line { font-size:11px; line-height:1.65; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -900,12 +908,20 @@ body {
 /* メディアカード：スレートグレー */
 .card-cell.source-card { background:var(--source-l); border-color:var(--source-m); border-left:2px solid var(--source); }
 .card-cell.source-card:hover { border-color:var(--source-m); box-shadow:0 2px 8px rgba(90,100,120,.08); }
-.card-cell.source-card .card-cell-title { color:var(--source); }
+.card-cell.source-card .card-cb-row { display:none; align-items:center; gap:6px; margin-bottom:0; flex-shrink:0; }
+body.card-select-mode .card-cb-row { display:flex !important; }
+body.card-select-mode .card-cell > .card-cell-title { display:none !important; }
+
+.card-cell-title { color:var(--source); }
 .card-cell.source-card .card-cell-fade { background:linear-gradient(transparent,var(--source-l)); }
 /* スクラップカード：グリーン */
 .card-cell.scrap-card { background:#f4f8f4; border-color:#b8d4b8; border-left:2px solid #4a7a52; }
 .card-cell.scrap-card:hover { border-color:#b8d4b8; box-shadow:0 2px 8px rgba(60,107,70,.08); }
-.card-cell.scrap-card .card-cell-title { color:#2e5235; }
+.card-cell.scrap-card .card-cb-row { display:none; align-items:center; gap:6px; margin-bottom:0; flex-shrink:0; }
+body.card-select-mode .card-cb-row { display:flex !important; }
+body.card-select-mode .card-cell > .card-cell-title { display:none !important; }
+
+.card-cell-title { color:#2e5235; }
 .card-cell.scrap-card .card-cell-fade { background:linear-gradient(transparent,#f4f8f4); }
 .source-badge { display:inline-flex; align-items:center; gap:3px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--source); background:var(--source-l); border:0.5px solid var(--source-m); border-radius:20px; padding:1px 7px; flex-shrink:0; }
 .source-url-chip { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--source); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1443,6 +1459,7 @@ body {
         <input class="card-grid-search" id="cardGridSearch" placeholder="カードを検索…" oninput="renderCardGrid()">
         <div class="card-label-filters" id="cardLabelFilters"></div>
         <span class="card-grid-count" id="cardGridCount"></span>
+        <button id="cardSelectModeBtn" onclick="toggleCardSelectMode()" style="padding:5px 12px;background:none;color:var(--text2);border:0.5px solid var(--border2);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;">☑ 選択</button>
         <button onclick="newCardFromOutliner()" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">＋ 新規作成</button>
       </div>
       <!-- カード選択バー -->
@@ -2821,6 +2838,20 @@ function updateCardSelBar(){
   }
 }
 
+let _cardSelectMode=false;
+function toggleCardSelectMode(){
+  _cardSelectMode=!_cardSelectMode;
+  document.body.classList.toggle('card-select-mode',_cardSelectMode);
+  const btn=document.getElementById('cardSelectModeBtn');
+  if(btn){
+    btn.textContent=_cardSelectMode?'✕ 選択解除':'☑ 選択';
+    btn.style.background=_cardSelectMode?'var(--teal)':'none';
+    btn.style.color=_cardSelectMode?'#fff':'var(--text2)';
+    btn.style.borderColor=_cardSelectMode?'var(--teal)':'var(--border2)';
+  }
+  if(!_cardSelectMode){selectedCardIds.clear();updateCardSelBar();renderCardGrid();}
+}
+
 function cardSelClear(){
   selectedCardIds.clear();updateCardSelBar();renderCardGrid();
 }
@@ -3092,8 +3123,7 @@ function renderCardGrid(){
     const usedBadge='';
     const sourceBadge=isSource?`<div class="source-badge">📎 メディア${(ol.sourceSubItems||[]).length?` · ${ol.sourceSubItems.length}件`:''}</div>`:'';
     const sourceDomain=isSource&&ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname;}catch{return'';}})():'';
-    return`<div class="card-cell${isSource?' source-card':''}${currentCardOutlineId===ol.id?' active':''}${selectedCardIds.has(ol.id)?' selected':''}" data-id="${ol.id}" onclick="openCardDetail('${ol.id}')">\n      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;" onclick="event.stopPropagation()">\n        <input type="checkbox" style="width:14px;height:14px;accent-color:var(--teal);cursor:pointer;flex-shrink:0;" onclick="toggleCardSel('${ol.id}')">\n        <div class="card-cell-title" style="flex:1;">${hl(ol.title||'無題')}</div>\n      </div>\n      ${isSource?`<div class="source-url-chip">${esc(sourceDomain||ol.sourceMemo?.slice(0,40)||'')}</div>`:''}
-      <div class="card-cell-body" style="flex:1;">${isSource?((ol.sourceSubItems||[]).slice(0,5).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||''):previewLines}</div>
+    return`<div class="card-cell${isSource?' source-card':''}${currentCardOutlineId===ol.id?' active':''}${selectedCardIds.has(ol.id)?' selected':''}" data-id="${ol.id}" onclick="openCardDetail('${ol.id}')">\n      <div class="card-cb-row" onclick="event.stopPropagation()"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--teal);cursor:pointer;" onclick="toggleCardSel('${ol.id}')"><span class="card-cell-title" style="flex:1;">${hl(ol.title||'無題')}</span></div>\n      <div class="card-cell-title" style="display:block;">${hl(ol.title||'無題')}</div>\n      <div class="card-cell-body" style="flex:1;">${isSource?((ol.sourceSubItems||[]).slice(0,5).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||''):previewLines}</div>
       ${hasImg?`<img src="${ol.images[0]}" style="width:100%;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`:''}
       ${labels?`<div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${labels}</div>`:''}
       ${sourceBadge}${usedBadge}
