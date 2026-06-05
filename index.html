@@ -851,9 +851,9 @@ body {
 .card-grid-toolbar { display:flex; align-items:center; gap:10px; padding:10px 1.5rem; border-bottom:0.5px solid var(--border); flex-shrink:0; background:var(--bg3); }
 .card-grid-search { flex:1; max-width:300px; padding:6px 12px; border:0.5px solid var(--border2); border-radius:20px; font-size:13px; font-family:inherit; color:var(--text); background:var(--bg2); outline:none; }
 .card-grid-count { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); }
-.card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(145px,1fr)); gap:7px; padding:.6rem 1rem 2rem; overflow-y:auto; align-content:start; flex:1; }
+.card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:8px; padding:.6rem 1rem 2rem; overflow-y:auto; align-content:start; flex:1; }
 .card-grid-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; text-align:center; line-height:1.8; }
-.card-cell { position:relative; background:var(--bg2); border:0.5px solid var(--border); border-left:2px solid var(--border2); border-radius:var(--rsm); padding:8px; cursor:pointer; transition:border-color .12s,box-shadow .12s; display:flex; flex-direction:column; gap:4px; height:150px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.card-cell { position:relative; background:var(--bg2); border:0.5px solid var(--border); border-left:2px solid var(--border2); border-radius:var(--rsm); padding:9px; cursor:pointer; transition:border-color .12s,box-shadow .12s; display:flex; flex-direction:column; gap:4px; height:165px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); }
 .card-cell.used { background:#eae8e2; border-color:#c8c4bc; opacity:.82; }
 .card-cb-row { display:flex; align-items:baseline; gap:6px; flex-shrink:0; }
 .card-cb-row input[type="checkbox"] { display:none; width:14px; height:14px; flex-shrink:0; }
@@ -864,7 +864,7 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
 .card-used-badge.in-detail:hover { background:#d0ccc4; }
 .card-cell:hover { border-color:var(--border2); box-shadow:0 2px 8px rgba(0,0,0,.07); }
 
-.card-cell-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; font-weight:700; color:var(--text); line-height:1.35; flex-shrink:0; }
+.card-cell-title { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; font-weight:700; color:#333; line-height:1.35; flex-shrink:0; }
 .card-cell-body { flex:1; overflow:hidden; }
 .card-cell-line { font-size:10px; line-height:1.65; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .card-cell-foot { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); flex-shrink:0; }
@@ -2762,7 +2762,7 @@ function renderNoteCardPicker(){
       ${sel?`<div style="position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">${selIdx}</div>`:''}
       <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;color:var(--text);padding-right:${sel?'22px':'0'};">${esc(ol.title||'無題')}</div>
       <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">${ol.items.length}項目 · ${fmtDate(ol.updatedAt)}</div>
-      ${(ol.labels||[]).map(l=>`<span style="display:inline-block;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 6px;border-radius:20px;background:#2c4a7c;color:#fff;">${esc(l)}</span>`).join('')}
+      ${(ol.labels||[]).map(l=>`<span style="display:inline-block;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:7px;padding:1px 6px;border-radius:20px;background:#2c4a7c;color:#fff;">${esc(l)}</span>`).join('')}
     </div>`;
   }).join('');
 }
@@ -3106,7 +3106,7 @@ function renderCardGrid(){
       } else { disp=disp.slice(0,60); }
       return`<div class="card-cell-line" style="padding-left:${lvl*8}px;${q&&!isMatch?'opacity:.35;':''}">${hl(disp)}</div>`;
     }).filter(Boolean).join('');
-    const labels=(ol.labels||[]).map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 7px;border-radius:20px;background:#2c4a7c;color:#fff;">${esc(l)}</span>`).join('');
+    const labels=(ol.labels||[]).map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:7px;padding:1px 7px;border-radius:20px;background:#2c4a7c;color:#fff;">${esc(l)}</span>`).join('');
     const hasImg=ol.images?.length;
     const isUsed=false;
     const isSource=!!(ol.isSource);
@@ -3864,7 +3864,7 @@ function renderScrapGrid11(){
       ${sc.scrapDescription?`<div class="card-cell-body" style="font-size:11px;-webkit-line-clamp:2;">${esc(sc.scrapDescription)}</div>`:''}
       <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;align-items:center;">
         <span class="source-badge" style="color:#4a7a52;background:#e4f0e4;border-color:#b8d4b8;">✂️${hl.length?` ${hl.length}件`:''}</span>
-        ${(sc.labels||[]).map(l=>`<span style="font-size:9px;padding:1px 6px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
+        ${(sc.labels||[]).map(l=>`<span style="font-size:7px;padding:1px 6px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
       </div>
       <div class="card-cell-foot">${fmtDate(sc.createdAt)}</div>
       <div class="card-cell-fade" style="background:linear-gradient(transparent,#f4f8f4)"></div>
@@ -3916,7 +3916,7 @@ function renderObjectGrid(){
         <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;align-items:center;">
           <span class="source-badge">📎${subs.length?` ${subs.length}件`:''}</span>
           ${quotes.length?`<span class="source-badge">💬 ${quotes.length}件</span>`:''}
-          ${(ol.labels||[]).map(l=>`<span style="font-size:9px;padding:1px 6px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
+          ${(ol.labels||[]).map(l=>`<span style="font-size:7px;padding:1px 6px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
         </div>
         <div class="card-cell-foot">${fmtDate(ol.updatedAt)}</div>
         <div class="card-cell-fade" style="background:linear-gradient(transparent,var(--source-l))"></div>
@@ -3930,7 +3930,7 @@ function renderObjectGrid(){
         <div class="card-cell-body" style="flex:1;font-size:11px;">${esc((ol.scrapDescription||ol.scrapSnippet||'').slice(0,80))}</div>
         <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;align-items:center;">
           <span class="source-badge" style="color:#4a7a52;background:#e4f0e4;border-color:#b8d4b8;">✂️${ol.scrapHighlights?.length?` ${ol.scrapHighlights.length}件`:''}</span>
-          ${(ol.labels||[]).map(l=>`<span style="font-size:9px;padding:1px 6px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
+          ${(ol.labels||[]).map(l=>`<span style="font-size:7px;padding:1px 6px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
         </div>
         <div class="card-cell-foot">${fmtDate(ol.createdAt)}</div>
         <div class="card-cell-fade" style="background:linear-gradient(transparent,#f4f8f4)"></div>
@@ -3990,7 +3990,7 @@ function renderObjectRelated(ol){
   let html='';
   if(linkedCards.length) html+=hd(`🔗 リンク先（${linkedCards.length}）`)+linkedCards.map(c=>cardThumb(c,'var(--accent-d)','var(--bg2)')).join('');
   if(backlinks.length)   html+=hd(`↩ バックリンク（${backlinks.length}）`)+backlinks.map(c=>cardThumb(c,'var(--teal)','#f0fbfb')).join('');
-  if(sameLabel.length){html+=hd(`🏷 同じラベル（${sameLabel.length}）`);html+=sameLabel.map(c=>{const ml=(c.labels||[]).filter(l=>labels.includes(l));const lbHtml=ml.map(l=>`<span style="font-size:8px;padding:1px 5px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;flex-shrink:0;">${esc(l)}</span>`).join('');return`<div style="${ts}background:var(--bg2);border-left:2px solid var(--accent-m);" onclick="openCardDetail('${c.id}')" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'"><div style="${tts}color:var(--accent-d);">${esc(c.title||'無題')}</div><div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">${lbHtml}</div></div>`;}).join('');}
+  if(sameLabel.length){html+=hd(`🏷 同じラベル（${sameLabel.length}）`);html+=sameLabel.map(c=>{const ml=(c.labels||[]).filter(l=>labels.includes(l));const lbHtml=ml.map(l=>`<span style="font-size:7px;padding:1px 5px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;flex-shrink:0;">${esc(l)}</span>`).join('');return`<div style="${ts}background:var(--bg2);border-left:2px solid var(--accent-m);" onclick="openCardDetail('${c.id}')" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'"><div style="${tts}color:var(--accent-d);">${esc(c.title||'無題')}</div><div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">${lbHtml}</div></div>`;}).join('');}
   if(refMedia.length){
     html+=hd('📎 参照メディア');
     html+=refMedia.map(m=>{
@@ -4163,7 +4163,7 @@ function renderScrapGrid(){
       </div>
       <div style="display:flex;gap:4px;align-items:center;padding:0 10px 8px;flex-shrink:0;flex-wrap:wrap;">
         <span class="scrap-badge">✂️ スクラップ${hl.length?` · ${hl.length}件`:''}</span>
-        ${(sc.labels||[]).map(l=>`<span style="font-size:9px;padding:1px 7px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
+        ${(sc.labels||[]).map(l=>`<span style="font-size:7px;padding:1px 7px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}
       </div>
       <div class="card-cell-foot" style="padding:0 10px 8px;">${fmtDate(sc.createdAt)}</div>
     </div>`;
@@ -7384,7 +7384,7 @@ function openReadWriteMode(){
         <span style="font-size:12px;color:var(--text);white-space:pre-wrap;word-break:break-word;">${linkifyCard(esc(text))}</span>
       </div>`;
     }).filter(Boolean).join('');
-    const lbHtml=(ol.labels||[]).map(l=>`<span style="font-size:9px;padding:1px 7px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('');
+    const lbHtml=(ol.labels||[]).map(l=>`<span style="font-size:7px;padding:1px 7px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('');
     return`<div style="margin-bottom:0.5rem;padding:1rem 1.3rem;background:var(--bg2);border-radius:var(--rsm);border:0.5px solid var(--border);">
       <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;cursor:pointer;" onclick="closeReadWriteMode();openCardDetail('${ol.id}')">${esc(ol.title||'無題')}</div>
       ${lbHtml?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">${lbHtml}</div>`:''}
