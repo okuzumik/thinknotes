@@ -3146,7 +3146,7 @@ function renderCardGrid(){
     const usedBadge='';
     const sourceBadge=isSource?`<div class="source-badge">📎 メディア${(ol.sourceSubItems||[]).length?` · ${ol.sourceSubItems.length}件`:''}</div>`:'';
     const sourceDomain=isSource&&ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname;}catch{return'';}})():'';
-    const _tc=getCardTypeColor(ol.cardType);const _tcStyle=ol.cardType?`border-left:2.5px solid ${_tc};box-shadow:0 3px 10px ${_tc}30;`:'';
+    const _tc=getCardTypeColor(ol.cardType);const _tcStyle=ol.cardType?`border-left:2.5px solid ${_tc};box-shadow:0 2px 8px rgba(0,0,0,.08);`:'';
     return`<div class="card-cell${isSource?' source-card':''}${currentCardOutlineId===ol.id?' active':''}${selectedCardIds.has(ol.id)?' selected':''}" data-id="${ol.id}" style="${_tcStyle}" onclick="openCardDetail('${ol.id}')">\n      <div class="card-cb-row" onclick="event.stopPropagation()"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--teal);cursor:pointer;" onclick="cardToggleSel('${ol.id}',event)"><span class="card-cell-title" style="flex:1;">${hl(ol.title||'無題')}</span></div>\n      <div class="card-cell-body" style="flex:1;">${isSource?((ol.sourceSubItems||[]).slice(0,5).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||''):previewLines}</div>
       ${hasImg?`<img src="${ol.images[0]}" style="width:100%;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`:''}
       ${labels?`<div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${labels}</div>`:''}
@@ -4038,7 +4038,7 @@ function renderObjectRelated(ol){
     const tc=getCardTypeColor(card.cardType);
     const hasShadow=!!card.cardType;
     const preview=(card.items||[]).slice(0,3).map(it=>it.text||'').filter(Boolean).join('  ').slice(0,50);
-    return`<div style="${ts}background:var(--bg2);border-left:2px solid ${tc};box-shadow:${hasShadow?'0 2px 6px '+tc+'33':'none'};" onclick="openCardDetail('${card.id}')" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+    return`<div style="${ts}background:var(--bg2);border:0.5px solid var(--border);border-left:2.5px solid ${tc};box-shadow:0 2px 6px rgba(0,0,0,.07);" onclick="openCardDetail('${card.id}')" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
       <div style="${tts}color:${tc};">${esc(card.title||'無題')}</div>
       ${card.cardType?`<div style="font-size:7px;color:${tc};font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(card.cardType)}</div>`:''}
       <div style="${ms}">${esc(preview)}</div>
