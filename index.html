@@ -3043,6 +3043,39 @@ function renderCardView(){
 
 let _cardGridPool=[];
 
+function getCardTypeColor(type){
+  const map={
+    'キーワード':'#2c7a7b',  // teal
+    'テーゼ':    '#6b46c1',  // purple
+    '記録':      '#b7791f',  // amber
+    'アイデア':  '#c05621',  // coral
+    '思考':      '#2b6cb0',  // blue
+  };
+  return map[type]||'#6b7280';  // default gray
+}
+
+function toggleCardFrontMatter(){
+  const fm=document.getElementById('cardFrontMatter');
+  const icon=document.getElementById('fmToggleIcon');
+  if(!fm)return;
+  const open=fm.style.display!=='none';
+  fm.style.display=open?'none':'block';
+  if(icon)icon.textContent=open?'▸':'▾';
+  if(!open)setTimeout(()=>document.getElementById('cardTypeInput')?.focus(),50);
+}
+
+function saveCardType(val){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  ol.cardType=val.trim()||null;
+  ol.updatedAt=Date.now();save();
+  // ボーダー色を即時反映
+  const card=document.getElementById('cardDetailCard');
+  const tc=getCardTypeColor(ol.cardType);
+  if(card)card.style.borderLeft=ol.cardType?`3px solid ${tc}`:'';
+  // フロントマタートグルのタイプバッジを更新
+  openCardDetail(currentCardOutlineId);
+}
+
 function renderCardGrid(){
   const q=(document.getElementById('cardGridSearch')?.value||'').trim().toLowerCase();
   let pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt)
@@ -3533,7 +3566,30 @@ function openCardDetail(outlineId){
       <button onclick="removeCardImage(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;">✕</button>
     </div>`).join('')}</div>`:'';
 
-  body.innerHTML=`<div class="card-detail-card" style="${ol.isSource?'border-left:3px solid var(--source);background:var(--source-l);':''}">
+  const typeColor=getCardTypeColor(ol.cardType);
+  const frontMatterHtml=ol.isSource?'':`
+    <div id="cardFrontMatter" style="display:none;margin-bottom:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rsm);border:0.5px solid var(--border);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">
+      <div style="font-size:9px;color:var(--text3);letter-spacing:.1em;margin-bottom:6px;">FRONT MATTER</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:10px;color:var(--text3);min-width:32px;">タイプ</span>
+        <input id="cardTypeInput" value="${esc(ol.cardType||'')}" placeholder="キーワード / テーゼ / 記録 / アイデア / 思考"
+          list="cardTypeList"
+          style="flex:1;padding:4px 8px;border:0.5px solid var(--border2);border-radius:var(--rsm);font-size:11px;font-family:inherit;outline:none;background:var(--bg);"
+          onchange="saveCardType(this.value)"
+          onblur="saveCardType(this.value)">
+        <datalist id="cardTypeList">
+          <option value="キーワード"><option value="テーゼ"><option value="記録"><option value="アイデア"><option value="思考">
+        </datalist>
+      </div>
+    </div>`;
+
+  body.innerHTML=`<div class="card-detail-card" style="${ol.isSource?'border-left:3px solid var(--source);background:var(--source-l);':''}${ol.cardType?'border-left:3px solid '+typeColor+';':''}" id="cardDetailCard">
+    <!-- フロントマタートグル -->
+    ${ol.isSource?'':`<div onclick="toggleCardFrontMatter()" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;cursor:pointer;user-select:none;">
+      ${ol.cardType?`<span style="font-size:9px;padding:1px 8px;border-radius:20px;background:${typeColor};color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;letter-spacing:.05em;">${esc(ol.cardType)}</span>`:'<span style="font-size:9px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">── フロントマター</span>'}
+      <span id="fmToggleIcon" style="font-size:9px;color:var(--text3);">▸</span>
+    </div>`}
+    ${frontMatterHtml}
     <div class="card-detail-card-title" contenteditable="true" spellcheck="false"
       onblur="saveCardTitle(this);this.style.borderBottomColor='transparent'"
       onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
