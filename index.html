@@ -3849,39 +3849,6 @@ function renderObjectRelated(ol){
   }
   related.innerHTML=html;
 }
-  const labels=ol.labels||[];
-  if(!labels.length){related.style.display='none';return;}
-  // 媒体・スクラップの中でラベルが一致するもののみ（普通のカードは除外）
-  const relatedItems=outlines
-    .filter(x=>x.id!==ol.id&&(x.isSource||x.isScrap))
-    .map(x=>{
-      const matchLabels=(x.labels||[]).filter(l=>labels.includes(l));
-      return matchLabels.length?{ol:x,matchLabels}:null;
-    })
-    .filter(Boolean)
-    .sort((a,b)=>b.matchLabels.length-a.matchLabels.length)
-    .slice(0,15);
-  if(!relatedItems.length){related.style.display='none';return;}
-  related.style.display='flex';
-  related.innerHTML=`<div class="card-related-hd">関連オブジェクト</div>`
-    +relatedItems.map(({ol:ro,matchLabels})=>{
-      const isScrap=ro.isScrap;
-      const thumb=isScrap?ro.scrapImage:(ro.images?.[0]||'');
-      const site=isScrap?ro.scrapSiteName:ro.sourceUrl?(()=>{try{return new URL(ro.sourceUrl).hostname.replace(/^www\./,'');}catch{return '';}})():'';
-      const icon=isScrap?'✂️':'📎';
-      const bg=isScrap?'#f4f8f4':'var(--source-l)';
-      const border=isScrap?'#b8d4b8':'var(--source-m)';
-      const accent=isScrap?'#4a7a52':'var(--source)';
-      return`<div class="card-related-thumb" style="background:${bg};border-color:${border};border-left:2px solid ${accent};" onclick="openCardDetail('${ro.id}')">
-        <div class="card-related-thumb-title" style="color:${accent};">${icon} ${esc(ro.title||'無題')}</div>
-        ${thumb?`<img src="${esc(thumb)}" loading="lazy" onerror="this.style.display='none'">`:''}
-        <div style="font-size:9px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(site)}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;margin-top:auto;">
-          ${matchLabels.map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 6px;border-radius:20px;background:var(--accent);color:#fff;">${esc(l)}</span>`).join('')}
-        </div>
-      </div>`;
-    }).join('');
-}
 
 function renderObjLabelFilters(){
   renderLabelBar('objLabelFilters',
@@ -7814,6 +7781,8 @@ initBsky();
 if(window.innerWidth<=640){
   const ta=document.getElementById('composeTA');
   if(ta)ta.classList.add('mobile-collapsed');
+}
+
 }
 </script>
 <!-- ── カード詳細（グローバルオーバーレイ） ── -->
