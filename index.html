@@ -989,8 +989,8 @@ body {
 .note-card-block-stickies { display:none; }
 .ncb-text-item { font-size:14.5px; line-height:1.85; color:var(--text); white-space:pre-wrap; word-break:break-word; outline:none; min-height:1.85em; }
 .ncb-text-item:focus { background:var(--bg3); border-radius:3px; }
-.card-related { width:200px; flex-shrink:0; border-left:0.5px solid var(--border); background:var(--bg3); overflow-y:auto; padding:.75rem .5rem; display:flex; flex-direction:column; gap:8px; }
-.card-related-hd { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:10px; color:var(--text3); letter-spacing:.08em; padding:0 6px 4px; border-bottom:0.5px solid var(--border); flex-shrink:0; }
+.card-related { width:180px; flex-shrink:0; border-left:0.5px solid var(--border); background:var(--bg3); overflow-y:auto; padding:.5rem .4rem; display:flex; flex-direction:column; gap:5px; }
+.card-related-hd { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:var(--text3); letter-spacing:.08em; padding:0 4px 3px; border-bottom:0.5px solid var(--border); flex-shrink:0; }
 .card-related-thumb { background:var(--bg2); border:0.5px solid var(--border); border-radius:8px; padding:10px; cursor:pointer; transition:all .12s; overflow:hidden; flex-shrink:0; height:160px; display:flex; flex-direction:column; gap:2px; }
 .card-related-thumb:hover { border-color:var(--accent-m); box-shadow:0 2px 8px rgba(0,0,0,.08); }
 .card-related-thumb img { width:100%; height:50px; object-fit:cover; border-radius:4px; flex-shrink:0; }
@@ -3829,8 +3829,69 @@ function renderObjectGrid(){
 }
 
 function renderObjectRelated(ol){
+function renderObjectRelated(ol){
   const related=document.getElementById('cardRelated');
   if(!related)return;
+
+  // 1. アウトゴーイングリンク
+  const linkedTitles=[...new Set(
+    (ol.items||[]).flatMap(it=>[...(it.text||'').matchAll(/\[\[([^\]]+)\]\]/g)].map(m=>m[1]))
+  )];
+  const linkedCards=linkedTitles.map(t=>outlines.find(x=>x.title===t&&!x.isSource&&!x.isScrap)).filter(Boolean);
+
+  // 2. バックリンク
+  const backlinks=getBacklinks(ol.id);
+
+  // 3. ラベル一致の関連オブジェクト
+  const labels=ol.labels||[];
+  const relatedItems=labels.length?outlines
+    .filter(x=>x.id!==ol.id&&(x.isSource||x.isScrap))
+    .map(x=>{const m=(x.labels||[]).filter(l=>labels.includes(l));return m.length?{ol:x,matchLabels:m}:null;})
+    .filter(Boolean).sort((a,b)=>b.matchLabels.length-a.matchLabels.length).slice(0,8):[];
+
+  const hasContent=linkedCards.length||backlinks.length||relatedItems.length;
+  if(!hasContent){related.style.display='none';return;}
+  related.style.display='flex';
+
+  const ts='background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;padding:6px 8px;cursor:pointer;transition:all .12s;overflow:hidden;flex-shrink:0;display:flex;flex-direction:column;gap:2px;';
+  const tts="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+  const ms="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+
+  function cardThumb(card,accent){
+    const preview=(card.items||[]).slice(0,2).map(it=>it.text||'').filter(Boolean).join(' · ').slice(0,40);
+    return`<div style="${ts}border-left:2px solid ${accent||'var(--accent-m)'};" onclick="openCardDetail('${card.id}')">
+      <div style="${tts}${accent?'color:'+accent+';':''}">${esc(card.title||'無題')}</div>
+      ${preview?`<div style="${ms}">${esc(preview)}</div>`:''}
+    </div>`;
+  }
+
+  let html='';
+  if(linkedCards.length){
+    html+=`<div class="card-related-hd">🔗 リンク先（${linkedCards.length}）</div>`;
+    html+=linkedCards.map(c=>cardThumb(c,'var(--accent-d)')).join('');
+  }
+  if(backlinks.length){
+    html+=`<div class="card-related-hd" style="margin-top:6px;">↩ 参照元（${backlinks.length}）</div>`;
+    html+=backlinks.map(c=>cardThumb(c,'var(--teal)')).join('');
+  }
+  if(relatedItems.length){
+    html+=`<div class="card-related-hd" style="margin-top:6px;">関連（${relatedItems.length}）</div>`;
+    html+=relatedItems.map(({ol:ro,matchLabels})=>{
+      const isScrap=ro.isScrap;
+      const thumb=isScrap?ro.scrapImage:(ro.images?.[0]||'');
+      const icon=isScrap?'✂️':'📎';
+      const bg=isScrap?'#f4f8f4':'var(--source-l)';
+      const border=isScrap?'#b8d4b8':'var(--source-m)';
+      const accent=isScrap?'#4a7a52':'var(--source)';
+      return`<div style="${ts}background:${bg};border-color:${border};border-left:2px solid ${accent};" onclick="openCardDetail('${ro.id}')">
+        <div style="${tts}color:${accent};">${icon} ${esc(ro.title||'無題')}</div>
+        ${thumb?`<img src="${esc(thumb)}" loading="lazy" style="width:100%;height:32px;object-fit:cover;border-radius:3px;flex-shrink:0;" onerror="this.style.display='none'">`:'' }
+        <div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:auto;">${matchLabels.map(l=>`<span style="font-size:9px;padding:1px 5px;border-radius:20px;background:var(--accent);color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('')}</div>
+      </div>`;
+    }).join('');
+  }
+  related.innerHTML=html;
+}
   const labels=ol.labels||[];
   if(!labels.length){related.style.display='none';return;}
   // 媒体・スクラップの中でラベルが一致するもののみ（普通のカードは除外）
