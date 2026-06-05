@@ -3087,9 +3087,9 @@ function renderCardGrid(){
     }).filter(Boolean).join('');
     const labels=(ol.labels||[]).map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 7px;border-radius:20px;background:var(--accent);color:#fff;">${esc(l)}</span>`).join('');
     const hasImg=ol.images?.length;
-    const isUsed=!!(ol.usedAt);
+    const isUsed=false;
     const isSource=!!(ol.isSource);
-    const usedBadge=isUsed?`<div class="card-used-badge">✓ ${esc(ol.usedNote||'成仏済')}</div>`:'';
+    const usedBadge='';
     const sourceBadge=isSource?`<div class="source-badge">📎 メディア${(ol.sourceSubItems||[]).length?` · ${ol.sourceSubItems.length}件`:''}</div>`:'';
     const sourceDomain=isSource&&ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname;}catch{return'';}})():'';
     return`<div class="card-cell${isUsed?' used':''}${isSource?' source-card':''}${currentCardOutlineId===ol.id?' active':''}" onclick="openCardDetail('${ol.id}')">
@@ -3389,7 +3389,6 @@ function openCardDetail(outlineId){
       <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">${ol.isSource?(ol.sourceSubItems||[]).length+'件のサブアイテム':ol.items.length+'項目'} · ${fmtDate(ol.updatedAt)}</span>
       ${ol.isSource?`<span class="source-badge">📎 メディア</span>`:''}
       ${labels.map((lb,i)=>`<span class="card-label-tag" style="cursor:pointer;" onclick="removeCardLabel(${i})" title="クリックで削除">${esc(lb)} ✕</span>`).join('')}
-      ${ol.usedAt?`<span class="card-used-badge in-detail" onclick="toggleCardUsed()" title="クリックで解除">✓ ${esc(ol.usedNote||'成仏済')} ✕</span>`:''}
     </div>
     ${ol.isSource?`
     <div class="source-detail-section" id="sourceDetailSection">
@@ -3447,12 +3446,11 @@ function openCardDetail(outlineId){
   </div>
   <!-- 共通フッター -->
   <div style="max-width:720px;margin:.5rem auto 0;display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:4px 0;">
-    ${!ol.isSource&&!ol.isScrap?`<button class="card-img-upload-btn" onclick="wfOpenFromCard(currentCardOutlineId)" style="font-size:11px;">✏️ 編集</button>`:''}\
     ${!ol.usedAt&&!ol.isSource&&!ol.isScrap?`<input id="cardUsedNoteIn" placeholder="成仏メモ…" style="width:110px;padding:4px 9px;border:0.5px solid var(--border2);border-radius:20px;font-size:11px;font-family:inherit;color:var(--text);background:var(--bg3);outline:none;" onkeydown="if(event.key==='Enter'&&!event.isComposing)toggleCardUsed()"><button class="card-img-upload-btn" onclick="toggleCardUsed()" style="white-space:nowrap;font-size:11px;">✓ 成仏</button>`:''}\
     <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" style="flex:1;min-width:80px;max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
     <button class="card-img-upload-btn" onclick="addCardLabel()" style="font-size:11px;">＋</button>
     ${!ol.isScrap?`<button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()" style="font-size:11px;">🖼️</button><input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)"><button class="card-img-upload-btn" onclick="openImgLibrary('card')" style="font-size:11px;">📂</button>`:''}\
-    ${ol.isSource||ol.isScrap?`<button onclick="${ol.isSource?'deleteSourceCardConfirm':'deleteScrapCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>`:''}\
+    ${`<button onclick="${ol.isSource?'deleteSourceCardConfirm':ol.isScrap?'deleteScrapCard':'deleteNormalCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>`}\
   </div>
   <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>
   ${renderBacklinksSection(currentCardOutlineId)}
@@ -3877,15 +3875,25 @@ function setObjLabelFilter(l){activeObjLabel=l;renderObjectGrid();}
 // カードビューの新規作成 → アウトライナーで新カード作成後カードビューに戻る
 var _wfCalledFromCard=false;
 
+function deleteNormalCard(){
+  if(!currentCardOutlineId)return;
+  if(!confirm('このカードを削除しますか？'))return;
+  outlines=outlines.filter(x=>x.id!==currentCardOutlineId);
+  currentCardOutlineId=null;save();
+  closeCardDetail();renderCardGrid();
+}
+
 function newCardFromOutliner(){
-  const ol={id:uid(),title:'新しいカード',items:[],labels:[],images:[],
+  const ol={id:uid(),title:'新しいカード',items:[{id:uid(),text:'',level:0}],labels:[],images:[],
     createdAt:Date.now(),updatedAt:Date.now()};
   outlines.unshift(ol);save();
-  _wfCalledFromCard=true;
-  const detail=document.getElementById('cardDetail');
-  if(detail)detail.style.display='none';
-  switchPhase(3);
-  setTimeout(()=>wfOpen(ol.id),50);
+  renderCardGrid();
+  openCardDetail(ol.id);
+  // タイトルにフォーカス
+  setTimeout(()=>{
+    const t=document.querySelector('.card-detail-card-title');
+    if(t){t.focus();document.execCommand('selectAll');}
+  },100);
 }
 
 // ─── スクラップ ────────────────────────────────────────────
