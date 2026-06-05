@@ -3116,38 +3116,54 @@ function navigateCard(dir){
 let _cdSuggestDiv=null, _cdSuggestTarget=null, _cdSuggestIdx=0;
 
 function cdOnInput(div){
-  const text=div.textContent;
   const sel=window.getSelection();
   if(!sel.rangeCount)return;
   const range=sel.getRangeAt(0);
+
+  // カーソル前のテキストを取得（テキストノード対応）
+  const node=range.startContainer;
   const offset=range.startOffset;
-  // カーソル前のテキストで[[を探す
-  const before=text.slice(0,offset);
+  let before='';
+  if(node.nodeType===3){
+    // テキストノード直接
+    before=node.textContent.slice(0,offset);
+  } else {
+    before=div.textContent.slice(0,offset);
+  }
+
   const m=before.match(/\[\[([^\]]*)$/);
   if(!m){cdHideSuggest();return;}
   const q=m[1].toLowerCase();
-  // 候補リスト
+
   const cands=outlines.filter(ol=>!ol.isSource&&!ol.isScrap&&ol.id!==div.dataset.ol)
     .filter(ol=>(ol.title||'').toLowerCase().includes(q))
-    .sort((a,b)=>{ // 前方一致を優先
+    .sort((a,b)=>{
       const at=(a.title||'').toLowerCase().startsWith(q)?0:1;
       const bt=(b.title||'').toLowerCase().startsWith(q)?0:1;
       return at-bt||(a.title||'').localeCompare(b.title||'');
     })
     .slice(0,10);
+
   if(!cands.length){cdHideSuggest();return;}
   _cdSuggestTarget=div;
   _cdSuggestIdx=0;
-  // ドロップダウンの位置
-  const rect=range.getBoundingClientRect();
+
+  // ポップアップ位置：カーソル位置のrect
+  let rect=null;
+  const rects=range.getClientRects();
+  if(rects.length)rect=rects[rects.length-1];
+  else rect=div.getBoundingClientRect();
+
   const popup=document.getElementById('cardLinkSuggest');
-  popup.style.left=rect.left+'px';
-  popup.style.top=(rect.bottom+4)+'px';
+  const popupLeft=Math.min(rect.left, window.innerWidth-340);
+  const popupTop=rect.bottom+4;
+  popup.style.left=Math.max(4,popupLeft)+'px';
+  popup.style.top=popupTop+'px';
   popup.style.display='block';
   popup.innerHTML=cands.map((ol,i)=>`
-    <div class="cls-item${i===0?' cls-active':''}" data-title="${esc(ol.title)}" data-i="${i}"
-      style="padding:7px 12px;cursor:pointer;font-size:13px;color:var(--text);border-bottom:0.5px solid var(--border);font-family:'Hiragino Kaku Gothic ProN',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-      onmousedown="event.preventDefault();cdSuggestSelect('${esc(ol.title)}')"
+    <div class="cls-item" data-title="${esc(ol.title||'無題')}" data-i="${i}"
+      style="padding:7px 12px;cursor:pointer;font-size:13px;color:var(--text);border-bottom:0.5px solid var(--border);font-family:'Hiragino Kaku Gothic ProN',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:${i===0?'var(--bg3)':'var(--bg)'};"
+      onmousedown="event.preventDefault();cdSuggestSelect('${esc(ol.title||'無題')}')"
       onmouseover="cdSuggestHover(${i})"
     >${esc(ol.title||'無題')}</div>`).join('');
   _cdSuggestDiv=popup;
@@ -3163,19 +3179,37 @@ function cdSuggestHover(i){
 function cdSuggestSelect(title){
   if(!_cdSuggestTarget)return;
   const div=_cdSuggestTarget;
-  const text=div.textContent;
   const sel=window.getSelection();
-  const offset=sel.rangeCount?sel.getRangeAt(0).startOffset:text.length;
-  const before=text.slice(0,offset);
-  const after=text.slice(offset);
+  let before='', after='', offset=0;
+
+  if(sel.rangeCount){
+    const range=sel.getRangeAt(0);
+    const node=range.startContainer;
+    offset=range.startOffset;
+    if(node.nodeType===3){
+      before=node.textContent.slice(0,offset);
+      after=node.textContent.slice(offset);
+    } else {
+      before=div.textContent.slice(0,offset);
+      after=div.textContent.slice(offset);
+    }
+  } else {
+    before=div.textContent;
+    after='';
+  }
+
   const newBefore=before.replace(/\[\[[^\]]*$/,'[['+title+']]');
   div.textContent=newBefore+after;
-  // カーソルを]]の後ろに移動
+  div.dataset.text=div.textContent;
+
+  // カーソルを]]の直後へ
   const newOffset=newBefore.length;
-  const range=document.createRange();
-  range.setStart(div.firstChild||div,Math.min(newOffset,(div.firstChild?.length||0)));
-  range.collapse(true);
-  sel.removeAllRanges();sel.addRange(range);
+  if(div.firstChild){
+    const r=document.createRange();
+    r.setStart(div.firstChild,Math.min(newOffset,div.firstChild.length));
+    r.collapse(true);
+    sel.removeAllRanges();sel.addRange(r);
+  }
   cdHideSuggest();
 }
 
