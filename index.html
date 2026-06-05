@@ -2990,12 +2990,30 @@ function renderCardView(){
   renderCardGrid();
 }
 
+let _cardGridPool=[];
+
 function renderCardGrid(){
-  const q=(document.getElementById('cardGridSearch')?.value||'').toLowerCase();
+  const q=(document.getElementById('cardGridSearch')?.value||'').trim().toLowerCase();
   let pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt)
-    .filter(ol=>!ol.isSource&&!ol.isScrap) // 媒体・スクラップはオブジェクトタブへ
-    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q))
+    .filter(ol=>!ol.isSource&&!ol.isScrap)
     .filter(ol=>!activeCardLabel||(ol.labels||[]).includes(activeCardLabel));
+
+  if(q){
+    pool=pool.filter(ol=>{
+      if((ol.title||'').toLowerCase().includes(q))return true;
+      for(const it of ol.items||[]){
+        const t=(it.text||'').toLowerCase();
+        if(t.includes(q))return true;
+        if(it.id&&!it.id.startsWith('reply:')){
+          const p=posts.find(x=>x.id===it.id);
+          if(p&&cleanText(p.content).toLowerCase().includes(q))return true;
+        }
+      }
+      return false;
+    });
+  }
+  _cardGridPool=pool;
+
   const grid=document.getElementById('cardGrid');
   const empty=document.getElementById('cardGridEmpty');
   const count=document.getElementById('cardGridCount');
@@ -3003,35 +3021,49 @@ function renderCardGrid(){
   if(count)count.textContent=pool.length+'件';
   if(!pool.length){grid.innerHTML='';if(empty)empty.style.display='flex';return;}
   if(empty)empty.style.display='none';
+
+  function hl(text){
+    if(!q||!text)return esc(text||'');
+    const idx=text.toLowerCase().indexOf(q);
+    if(idx<0)return esc(text);
+    return esc(text.slice(0,idx))+'<mark style="background:#ffe066;border-radius:2px;padding:0 1px;">'+esc(text.slice(idx,idx+q.length))+'</mark>'+esc(text.slice(idx+q.length));
+  }
+
   grid.innerHTML=pool.map(ol=>{
     const previewLines=ol.items.slice(0,8).map(it=>{
       const lvl=it.level||0;
       let text=it.text||'';
       if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
       if(!text.trim())return'';
-      return`<div class="card-cell-line" style="padding-left:${lvl*8}px;">${esc(text.split('\n')[0].slice(0,60))}</div>`;
+      const matched=q&&text.toLowerCase().includes(q);
+      return`<div class="card-cell-line" style="padding-left:${lvl*8}px;${q&&!matched?'opacity:.4;':'}'}">${hl(text.split('\n')[0].slice(0,60))}</div>`;
     }).filter(Boolean).join('');
     const labels=(ol.labels||[]).map(l=>`<span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;padding:1px 7px;border-radius:20px;background:var(--accent);color:#fff;">${esc(l)}</span>`).join('');
-    // タイムラインのタグは表示しない（ラベルのみ）
     const hasImg=ol.images?.length;
     const isUsed=!!(ol.usedAt);
     const isSource=!!(ol.isSource);
     const usedBadge=isUsed?`<div class="card-used-badge">✓ ${esc(ol.usedNote||'成仏済')}</div>`:'';
     const sourceBadge=isSource?`<div class="source-badge">📎 メディア${(ol.sourceSubItems||[]).length?` · ${ol.sourceSubItems.length}件`:''}</div>`:'';
     const sourceDomain=isSource&&ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname;}catch{return'';}})():'';
-    return`<div class="card-cell${isUsed?' used':''}${isSource?' source-card':''}" onclick="openCardDetail('${ol.id}')">
-      <div class="card-cell-title">${esc(ol.title||'無題')}</div>
+    return`<div class="card-cell${isUsed?' used':''}${isSource?' source-card':''}${currentCardOutlineId===ol.id?' active':''}" onclick="openCardDetail('${ol.id}')">
+      <div class="card-cell-title">${hl(ol.title||'無題')}</div>
       ${isSource?`<div class="source-url-chip">${esc(sourceDomain||ol.sourceMemo?.slice(0,40)||'')}</div>`:''}
       <div class="card-cell-body" style="flex:1;">${isSource?((ol.sourceSubItems||[]).slice(0,5).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||''):previewLines}</div>
       ${hasImg?`<img src="${ol.images[0]}" style="width:100%;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`:''}
       ${labels?`<div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${labels}</div>`:''}
-      ${sourceBadge}
-      ${usedBadge}
+      ${sourceBadge}${usedBadge}
       <div class="card-cell-foot">${isSource?(ol.sourceSubItems||[]).length+'件のサブアイテム':ol.items.length+'項目'} · ${fmtDate(ol.updatedAt)}</div>
-      <div class="card-cell-fade" style="${isSource?'background:linear-gradient(transparent,var(--source-l))':''}"></div>
     </div>`;
   }).join('');
 }
+
+function navigateCard(dir){
+  if(!_cardGridPool.length)return;
+  const idx=_cardGridPool.findIndex(x=>x.id===currentCardOutlineId);
+  const next=_cardGridPool[(idx+dir+_cardGridPool.length)%_cardGridPool.length];
+  if(next)openCardDetail(next.id);
+}
+
 
 function renderCardSourceRefSection(ol){
   if(!ol)return'';
@@ -7445,6 +7477,8 @@ if(window.innerWidth<=640){
 <div class="card-detail" id="cardDetail" style="display:none;">
   <div class="card-detail-header">
     <button class="card-detail-back" onclick="closeCardDetail()">‹ 一覧</button>
+    <button onclick="navigateCard(-1)" title="前のカード" style="padding:4px 10px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:13px;color:var(--text2);cursor:pointer;line-height:1;">←</button>
+    <button onclick="navigateCard(1)" title="次のカード" style="padding:4px 10px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:13px;color:var(--text2);cursor:pointer;line-height:1;">→</button>
     <div style="flex:1;"></div>
     <button class="card-copy-btn" onclick="copyCardText()">📋 コピー</button>
     <div style="position:relative;">
