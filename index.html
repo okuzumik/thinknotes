@@ -853,7 +853,7 @@ body {
 .card-grid-count { font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text3); }
 .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(185px,1fr)); gap:10px; padding:1rem 1.5rem 3rem; overflow-y:auto; align-content:start; flex:1; }
 .card-grid-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text3); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:13px; text-align:center; line-height:1.8; }
-.card-cell { background:var(--bg2); border:0.5px solid var(--border); border-left:2px solid var(--border2); border-radius:var(--rsm); padding:11px; cursor:pointer; transition:border-color .12s,box-shadow .12s; display:flex; flex-direction:column; gap:5px; height:190px; overflow:hidden; position:relative; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.card-cell { position:relative; background:var(--bg2); border:0.5px solid var(--border); border-left:2px solid var(--border2); border-radius:var(--rsm); padding:11px 11px 11px 28px; cursor:pointer; transition:border-color .12s,box-shadow .12s; display:flex; flex-direction:column; gap:5px; height:190px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
 .card-cell.used { background:#eae8e2; border-color:#c8c4bc; opacity:.82; }
 .card-cell.used .card-cell-title { color:var(--text2); }
 .card-used-badge { display:inline-flex; align-items:center; gap:4px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; color:#888; background:#dedad3; border:0.5px solid #c4c0b8; border-radius:20px; padding:1px 7px; flex-shrink:0; }
@@ -3092,9 +3092,7 @@ function renderCardGrid(){
     const usedBadge='';
     const sourceBadge=isSource?`<div class="source-badge">📎 メディア${(ol.sourceSubItems||[]).length?` · ${ol.sourceSubItems.length}件`:''}</div>`:'';
     const sourceDomain=isSource&&ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname;}catch{return'';}})():'';
-    return`<div class="card-cell${isUsed?' used':''}${isSource?' source-card':''}${currentCardOutlineId===ol.id?' active':''}" onclick="openCardDetail('${ol.id}')">
-      <div class="card-cell-title">${hl(ol.title||'無題')}</div>
-      ${isSource?`<div class="source-url-chip">${esc(sourceDomain||ol.sourceMemo?.slice(0,40)||'')}</div>`:''}
+    return`<div class="card-cell${isSource?' source-card':''}${currentCardOutlineId===ol.id?' active':''}${selectedCardIds.has(ol.id)?' selected':''}" data-id="${ol.id}" onclick="openCardDetail('${ol.id}')">\n      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;" onclick="event.stopPropagation()">\n        <input type="checkbox" style="width:14px;height:14px;accent-color:var(--teal);cursor:pointer;flex-shrink:0;" onclick="toggleCardSel('${ol.id}')">\n        <div class="card-cell-title" style="flex:1;">${hl(ol.title||'無題')}</div>\n      </div>\n      ${isSource?`<div class="source-url-chip">${esc(sourceDomain||ol.sourceMemo?.slice(0,40)||'')}</div>`:''}
       <div class="card-cell-body" style="flex:1;">${isSource?((ol.sourceSubItems||[]).slice(0,5).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||''):previewLines}</div>
       ${hasImg?`<img src="${ol.images[0]}" style="width:100%;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`:''}
       ${labels?`<div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${labels}</div>`:''}
@@ -7332,12 +7330,29 @@ function _closeMobileMenuOnOutside(e){
 // ── 読み書きモード ───────────────────────────────────────────
 let _rwItems=[];
 
+function rwToggleEditor(){
+  const right=document.getElementById('rwRight');
+  const btn=document.getElementById('rwOpenEditorBtn');
+  const left=document.getElementById('rwLeft');
+  if(!right)return;
+  const isOpen=right.style.display==='flex';
+  if(isOpen){
+    right.style.display='none';
+    left.style.maxWidth='780px';
+    if(btn)btn.textContent='＋ 新しいカードを作成';
+  } else {
+    right.style.display='flex';
+    left.style.maxWidth='none';
+    if(btn)btn.textContent='✕ エディタを閉じる';
+    setTimeout(()=>document.getElementById('rwNewTitle')?.focus(),80);
+  }
+}
+
 function openReadWriteMode(){
   if(!selectedCardIds.size)return;
   const cards=[..._cardGridPool].filter(x=>selectedCardIds.has(x.id));
   if(!cards.length)return;
 
-  // 左ペイン：選択カードの全文
   const left=document.getElementById('rwLeft');
   if(left) left.innerHTML=cards.map(ol=>{
     const items=(ol.items||[]).map(it=>{
@@ -7345,25 +7360,32 @@ function openReadWriteMode(){
       let text=it.text||'';
       if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
       if(!text.trim())return'';
-      return`<div style="padding-left:${lvl*20}px;display:flex;gap:6px;padding-top:3px;padding-bottom:3px;line-height:1.7;">
-        <span style="color:var(--text3);flex-shrink:0;">•</span>
-        <span style="font-size:14px;color:var(--text);white-space:pre-wrap;word-break:break-word;">${linkifyCard(text)}</span>
+      return`<div style="display:flex;gap:8px;padding:3px 0 3px ${lvl*20}px;line-height:1.75;">
+        <span style="color:var(--text3);flex-shrink:0;font-size:12px;">•</span>
+        <span style="font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word;">${linkifyCard(esc(text))}</span>
       </div>`;
     }).filter(Boolean).join('');
-    return`<div style="margin-bottom:2rem;padding:1.2rem 1.5rem;background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);">
-      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);">${esc(ol.title||'無題')}</div>
+    const lbHtml=(ol.labels||[]).map(l=>`<span style="font-size:9px;padding:1px 7px;border-radius:20px;background:var(--accent);color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;">${esc(l)}</span>`).join('');
+    return`<div style="margin-bottom:2.5rem;padding:1.5rem 2rem;background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);">
+      <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;cursor:pointer;" onclick="closeReadWriteMode();openCardDetail('${ol.id}')">${esc(ol.title||'無題')}</div>
+      ${lbHtml?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">${lbHtml}</div>`:''}
+      <div style="border-top:0.5px solid var(--border);margin-bottom:10px;"></div>
       ${items||'<div style="color:var(--text3);font-size:12px;">（項目なし）</div>'}
     </div>`;
   }).join('');
 
-  // 右ペイン初期化
   _rwItems=[{id:uid(),text:'',level:0}];
   document.getElementById('rwNewTitle').value='';
+  const right=document.getElementById('rwRight');
+  if(right)right.style.display='none';
+  const btn=document.getElementById('rwOpenEditorBtn');
+  if(btn)btn.textContent='＋ 新しいカードを作成';
+  document.getElementById('rwLeft').style.maxWidth='780px';
   rwRenderItems();
-  document.getElementById('rwModeLabel').textContent=`${cards.length}件のカードを参照中`;
+  document.getElementById('rwModeLabel').textContent=`${cards.length}件のカードを閲覧中`;
   document.getElementById('readWriteOverlay').style.display='flex';
-  setTimeout(()=>document.getElementById('rwNewTitle').focus(),100);
 }
+
 
 function closeReadWriteMode(){
   document.getElementById('readWriteOverlay').style.display='none';
@@ -7982,19 +8004,23 @@ if(window.innerWidth<=640){
 <div id="cardLinkSuggest" style="display:none;position:fixed;z-index:9000;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;min-width:200px;max-width:320px;"></div>
 </body>
 <div id="readWriteOverlay" style="display:none;position:fixed;inset:0;z-index:400;background:var(--bg);flex-direction:column;">
+  <!-- ヘッダー -->
   <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:0.5px solid var(--border);background:var(--bg3);flex-shrink:0;">
     <button onclick="closeReadWriteMode()" style="padding:4px 12px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:12px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--text2);cursor:pointer;">✕ 閉じる</button>
     <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--text3);" id="rwModeLabel"></span>
-    <button onclick="rwSaveNewCard()" style="margin-left:auto;padding:5px 18px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">💾 カードを保存</button>
+    <button id="rwOpenEditorBtn" onclick="rwToggleEditor()" style="margin-left:auto;padding:5px 16px;background:var(--teal);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">＋ 新しいカードを作成</button>
   </div>
+  <!-- ボディ -->
   <div style="display:flex;flex:1;overflow:hidden;">
-    <!-- 左：参照カード -->
-    <div id="rwLeft" style="flex:1;overflow-y:auto;padding:1.5rem;border-right:1px solid var(--border);"></div>
-    <!-- 右：新規カード作成 -->
-    <div id="rwRight" style="flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:12px;">
-      <input id="rwNewTitle" placeholder="新しいカードのタイトル" style="padding:8px 12px;border:0.5px solid var(--border2);border-radius:var(--rsm);font-size:16px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-weight:600;outline:none;color:var(--text);background:var(--bg);">
+    <!-- 左：全文閲覧（スクロール） -->
+    <div id="rwLeft" style="flex:1;overflow-y:auto;padding:1.5rem 2rem;max-width:780px;margin:0 auto;"></div>
+    <!-- 右：カード作成エディタ（初期非表示） -->
+    <div id="rwRight" style="display:none;width:380px;flex-shrink:0;border-left:1px solid var(--border);overflow-y:auto;padding:1.2rem;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:2px;">新しいカード</div>
+      <input id="rwNewTitle" placeholder="タイトル" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--rsm);font-size:14px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-weight:600;outline:none;color:var(--text);background:var(--bg);">
       <div id="rwItems" style="flex:1;"></div>
-      <button onclick="rwAddItem()" style="padding:6px;background:none;border:0.5px dashed var(--border2);border-radius:var(--rsm);font-size:12px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--text3);cursor:pointer;text-align:left;">＋ 項目を追加</button>
+      <button onclick="rwAddItem()" style="padding:5px;background:none;border:0.5px dashed var(--border2);border-radius:var(--rsm);font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--text3);cursor:pointer;text-align:left;">＋ 項目を追加</button>
+      <button onclick="rwSaveNewCard()" style="padding:6px 16px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">💾 保存</button>
     </div>
   </div>
 </div>
