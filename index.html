@@ -1446,8 +1446,8 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
     <div class="card-grid-wrap" id="cardGridWrap">
       <div class="card-grid-toolbar">
         <input class="card-grid-search" id="cardGridSearch" placeholder="カードを検索…" oninput="renderCardGrid()">
-        <div class="card-label-filters" id="cardLabelFilters"></div>
-        <div class="card-label-filters" id="cardTypeFilters" style="gap:4px;"></div>
+        <!-- ラベル・タイプフィルター（コンパクト） -->
+        <div id="cardFilterBar" style="display:flex;align-items:center;gap:5px;flex:1;flex-wrap:wrap;min-width:0;"></div>
         <span class="card-grid-count" id="cardGridCount"></span>
         <button id="cardSelectModeBtn" onclick="toggleCardSelectMode()" style="padding:5px 12px;background:none;color:var(--text2);border:0.5px solid var(--border2);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;">複数カードを選択</button>
         <button onclick="newCardFromOutliner()" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">＋ 新規作成</button>
@@ -3002,7 +3002,7 @@ function wfInsertText(text,extraLevel=0){
 // ─── Card View ───────────────────────────────────────────
 let currentCardOutlineId=null;
 
-let activeCardLabel=null;
+let activeCardLabels=new Set();
 let activeCardType=null;
 
 function renderCardTypeFilters(){
@@ -3024,16 +3024,55 @@ function renderLabelBar(elId, pool, activeLabel, callbackName){
   const set=new Set();
   pool.forEach(ol=>(ol.labels||[]).forEach(l=>set.add(l)));
   if(!set.size){el.innerHTML='';return;}
-  el.innerHTML=`<span class="card-label-pill${!activeLabel?' active':''}" onclick="${callbackName}(null)">すべて</span>`
-    +[...set].map(l=>`<span class="card-label-pill${activeLabel===l?' active':''}" onclick="${callbackName}('${esc(l)}')">${esc(l)}</span>`).join('');
+  const isSet=activeLabel instanceof Set;
+  const isActive=l=>isSet?activeLabel.has(l):(activeLabel===l);
+  const hasAny=isSet?activeLabel.size>0:!!activeLabel;
+  el.innerHTML=`<span class="card-label-pill${!hasAny?' active':''}" onclick="${callbackName}(null)">すべて</span>`
+    +[...set].map(l=>`<span class="card-label-pill${isActive(l)?' active':''}" onclick="${callbackName}('${esc(l)}')">${esc(l)}</span>`).join('');
 }
 
-function renderCardLabelFilters(){
-  renderLabelBar('cardLabelFilters',
-    outlines.filter(ol=>!ol.isSource&&!ol.isScrap),
-    activeCardLabel,'setCardLabelFilter');
-  renderCardTypeFilters();
+function renderCardLabelFilters(){renderCardFilterBar();}
+function renderCardTypeFilters(){renderCardFilterBar();}
+
+function renderCardFilterBar(){
+  const el=document.getElementById('cardFilterBar');if(!el)return;
+  const pool=outlines.filter(ol=>!ol.isSource&&!ol.isScrap);
+
+  // ラベル収集
+  const labelSet=new Set();
+  pool.forEach(ol=>(ol.labels||[]).forEach(l=>labelSet.add(l)));
+  // タイプ収集
+  const typeSet=new Set(pool.filter(ol=>ol.cardType).map(ol=>ol.cardType));
+
+  const hasFilter=activeCardLabels.size>0||!!activeCardType;
+
+  // タイプピル
+  const typePills=[...typeSet].map(t=>{
+    const c=getCardTypeColor(t);
+    const on=activeCardType===t;
+    return`<span onclick="setCardTypeFilter('${esc(t)}')"
+      style="font-size:10px;padding:2px 9px;border-radius:3px;border:1px solid ${c};cursor:pointer;font-family:'Hiragino Kaku Gothic ProN',sans-serif;white-space:nowrap;flex-shrink:0;
+      ${on?`background:${c};color:#fff;`:`color:${c};`}">${esc(t)}</span>`;
+  }).join('');
+
+  // ラベルピル（複数選択）
+  const labelPills=[...labelSet].map(l=>{
+    const on=activeCardLabels.has(l);
+    return`<span onclick="setCardLabelFilter('${esc(l)}')"
+      style="font-size:10px;padding:2px 9px;border-radius:3px;border:1px solid ${on?'#2c4a7c':'var(--border2)'};cursor:pointer;font-family:'Hiragino Kaku Gothic ProN',sans-serif;white-space:nowrap;flex-shrink:0;
+      ${on?'background:#2c4a7c;color:#fff;':'color:#2c4a7c;'}">${esc(l)}</span>`;
+  }).join('');
+
+  // リセットボタン
+  const resetBtn=hasFilter?`<span onclick="resetCardFilters()"
+    style="font-size:10px;padding:2px 8px;border-radius:3px;border:1px solid var(--red);color:var(--red);cursor:pointer;font-family:'Hiragino Kaku Gothic ProN',sans-serif;white-space:nowrap;flex-shrink:0;">✕ リセット</span>`:'';
+
+  el.innerHTML=(typePills||labelPills)?`${typePills}${typePills&&labelPills?'<span style="color:var(--border2);font-size:11px;">|</span>':''}${labelPills}${resetBtn}`:
+    '<span style="font-size:10px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">フィルター：なし</span>';
 }
+
+function resetCardFilters(){activeCardLabels.clear();activeCardType=null;renderCardFilterBar();renderCardGrid();}
+
 function renderSourceLabelFilters(){
   renderLabelBar('sourceLabelFilters',
     outlines.filter(ol=>ol.isSource),
@@ -3044,10 +3083,10 @@ function renderScrapLabelFilters(){
     outlines.filter(ol=>ol.isScrap),
     activeScrapLabel,'setScrapLabelFilter');
 }
-function setCardLabelFilter(l){activeCardLabel=l;renderCardLabelFilters();renderCardGrid();}
+function setCardLabelFilter(l){if(!l){activeCardLabels.clear();}else{if(activeCardLabels.has(l))activeCardLabels.delete(l);else activeCardLabels.add(l);}renderCardLabelFilters();renderCardGrid();}
 function setSourceLabelFilter(l){activeSourceLabel=l;renderMatSourceGrid();}
 function setScrapLabelFilter(l){activeScrapLabel=l;renderScrapGrid();}
-function setCardLabel(label){activeCardLabel=label;renderCardLabelFilters();renderCardGrid();}
+function setCardLabel(label){activeCardLabels.clear();if(label)activeCardLabels.add(label);renderCardLabelFilters();renderCardGrid();}
 
 function renderCardView(){
   closeCardDetail();
@@ -3094,7 +3133,7 @@ function renderCardGrid(){
   const q=(document.getElementById('cardGridSearch')?.value||'').trim().toLowerCase();
   let pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt)
     .filter(ol=>!ol.isSource&&!ol.isScrap)
-    .filter(ol=>!activeCardLabel||(ol.labels||[]).includes(activeCardLabel))
+    .filter(ol=>!activeCardLabels.size||(ol.labels||[]).some(l=>activeCardLabels.has(l)))
     .filter(ol=>!activeCardType||ol.cardType===activeCardType);
 
   if(q){
