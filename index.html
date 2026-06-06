@@ -3188,7 +3188,7 @@ function renderCardGrid(){
   const q=(document.getElementById('cardGridSearch')?.value||'').trim().toLowerCase();
   let pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt)
     .filter(ol=>!ol.isSource&&!ol.isScrap)
-    .filter(ol=>!activeCardLabels.size||(ol.labels||[]).some(l=>activeCardLabels.has(l)))
+    .filter(ol=>!activeCardLabels.size||[...activeCardLabels].every(l=>(ol.labels||[]).includes(l)))
     .filter(ol=>!activeCardType||ol.cardType===activeCardType);
 
   if(q){
