@@ -1447,6 +1447,7 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
       <div class="card-grid-toolbar">
         <input class="card-grid-search" id="cardGridSearch" placeholder="カードを検索…" oninput="renderCardGrid()">
         <div class="card-label-filters" id="cardLabelFilters"></div>
+        <div class="card-label-filters" id="cardTypeFilters" style="gap:4px;"></div>
         <span class="card-grid-count" id="cardGridCount"></span>
         <button id="cardSelectModeBtn" onclick="toggleCardSelectMode()" style="padding:5px 12px;background:none;color:var(--text2);border:0.5px solid var(--border2);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;">複数カードを選択</button>
         <button onclick="newCardFromOutliner()" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">＋ 新規作成</button>
@@ -3002,6 +3003,18 @@ function wfInsertText(text,extraLevel=0){
 let currentCardOutlineId=null;
 
 let activeCardLabel=null;
+let activeCardType=null;
+
+function renderCardTypeFilters(){
+  const el=document.getElementById('cardTypeFilters');if(!el)return;
+  // 現在使われているタイプを収集
+  const types=[...new Set(outlines.filter(ol=>!ol.isSource&&!ol.isScrap&&ol.cardType).map(ol=>ol.cardType))];
+  if(!types.length){el.innerHTML='';return;}
+  el.innerHTML=`<span class="card-label-pill${!activeCardType?' active':''}" onclick="setCardTypeFilter(null)" style="border-color:var(--border2);">すべて</span>`
+    +types.map(t=>{const c=getCardTypeColor(t);return`<span class="card-label-pill${activeCardType===t?' active':''}" onclick="setCardTypeFilter('${esc(t)}')" style="${activeCardType===t?`background:${c};color:#fff;border-color:${c};`:`color:${c};border-color:${c};`}">${esc(t)}</span>`;}).join('');
+}
+
+function setCardTypeFilter(t){activeCardType=t;renderCardTypeFilters();renderCardGrid();}
 let activeSourceLabel=null;
 let activeScrapLabel=null;
 
@@ -3019,6 +3032,7 @@ function renderCardLabelFilters(){
   renderLabelBar('cardLabelFilters',
     outlines.filter(ol=>!ol.isSource&&!ol.isScrap),
     activeCardLabel,'setCardLabelFilter');
+  renderCardTypeFilters();
 }
 function renderSourceLabelFilters(){
   renderLabelBar('sourceLabelFilters',
@@ -3080,7 +3094,8 @@ function renderCardGrid(){
   const q=(document.getElementById('cardGridSearch')?.value||'').trim().toLowerCase();
   let pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt)
     .filter(ol=>!ol.isSource&&!ol.isScrap)
-    .filter(ol=>!activeCardLabel||(ol.labels||[]).includes(activeCardLabel));
+    .filter(ol=>!activeCardLabel||(ol.labels||[]).includes(activeCardLabel))
+    .filter(ol=>!activeCardType||ol.cardType===activeCardType);
 
   if(q){
     pool=pool.filter(ol=>{
@@ -4048,7 +4063,7 @@ function renderObjectRelated(ol){
   let html='';
   if(linkedCards.length) html+=hd(`🔗 リンク先（${linkedCards.length}）`)+linkedCards.map(c=>cardThumb(c)).join('');
   if(backlinks.length)   html+=hd(`↩ バックリンク（${backlinks.length}）`)+backlinks.map(c=>cardThumb(c)).join('');
-  if(sameLabel.length){html+=hd(`🏷 同じラベル（${sameLabel.length}）`);html+=sameLabel.map(c=>{const ml=(c.labels||[]).filter(l=>labels.includes(l));const lbHtml=ml.map(l=>`<span style="font-size:7px;padding:1px 5px;border-radius:20px;background:#2c4a7c;color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;flex-shrink:0;">${esc(l)}</span>`).join('');return`<div style="${ts}background:var(--bg2);border-left:2px solid var(--accent-m);" onclick="openCardDetail('${c.id}')" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'"><div style="${tts}color:var(--accent-d);">${esc(c.title||'無題')}</div><div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">${lbHtml}</div></div>`;}).join('');}
+  if(sameLabel.length){html+=hd(`🏷 同じラベル（${sameLabel.length}）`);html+=sameLabel.map(c=>cardThumb(c)).join('');}
   if(refMedia.length){
     html+=hd('📎 参照メディア');
     html+=refMedia.map(m=>{
