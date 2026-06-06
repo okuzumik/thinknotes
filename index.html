@@ -894,7 +894,7 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
 .card-label-pill { padding:3px 11px; border-radius:20px; border:0.5px solid var(--border2); background:var(--bg2); font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:11px; color:var(--text2); cursor:pointer; white-space:nowrap; flex-shrink:0; }
 .card-label-pill:hover { border-color:var(--accent-m); color:var(--accent); }
 .card-label-pill.active { background:#2c4a7c; color:#fff; border-color:#2c4a7c; font-weight:600; }
-.card-label-tag { color:#6b88b8; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; font-weight:600; }
+.card-label-tag { color:#6b88b8; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:9px; font-weight:600; border:0.5px solid #6b88b8; padding:1px 5px; border-radius:2px; }
 .card-label-input-wrap { display:flex; gap:6px; margin-top:.75rem; }
 .card-label-in { flex:1; padding:5px 10px; border:0.5px solid var(--border2); border-radius:20px; font-size:12px; font-family:inherit; color:var(--text); background:var(--bg3); outline:none; }
 .card-img-upload-btn { padding:5px 12px; background:none; border:0.5px solid var(--border2); border-radius:20px; font-family:'Hiragino Kaku Gothic ProN',sans-serif; font-size:12px; color:var(--text2); cursor:pointer; }
@@ -3584,7 +3584,7 @@ function openCardDetail(outlineId){
       </div>
     </div>`;
 
-  body.innerHTML=`<div class="card-detail-card" style="${ol.isSource?'border-left:3px solid var(--source);background:var(--source-l);':''}${ol.cardType?'border-left:3px solid '+typeColor+';':''}" id="cardDetailCard">
+  body.innerHTML=`<div class="card-detail-card" style="${ol.isSource?'border-left:3px solid var(--source);background:var(--source-l);':''}" id="cardDetailCard">
     <!-- フロントマタートグル -->
     ${ol.isSource?'':`<div onclick="toggleCardFrontMatter()" style="display:flex;align-items:center;gap:5px;margin-bottom:8px;cursor:pointer;user-select:none;">
       ${ol.cardType?`<span style="font-size:9px;padding:1px 8px;border-radius:20px;background:${typeColor};color:#fff;font-family:'Hiragino Kaku Gothic ProN',sans-serif;letter-spacing:.05em;">${esc(ol.cardType)}</span>`:'<span style="font-size:9px;color:var(--text3);font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">── フロントマター</span>'}
@@ -3596,7 +3596,7 @@ function openCardDetail(outlineId){
       onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
       onfocus="this.style.borderBottomColor='var(--border2)'"
       style="outline:none;cursor:text;border-bottom:1.5px dashed transparent;transition:border-color .15s;${ol.isSource?'color:var(--source);':''}"
-    >${esc(ol.title||'無題')}</div>
+    >${esc(ol.title||'無題')}</div>\n    <div style="height:2px;background:${typeColor};border-radius:1px;margin:6px 0 10px;opacity:${ol.cardType?'1':'0'};"></div>
     <div class="card-detail-card-meta">
       <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text3);">${fmtDate(ol.updatedAt)}</span>
       ${ol.isSource?`<span class="source-badge">📎 メディア</span>`:''}
