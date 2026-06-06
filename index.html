@@ -1451,12 +1451,7 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
           <button id="cardFilterBtn" onclick="toggleCardFilterPanel()" style="padding:4px 11px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
             <span>絞り込み</span><span id="cardFilterCount" style="display:none;font-size:9px;background:#2c4a7c;color:#fff;border-radius:20px;padding:1px 5px;"></span><span id="cardFilterArrow">▾</span>
           </button>
-          <div id="cardFilterPanel" style="display:none;position:absolute;top:calc(100% + 5px);left:0;z-index:200;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);padding:12px 14px;min-width:220px;max-width:280px;">
-            <div id="cardFilterPanelContent"></div>
-          </div>
         </div>
-        <!-- アクティブフィルターの確認チップ -->
-        <div id="cardActiveFilterChips" style="display:flex;gap:4px;flex-wrap:wrap;flex:1;min-width:0;"></div>
         <span class="card-grid-count" id="cardGridCount"></span>
         <button id="cardSelectModeBtn" onclick="toggleCardSelectMode()" style="padding:5px 12px;background:none;color:var(--text2);border:0.5px solid var(--border2);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;">複数カードを選択</button>
         <button onclick="newCardFromOutliner()" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">＋ 新規作成</button>
@@ -1468,12 +1463,22 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
         <button onclick="openReadWriteMode()" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">複数カードを全文表示</button>
         <button onclick="createNoteFromCards()" style="padding:5px 16px;background:#2d6a4f;color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto;">📝 このカードでノートを作成 →</button>
       </div>
-      <div class="card-grid" id="cardGrid"></div>
-      <div class="card-grid-empty" id="cardGridEmpty" style="display:none;">
+      <!-- メインエリア: フィルターサイドバー + カードグリッド -->
+      <div style="display:flex;flex:1;overflow:hidden;min-height:0;">
+        <!-- 左：フィルターパネル -->
+        <div id="cardFilterSidebar" style="display:none;width:180px;flex-shrink:0;border-right:0.5px solid var(--border);background:var(--bg3);overflow-y:auto;padding:12px 14px;">
+          <div id="cardFilterPanelContent"></div>
+        </div>
+        <!-- 右：カードグリッド -->
+        <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;">
+          <div class="card-grid" id="cardGrid"></div>
+          <div class="card-grid-empty" id="cardGridEmpty" style="display:none;">
         <div style="font-size:28px;margin-bottom:8px;">🗂️</div>
         保存済みアウトラインがありません<br>
         <span style="font-size:11px;margin-top:4px;display:block;">「思考」タブのアウトラインから保存してください</span>
       </div>
+        </div><!-- end right grid -->
+      </div><!-- end main flex -->
     </div>
   </div>
 
@@ -3050,13 +3055,22 @@ function cfTypeChange(el){setCardTypeFilter(el.dataset.val||null);}
 function cfLabelChange(el){setCardLabelFilter(el.dataset.val||null);}
 
 function toggleCardFilterPanel(){
-  const panel=document.getElementById('cardFilterPanel');
+  const sidebar=document.getElementById('cardFilterSidebar');
   const arrow=document.getElementById('cardFilterArrow');
-  if(!panel)return;
-  const open=panel.style.display!=='none';
-  panel.style.display=open?'none':'block';
+  if(!sidebar)return;
+  const open=sidebar.style.display!=='none';
+  sidebar.style.display=open?'none':'block';
   if(arrow)arrow.textContent=open?'▾':'▴';
   if(!open)renderCardFilterPanelContent();
+}
+
+function renderCardFilterUI(){
+  // チップ表示は不要 - カウントバッジのみ更新
+  const count=document.getElementById('cardFilterCount');
+  const btn=document.getElementById('cardFilterBtn');
+  const total=(activeCardType?1:0)+activeCardLabels.size;
+  if(count){count.textContent=total;count.style.display=total?'inline':'none';}
+  if(btn)btn.style.borderColor=total?'#2c4a7c':'var(--border2)';
 }
 
 function renderCardFilterPanelContent(){
@@ -3094,21 +3108,6 @@ function renderCardFilterPanelContent(){
 }
 
 
-function renderCardFilterUI(){
-  // アクティブフィルターのチップ表示
-  const chips=document.getElementById('cardActiveFilterChips');
-  const count=document.getElementById('cardFilterCount');
-  const btn=document.getElementById('cardFilterBtn');
-  const total=(activeCardType?1:0)+activeCardLabels.size;
-  if(chips){
-    chips.innerHTML=[
-      ...(activeCardType?[`<span style="font-size:10px;padding:2px 8px;border-radius:3px;border:1px solid ${getCardTypeColor(activeCardType)};color:${getCardTypeColor(activeCardType)};background:${getCardTypeColor(activeCardType)}18;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;" onclick="setCardTypeFilter(null)">${esc(activeCardType)} ✕</span>`]:[]),
-      ...[...activeCardLabels].map(l=>`<span style="font-size:10px;padding:2px 8px;border-radius:3px;border:1px solid #2c4a7c;color:#2c4a7c;background:#2c4a7c18;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;" onclick="setCardLabelFilter('${esc(l)}')">${esc(l)} ✕</span>`)
-    ].join('');
-  }
-  if(count){count.textContent=total;count.style.display=total?'inline':'none';}
-  if(btn)btn.style.borderColor=total?'#2c4a7c':'var(--border2)';
-}
 
 function resetCardFilters(){activeCardLabels.clear();activeCardType=null;renderCardFilterUI();renderCardGrid();}
 
