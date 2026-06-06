@@ -3051,6 +3051,15 @@ function renderLabelBar(elId, pool, activeLabel, callbackName){
 function renderCardLabelFilters(){renderCardFilterUI();}
 function renderCardTypeFilters(){renderCardFilterUI();}
 
+function cfTypeCheck(el){
+  var val=el.dataset.val||null;
+  // 同じタイプを再チェックで解除、別タイプで切り替え
+  setCardTypeFilter(activeCardType===val?null:val);
+  // 他のタイプのチェックを外す（単一選択）
+  document.querySelectorAll('#cardFilterPanelContent input[onchange="cfTypeCheck(this)"]').forEach(function(cb){
+    cb.checked=(cb.dataset.val===activeCardType);
+  });
+}
 function cfTypeChange(el){setCardTypeFilter(el.dataset.val||null);}
 function cfLabelChange(el){setCardLabelFilter(el.dataset.val||null);}
 
@@ -3080,19 +3089,19 @@ function renderCardFilterPanelContent(){
   var labelArr=[...new Set(pool.flatMap(function(ol){return ol.labels||[];}))];
   var html='';
   if(typeArr.length){
-    html+='<div style="font-size:9px;color:var(--text3);font-family:Hiragino,sans-serif;margin-bottom:4px;">タイプ</div>';
+    html+='<div style="font-size:9px;color:var(--text3);font-family:Hiragino,sans-serif;margin-bottom:4px;letter-spacing:.08em;">タイプ</div>';
     html+=typeArr.map(function(t){
       var col=getCardTypeColor(t);
       var on=activeCardType===t;
       return '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0;">'
-        +'<input type="radio" name="cfType" '+(on?'checked':'')
-        +' data-val="'+esc(t)+'" onchange="cfTypeChange(this)" style="accent-color:'+col+';">'
+        +'<input type="checkbox" '+(on?'checked':'')
+        +' data-val="'+esc(t)+'" onchange="cfTypeCheck(this)" style="accent-color:'+col+';">'
         +'<span style="font-size:11px;color:'+col+';">'+esc(t)+'</span></label>';
     }).join('');
   }
   if(typeArr.length&&labelArr.length) html+='<div style="border-top:0.5px solid var(--border);margin:8px 0;"></div>';
   if(labelArr.length){
-    html+='<div style="font-size:9px;color:var(--text3);font-family:Hiragino,sans-serif;margin-bottom:4px;">ラベル（複数可）</div>';
+    html+='<div style="font-size:9px;color:var(--text3);font-family:Hiragino,sans-serif;margin-bottom:4px;letter-spacing:.08em;">ラベル（複数可）</div>';
     html+=labelArr.map(function(l){
       var on=activeCardLabels.has(l);
       return '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0;">'
@@ -3101,14 +3110,10 @@ function renderCardFilterPanelContent(){
         +'<span style="font-size:11px;color:#2c4a7c;">'+esc(l)+'</span></label>';
     }).join('');
   }
-  var hasFilter=activeCardLabels.size>0||!!activeCardType;
-  if(hasFilter) html+='<div style="border-top:0.5px solid var(--border);margin-top:8px;padding-top:8px;">'
-    +'<button onclick="resetCardFilters();renderCardFilterPanelContent();" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;">✕ リセット</button></div>';
+  html+='<div style="border-top:0.5px solid var(--border);margin-top:10px;padding-top:8px;">'
+    +'<button onclick="resetCardFilters();renderCardFilterPanelContent();" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">✕ リセット</button></div>';
   el.innerHTML=html;
 }
-
-
-
 function resetCardFilters(){activeCardLabels.clear();activeCardType=null;renderCardFilterUI();renderCardGrid();}
 
 // パネル外クリックで閉じる
