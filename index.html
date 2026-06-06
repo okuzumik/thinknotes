@@ -3023,7 +3023,10 @@ function renderCardTypeFilters(){
     +types.map(t=>{const c=getCardTypeColor(t);return`<span class="card-label-pill${activeCardType===t?' active':''}" onclick="setCardTypeFilter('${esc(t)}')" style="${activeCardType===t?`background:${c};color:#fff;border-color:${c};`:`color:${c};border-color:${c};`}">${esc(t)}</span>`;}).join('');
 }
 
-function setCardTypeFilter(t){activeCardType=t;renderCardTypeFilters();renderCardGrid();}
+function setCardTypeFilter(t){
+  activeCardType=t;renderCardTypeFilters();renderCardGrid();
+  document.querySelectorAll('#cardFilterPanelContent input[type="radio"]').forEach(function(r){r.checked=(r.dataset.val===t)||(t===null&&r.dataset.val==='');});
+}
 let activeSourceLabel=null;
 let activeScrapLabel=null;
 
