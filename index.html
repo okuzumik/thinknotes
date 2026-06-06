@@ -3046,6 +3046,9 @@ function renderLabelBar(elId, pool, activeLabel, callbackName){
 function renderCardLabelFilters(){renderCardFilterUI();}
 function renderCardTypeFilters(){renderCardFilterUI();}
 
+function cfTypeChange(el){setCardTypeFilter(el.dataset.val||null);}
+function cfLabelChange(el){setCardLabelFilter(el.dataset.val||null);}
+
 function toggleCardFilterPanel(){
   const panel=document.getElementById('cardFilterPanel');
   const arrow=document.getElementById('cardFilterArrow');
@@ -3069,7 +3072,7 @@ function renderCardFilterPanelContent(){
       var on=activeCardType===t;
       return '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0;">'
         +'<input type="radio" name="cfType" '+(on?'checked':'')
-        +' onchange="setCardTypeFilter('+JSON.stringify(t)+');renderCardFilterPanelContent();" style="accent-color:'+col+';">'
+        +' data-val="'+esc(t)+'" onchange="cfTypeChange(this)" style="accent-color:'+col+';">'
         +'<span style="font-size:11px;color:'+col+';">'+esc(t)+'</span></label>';
     }).join('');
   }
@@ -3080,7 +3083,7 @@ function renderCardFilterPanelContent(){
       var on=activeCardLabels.has(l);
       return '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0;">'
         +'<input type="checkbox" '+(on?'checked':'')
-        +' onchange="setCardLabelFilter('+JSON.stringify(l)+');renderCardFilterPanelContent();" style="accent-color:#2c4a7c;">'
+        +' data-val="'+esc(l)+'" onchange="cfLabelChange(this)" style="accent-color:#2c4a7c;">'
         +'<span style="font-size:11px;color:#2c4a7c;">'+esc(l)+'</span></label>';
     }).join('');
   }
