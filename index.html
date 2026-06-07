@@ -3255,7 +3255,7 @@ function renderCardGrid(){
       const lvl=it.level||0;
       let text=it.text||'';
       if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
-      if(!text.trim())return'';
+      // 空行も表示（バレットなし）
       const isMatch=q&&text.toLowerCase().includes(q);
       let disp=text.split('\n')[0];
       if(isMatch){
@@ -3458,19 +3458,37 @@ function saveCardItemText(div){
   // cdOnBlur で処理するためここは空でよい
 }
 function onCardDetailItemKey(e,div,olId,idx){
-  if(e.key==='Enter'&&!e.isComposing){
+  if(e.isComposing)return;
+  const ol=outlines.find(x=>x.id===olId);if(!ol)return;
+
+  if(e.key==='Enter'){
     e.preventDefault();
-    const ol=outlines.find(x=>x.id===olId);if(!ol)return;
-    div.dataset.text=div.textContent;
-    ol.items[idx].text=div.textContent;
-    const newItem={id:uid(),text:'',level:ol.items[idx].level||0};
-    ol.items.splice(idx+1,0,newItem);
-    ol.updatedAt=Date.now();save();
-    openCardDetail(olId);
-    setTimeout(()=>cdFocus(idx+1),50);
+    const sel=window.getSelection();
+    const pos=sel&&sel.focusOffset!=null?sel.focusOffset:div.textContent.length;
+    const text=div.textContent;
+    const curLevel=ol.items[idx].level||0;
+    if(pos===0){
+      // 行頭でEnter → 空行を上に挿入
+      ol.items[idx].text=text;
+      ol.items.splice(idx,0,{id:uid(),text:'',level:curLevel});
+      ol.updatedAt=Date.now();save();
+      openCardDetail(olId);
+      setTimeout(()=>cdFocus(idx+1),50);
+    } else {
+      // 行中でEnter → カーソル位置で分割
+      const before=text.slice(0,pos);
+      const after=text.slice(pos);
+      ol.items[idx].text=before;
+      div.dataset.text=before;
+      ol.items.splice(idx+1,0,{id:uid(),text:after,level:curLevel});
+      ol.updatedAt=Date.now();save();
+      openCardDetail(olId);
+      setTimeout(()=>cdFocus(idx+1),50);
+    }
+
   } else if(e.key==='Backspace'&&div.textContent===''&&!e.isComposing){
     e.preventDefault();
-    const ol=outlines.find(x=>x.id===olId);if(!ol||ol.items.length<=1)return;
+    if(ol.items.length<=1)return;
     ol.items.splice(idx,1);
     ol.updatedAt=Date.now();save();
     openCardDetail(olId);
@@ -3479,14 +3497,27 @@ function onCardDetailItemKey(e,div,olId,idx){
       const prev=divs[Math.max(0,idx-1)];
       if(prev)prev.focus();
     },50);
+
   } else if(e.key==='Tab'){
     e.preventDefault();
-    const ol=outlines.find(x=>x.id===olId);if(!ol)return;
     div.dataset.text=div.textContent;ol.items[idx].text=div.textContent;
     ol.items[idx].level=e.shiftKey?Math.max(0,(ol.items[idx].level||0)-1):(ol.items[idx].level||0)+1;
     ol.updatedAt=Date.now();save();
     openCardDetail(olId);
     setTimeout(()=>cdFocus(idx),50);
+
+  } else if(e.key==='ArrowLeft'){
+    const sel=window.getSelection();
+    if(sel&&sel.focusOffset===0){
+      const divs=document.querySelectorAll('#cdItems .card-detail-text');
+      const prev=divs[idx-1];
+      if(prev){
+        e.preventDefault();
+        prev.focus();
+        const r=document.createRange();r.selectNodeContents(prev);r.collapse(false);
+        sel.removeAllRanges();sel.addRange(r);
+      }
+    }
   } else if(e.key==='ArrowUp'&&!e.shiftKey){
     const divs=document.querySelectorAll('#cdItems .card-detail-text');
     if(divs[idx-1]){e.preventDefault();divs[idx-1].focus();}
@@ -3495,6 +3526,7 @@ function onCardDetailItemKey(e,div,olId,idx){
     if(divs[idx+1]){e.preventDefault();divs[idx+1].focus();}
   }
 }
+
 
 
 function renderCardSourceRefSection(ol){
@@ -3945,7 +3977,7 @@ function renderCard(outlineId){
       let text='';
       if(it.id.startsWith('reply:')){text=it._replyContent||'';}
       else{const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'（削除済み）';}
-      if(!text.trim())return'';
+      // 空行も表示（バレットなし）
       const lines=text.split('\n').filter(l=>l.trim());
       return`<div style="padding:3px 0 3px ${lvl*20}px;display:flex;align-items:baseline;gap:6px;line-height:1.75;">
         <span style="color:var(--accent-m);flex-shrink:0;">・</span>
@@ -3992,7 +4024,7 @@ function exportCardText(fmt='txt'){
     const items=ol.items.map(it=>{
       let text=it.text||'';
       if(!text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
-      if(!text.trim())return'';
+      // 空行も表示（バレットなし）
       return`${'  '.repeat(it.level||0)}- ${text.replace(/\n/g,' ')}`;
     }).filter(Boolean).join('\n');
     const md=`# ${ol.title||'無題'}\n\n${items}\n`;
@@ -4002,7 +4034,7 @@ function exportCardText(fmt='txt'){
     const lines=(ol.title||'無題')+'\n\n'+ol.items.map(it=>{
       let text=it.text||'';
       if(!text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
-      if(!text.trim())return'';
+      // 空行も表示（バレットなし）
       return'\t'.repeat(it.level||0)+text;
     }).filter(Boolean).join('\n');
     dl(new Blob([lines],{type:'text/plain;charset=utf-8'}),name+'.txt');
@@ -7554,7 +7586,7 @@ function openReadWriteMode(){
       const lvl=it.level||0;
       let text=it.text||'';
       if(!it.text&&it.id&&!it.id.startsWith('reply:')){const p=posts.find(x=>x.id===it.id);text=p?cleanText(p.content):'';}
-      if(!text.trim())return'';
+      // 空行も表示（バレットなし）
       return`<div style="display:flex;gap:8px;padding:3px 0 3px ${lvl*20}px;line-height:1.75;">
         <span style="color:var(--text3);flex-shrink:0;font-size:12px;">•</span>
         <span style="font-size:12px;color:var(--text);white-space:pre-wrap;word-break:break-word;">${linkifyCard(esc(text))}</span>
