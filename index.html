@@ -3357,7 +3357,7 @@ function renderCardGrid(){
       } else { disp=disp.slice(0,60); }
       return'<div class="card-cell-line" style="padding-left:'+(lvl*8)+'px;'+(q&&!isMatch?'opacity:.35;':'')+'">'+(hl(disp))+'</div>';
     }).filter(Boolean).join('');
-    const labels=(ol.labels||[]).map(l=>'<span style="font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;font-size:8px;color:#6b88b8;font-weight:600;">'+esc(l)+'</span>').join(' ');
+    const labels=(ol.labels||[]).map(l=>'<span style="font-size:8px;color:#6b88b8;font-weight:600;">'+esc(l)+'</span>').join(' ');
     const hasImg=ol.images?.length;
     const isUsed=false;
     const isSource=!!(ol.isSource);
