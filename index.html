@@ -3190,22 +3190,7 @@ function saveCardType(val){
   openCardDetail(currentCardOutlineId);
 }
 
-function cdActivateEdit(div){
-  // 他の編集中アイテムを確定
-  document.querySelectorAll('#cardDetailBody .card-detail-text[contenteditable="true"]').forEach(el=>{
-    if(el!==div){cdOnBlur(el);el.contentEditable='false';}
-  });
-  div.contentEditable='true';
-  cdOnFocus(div);
-  // カーソルを末尾に
-  const range=document.createRange();
-  range.selectNodeContents(div);
-  range.collapse(false);
-  window.getSelection().removeAllRanges();
-  window.getSelection().addRange(range);
-}
 
-// カード詳細エリア外クリックで編集確定
 document.addEventListener('click',e=>{
   const body=document.getElementById('cardDetailBody');
   if(!body||!body.contains(e.target))return;
@@ -3215,83 +3200,13 @@ document.addEventListener('click',e=>{
   }
 },{capture:false});
 
-const cdSelectedItems=new Set();
 
-function cdItemSelToggle(idx,cb,shiftKey){
-  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
-  if(shiftKey&&cdSelectedItems.size>0){
-    // Shift: 最後に選択した項目との間をすべて選択
-    const last=Math.max(...cdSelectedItems);
-    const min=Math.min(last,idx), max=Math.max(last,idx);
-    for(let i=min;i<=max;i++) cdSelectedItems.add(i);
-  } else {
-    if(cdSelectedItems.has(idx)) cdSelectedItems.delete(idx);
-    else cdSelectedItems.add(idx);
-  }
-  cdUpdateSelUI();
-}
 
-function cdUpdateSelUI(){
-  const items=document.querySelectorAll('#cardDetailBody .cd-item');
-  items.forEach(el=>{
-    const idx=parseInt(el.dataset.idx);
-    const on=cdSelectedItems.has(idx);
-    el.classList.toggle('cd-selected',on);
-    const cb=el.querySelector('.cd-item-cb');
-    if(cb)cb.checked=on;
-  });
-  const bar=document.getElementById('cdSelBar');
-  if(!bar)return;
-  if(cdSelectedItems.size>0){
-    bar.style.display='flex';
-    const lbl=document.getElementById('cdSelCount');
-    if(lbl)lbl.textContent=cdSelectedItems.size+'件選択中';
-  } else {
-    bar.style.display='none';
-  }
-}
 
-function cdSelClear(){cdSelectedItems.clear();cdUpdateSelUI();}
 
-function cdCopySelected(){
-  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
-  const lines=[...cdSelectedItems].sort((a,b)=>a-b).map(i=>{
-    const it=ol.items[i]; if(!it)return '';
-    return ('  '.repeat(it.level||0))+'• '+it.text;
-  }).filter(Boolean).join('\n');
-  navigator.clipboard.writeText(lines).then(()=>{
-    const btn=document.getElementById('cdCopyBtn');
-    if(btn){const t=btn.textContent;btn.textContent='✓ コピー済み';setTimeout(()=>btn.textContent=t,1500);}
-  });
-}
 
-function cdExtractSelected(){
-  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
-  const sorted=[...cdSelectedItems].sort((a,b)=>a-b);
-  const items=sorted.map(i=>({...ol.items[i],id:uid()})).filter(Boolean);
-  if(!items.length)return;
-  const title=items[0]?.text?.slice(0,30)||'新しいカード';
-  const newOl={id:uid(),title,items,images:[],labels:[],
-    createdAt:Date.now(),updatedAt:Date.now()};
-  outlines.unshift(newOl);save();
-  cdSelClear();renderCardGrid();
-  alert('「'+title+'」としてカードを作成しました');
-}
 
-function cdDeleteSelected(){
-  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
-  const sorted=[...cdSelectedItems].sort((a,b)=>b-a);
-  sorted.forEach(i=>ol.items.splice(i,1));
-  ol.updatedAt=Date.now();save();
-  cdSelectedItems.clear();
-  openCardDetail(currentCardOutlineId);
-}
 
-function cdSelAll(){
-  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
-  ol.items.forEach((_,i)=>cdSelectedItems.add(i));
-  cdUpdateSelUI();
-}
 
 function renderCardGrid(){
   const q=(document.getElementById('cardGridSearch')?.value||'').trim().toLowerCase();
@@ -3365,7 +3280,7 @@ function renderCardGrid(){
     const sourceBadge=isSource?('<div class="source-badge">📎 メディア'+((ol.sourceSubItems||[]).length?' · '+ol.sourceSubItems.length+'件':'')+'</div>'):''
     const sourceDomain=isSource&&ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname;}catch{return'';}})():'';
     const _tc=getCardTypeColor(ol.cardType);const _tcStyle=ol.cardType?'box-shadow:0 2px 8px rgba(0,0,0,.08);':'';
-    return`<div class="card-cell${isSource?' source-card':''}${currentCardOutlineId===ol.id?' active':''}${selectedCardIds.has(ol.id)?' selected':''}" data-id="${ol.id}" style="${_tcStyle}" onclick="openCardDetail(this.dataset.id)">\n      <div class="card-cb-row"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--teal);cursor:pointer;" onclick="cardToggleSel('${ol.id}',event)"><span class="card-cell-title" style="flex:1;" onclick="openCardDetail(this.closest('.card-cell').dataset.id)">${hl(ol.title||'無題')}</span></div>\n      <div style="height:1.5px;background:${_tc||'var(--border)'};margin:2px 0;border-radius:1px;opacity:${ol.cardType?'1':'0'};"></div>\n      <div class="card-cell-body" style="flex:1;">${isSource?((ol.sourceSubItems||[]).slice(0,5).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||''):previewLines}</div>
+    return`<div class="card-cell${isSource?' source-card':''}${currentCardOutlineId===ol.id?' active':''}${selectedCardIds.has(ol.id)?' selected':''}" data-id="${ol.id}" style="${_tcStyle}" onclick="openCardDetail('${ol.id}')">\n      <div class="card-cb-row"><input type="checkbox" style="width:14px;height:14px;accent-color:var(--teal);cursor:pointer;" onclick="cardToggleSel('${ol.id}',event)"><span class="card-cell-title" style="flex:1;">${hl(ol.title||'無題')}</span></div>\n      <div style="height:1.5px;background:${_tc||'var(--border)'};margin:2px 0;border-radius:1px;opacity:${ol.cardType?'1':'0'};"></div>\n      <div class="card-cell-body" style="flex:1;">${isSource?((ol.sourceSubItems||[]).slice(0,5).map(si=>`<div class="card-cell-line">• ${esc(si.label)}</div>`).join('')||''):previewLines}</div>
       ${hasImg?`<img src="${ol.images[0]}" style="width:100%;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`:''}
       ${labels?`<div style="display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${labels}</div>`:''}
       ${sourceBadge}${usedBadge}
@@ -3710,7 +3625,6 @@ function renderBacklinksSection(outlineId){
 
 function openCardDetail(outlineId){
   currentCardOutlineId=outlineId;
-  cdSelectedItems.clear();
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
   const detail=document.getElementById('cardDetail');
   const body=document.getElementById('cardDetailBody');
@@ -3767,10 +3681,11 @@ function openCardDetail(outlineId){
     return`<div class="cd-item" data-idx="${i}" style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:${lvl*22}px;">
       <span class="card-detail-bullet" style="cursor:pointer;user-select:none;flex-shrink:0;" onclick="cdToggleLevel('${ol.id}',${i})">•</span>
       <div style="flex:1;">
-        <div class="card-detail-text" contenteditable="false" spellcheck="false"
+        <div class="card-detail-text" contenteditable="true" spellcheck="false"
           data-ol="${ol.id}" data-idx="${i}" data-text="${esc(text)}"
-          style="outline:none;cursor:text;min-width:20px;white-space:pre-wrap;word-break:break-word;user-select:text;"
-          ondblclick="cdActivateEdit(this)"
+          style="outline:none;cursor:text;min-width:20px;white-space:pre-wrap;word-break:break-word;"
+          onfocus="cdOnFocus(this)"
+          onblur="cdOnBlur(this)"
           onkeydown="onCardDetailItemKey(event,this,'${ol.id}',${i})"
           oninput="cdOnInput(this)"
         >${linkifyCard(text)}</div>
