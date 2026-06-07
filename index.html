@@ -3463,19 +3463,26 @@ function onCardDetailItemKey(e,div,olId,idx){
 
   if(e.key==='Enter'){
     e.preventDefault();
-    const sel=window.getSelection();
-    const pos=sel&&sel.focusOffset!=null?sel.focusOffset:div.textContent.length;
     const text=div.textContent;
     const curLevel=ol.items[idx].level||0;
+    // 正確なカーソル位置取得（focusOffsetは子ノードindex混在のため Range を使う）
+    let pos=text.length;
+    const sel=window.getSelection();
+    if(sel&&sel.rangeCount>0){
+      try{
+        const r=document.createRange();
+        r.selectNodeContents(div);
+        r.setEnd(sel.getRangeAt(0).endContainer,sel.getRangeAt(0).endOffset);
+        pos=r.toString().length;
+      }catch(err){pos=text.length;}
+    }
     if(pos===0){
-      // 行頭でEnter → 空行を上に挿入
       ol.items[idx].text=text;
       ol.items.splice(idx,0,{id:uid(),text:'',level:curLevel});
       ol.updatedAt=Date.now();save();
       openCardDetail(olId);
       setTimeout(()=>cdFocus(idx+1),50);
     } else {
-      // 行中でEnter → カーソル位置で分割
       const before=text.slice(0,pos);
       const after=text.slice(pos);
       ol.items[idx].text=before;
@@ -3508,7 +3515,16 @@ function onCardDetailItemKey(e,div,olId,idx){
 
   } else if(e.key==='ArrowLeft'){
     const sel=window.getSelection();
-    if(sel&&sel.focusOffset===0){
+    let atStart=false;
+    if(sel&&sel.rangeCount>0){
+      try{
+        const r=document.createRange();
+        r.selectNodeContents(div);
+        r.setEnd(sel.getRangeAt(0).endContainer,sel.getRangeAt(0).endOffset);
+        atStart=r.toString().length===0;
+      }catch(err){}
+    }
+    if(atStart){
       const divs=document.querySelectorAll('#cdItems .card-detail-text');
       const prev=divs[idx-1];
       if(prev){
