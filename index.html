@@ -1232,7 +1232,7 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
     <!-- 選択バー -->
     <div class="sel-bar" id="selBar">
       <span class="sel-label" id="selLabel">0件選択中</span>
-      <button class="sel-action" onclick="goToOutlineWithSel()">アウトラインに追加 →</button>
+      <button class="sel-action" onclick="goToOutlineWithSel()">カードを作成 →</button>
       <button class="sel-clear" onclick="clearSel()">解除</button>
     </div>
     <div class="feed" id="feed"></div>
@@ -3152,14 +3152,20 @@ function renderCardView(){
 let _cardGridPool=[];
 
 function getCardTypeColor(type){
+  if(!type)return'#6b7280';
   const map={
-    'キーワード':'#2c7a7b',  // teal
-    'テーゼ':    '#6b46c1',  // purple
-    '記録':      '#b7791f',  // amber
-    'アイデア':  '#c05621',  // coral
-    '思考':      '#2b6cb0',  // blue
+    'キーワード':'#2c7a7b',
+    'テーゼ':    '#6b46c1',
+    '記録':      '#b7791f',
+    'アイデア':  '#c05621',
+    '思考':      '#2b6cb0',
+    'メモ':      '#276749',
+    '疑問':      '#b83280',
+    '引用':      '#744210',
+    '構造':      '#2c5282',
+    '反論':      '#9b2335',
   };
-  return map[type]||'#6b7280';  // default gray
+  return map[type]||'#6b7280';
 }
 
 function toggleCardFrontMatter(){
@@ -3668,7 +3674,6 @@ function openCardDetail(outlineId){
         ${postImgsHtml}
       </div>
     </div>`;
-  }).join('')+'</div>'+'<button onclick="cdAddItem(\''+ol.id+'\',-1)" style="margin-top:6px;padding:4px 12px;background:none;border:0.5px dashed var(--border2);border-radius:var(--rsm);font-size:11px;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;color:var(--text3);cursor:pointer;">＋ 項目を追加</button>';
   // カード自体の画像
   const cardImgsHtml=images.length?`<div class="card-detail-card-images">${images.map((src,i)=>`
     <div style="position:relative;display:inline-block;">
@@ -3688,7 +3693,7 @@ function openCardDetail(outlineId){
           onchange="saveCardType(this.value)"
           onblur="saveCardType(this.value)">
         <datalist id="cardTypeList">
-          <option value="キーワード"><option value="テーゼ"><option value="記録"><option value="アイデア"><option value="思考">
+          <option value="キーワード"><option value="テーゼ"><option value="記録"><option value="アイデア"><option value="思考"><option value="メモ"><option value="疑問"><option value="引用"><option value="構造"><option value="反論">
         </datalist>
       </div>
     </div>`;
@@ -6986,21 +6991,22 @@ function wfDelete(){
 
 // タイムラインから選択してアウトラインに追加（互換）
 function goToOutlineWithSel(){
-  // 選択投稿をWorkFlowyアウトラインに変換
   if(!selectedIds.size){switchPhase(3);return;}
-  wfNewOutline();
-  const ol=wfGetOl();if(!ol)return;
-  ol.items=[];
+  // 選択投稿からカードを作成
+  const firstPost=posts.find(x=>selectedIds.has(x.id));
+  const title=firstPost?cleanText(firstPost.content).split('\n')[0].slice(0,30):'新しいカード';
+  const items=[];
   selectedIds.forEach(id=>{
-    const p=posts.find(x=>x.id===id);
-    if(!p)return;
-    ol.items.push({id:uid(),text:cleanText(p.content),level:0});
-    (p.replies||[]).forEach(r=>{
-      ol.items.push({id:uid(),text:cleanText(r.content),level:1});
-    });
+    const p=posts.find(x=>x.id===id);if(!p)return;
+    items.push({id:uid(),text:cleanText(p.content),level:0});
+    (p.replies||[]).forEach(r=>items.push({id:uid(),text:cleanText(r.content),level:1}));
   });
-  if(!ol.items.length)ol.items=[{id:uid(),text:'',level:0}];
-  selectedIds.clear();save();wfRenderItems();wfRenderSidebar();
+  const newOl={id:uid(),title,items:items.length?items:[{id:uid(),text:'',level:0}],
+    images:[],labels:[],createdAt:Date.now(),updatedAt:Date.now()};
+  outlines.unshift(newOl);
+  selectedIds.clear();save();
+  switchPhase(3);
+  setTimeout(()=>openCardDetail(newOl.id),100);
 }
 
 // ノートタブから呼ばれる goToNote（互換）：現在のアウトラインをノートに変換
@@ -7046,16 +7052,6 @@ function newOutline(){
   renderAllPostsPanel();renderOutlineFeed();renderSavedOutlinesBar();
 }
 
-function goToOutlineWithSel(){
-  // 選択中の投稿をアウトラインに追加（連ツイは構造ごと）
-  selectedIds.forEach(id=>{
-    if(!currentOutline.find(it=>it.id===id)){
-      addThreadToOutline(id,0);
-    }
-  });
-  selectedIds.clear();
-  switchPhase(4);
-}
 
 // 投稿（＋連ツイ）をアウトラインに追加するヘルパー
 function addThreadToOutline(pid,baseLevel){
