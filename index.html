@@ -3692,6 +3692,8 @@ function openCardDetail(outlineId){
         ${postImgsHtml}
       </div>
     </div>`;
+  }).filter(Boolean).join('')+'</div>';
+
   // カード自体の画像
   const cardImgsHtml=images.length?`<div class="card-detail-card-images">${images.map((src,i)=>`
     <div style="position:relative;display:inline-block;">
@@ -3715,7 +3717,6 @@ function openCardDetail(outlineId){
         </datalist>
       </div>
     </div>`;
-  }).join('')+'</div>';
 
   body.innerHTML=`<div class="card-detail-card" style="${ol.isSource?'border-left:3px solid var(--source);background:var(--source-l);':''}" id="cardDetailCard">
     <!-- フロントマタートグル -->
