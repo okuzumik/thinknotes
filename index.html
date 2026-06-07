@@ -3191,14 +3191,7 @@ function saveCardType(val){
 }
 
 
-document.addEventListener('click',e=>{
-  const body=document.getElementById('cardDetailBody');
-  if(!body||!body.contains(e.target))return;
-  const active=body.querySelector('.card-detail-text[contenteditable="true"]');
-  if(active&&!active.contains(e.target)){
-    cdOnBlur(active);active.contentEditable='false';
-  }
-},{capture:false});
+
 
 
 
