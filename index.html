@@ -3111,7 +3111,7 @@ function renderCardFilterPanelContent(){
     }).join('');
   }
   html+='<div style="border-top:0.5px solid var(--border);margin-top:10px;padding-top:8px;">'
-    +'<button onclick="resetCardFilters();renderCardFilterPanelContent();" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;font-family:\'Hiragino Kaku Gothic ProN\',sans-serif;">✕ リセット</button></div>';
+    +'<button onclick="resetCardFilters();renderCardFilterPanelContent();" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;font-family:inherit;">✕ リセット</button></div>';
   el.innerHTML=html;
 }
 function resetCardFilters(){activeCardLabels.clear();activeCardType=null;renderCardFilterUI();renderCardGrid();}
@@ -3188,6 +3188,109 @@ function saveCardType(val){
   if(card)card.style.borderLeft=ol.cardType?('3px solid '+tc):'';
   // フロントマタートグルのタイプバッジを更新
   openCardDetail(currentCardOutlineId);
+}
+
+function cdActivateEdit(div){
+  // 他の編集中アイテムを確定
+  document.querySelectorAll('#cardDetailBody .card-detail-text[contenteditable="true"]').forEach(el=>{
+    if(el!==div){cdOnBlur(el);el.contentEditable='false';}
+  });
+  div.contentEditable='true';
+  cdOnFocus(div);
+  // カーソルを末尾に
+  const range=document.createRange();
+  range.selectNodeContents(div);
+  range.collapse(false);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(range);
+}
+
+// カード詳細エリア外クリックで編集確定
+document.addEventListener('click',e=>{
+  const body=document.getElementById('cardDetailBody');
+  if(!body||!body.contains(e.target))return;
+  const active=body.querySelector('.card-detail-text[contenteditable="true"]');
+  if(active&&!active.contains(e.target)){
+    cdOnBlur(active);active.contentEditable='false';
+  }
+},{capture:false});
+
+const cdSelectedItems=new Set();
+
+function cdItemSelToggle(idx,cb,shiftKey){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  if(shiftKey&&cdSelectedItems.size>0){
+    // Shift: 最後に選択した項目との間をすべて選択
+    const last=Math.max(...cdSelectedItems);
+    const min=Math.min(last,idx), max=Math.max(last,idx);
+    for(let i=min;i<=max;i++) cdSelectedItems.add(i);
+  } else {
+    if(cdSelectedItems.has(idx)) cdSelectedItems.delete(idx);
+    else cdSelectedItems.add(idx);
+  }
+  cdUpdateSelUI();
+}
+
+function cdUpdateSelUI(){
+  const items=document.querySelectorAll('#cardDetailBody .cd-item');
+  items.forEach(el=>{
+    const idx=parseInt(el.dataset.idx);
+    const on=cdSelectedItems.has(idx);
+    el.classList.toggle('cd-selected',on);
+    const cb=el.querySelector('.cd-item-cb');
+    if(cb)cb.checked=on;
+  });
+  const bar=document.getElementById('cdSelBar');
+  if(!bar)return;
+  if(cdSelectedItems.size>0){
+    bar.style.display='flex';
+    const lbl=document.getElementById('cdSelCount');
+    if(lbl)lbl.textContent=cdSelectedItems.size+'件選択中';
+  } else {
+    bar.style.display='none';
+  }
+}
+
+function cdSelClear(){cdSelectedItems.clear();cdUpdateSelUI();}
+
+function cdCopySelected(){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  const lines=[...cdSelectedItems].sort((a,b)=>a-b).map(i=>{
+    const it=ol.items[i]; if(!it)return '';
+    return ('  '.repeat(it.level||0))+'• '+it.text;
+  }).filter(Boolean).join('\n');
+  navigator.clipboard.writeText(lines).then(()=>{
+    const btn=document.getElementById('cdCopyBtn');
+    if(btn){const t=btn.textContent;btn.textContent='✓ コピー済み';setTimeout(()=>btn.textContent=t,1500);}
+  });
+}
+
+function cdExtractSelected(){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  const sorted=[...cdSelectedItems].sort((a,b)=>a-b);
+  const items=sorted.map(i=>({...ol.items[i],id:uid()})).filter(Boolean);
+  if(!items.length)return;
+  const title=items[0]?.text?.slice(0,30)||'新しいカード';
+  const newOl={id:uid(),title,items,images:[],labels:[],
+    createdAt:Date.now(),updatedAt:Date.now()};
+  outlines.unshift(newOl);save();
+  cdSelClear();renderCardGrid();
+  alert('「'+title+'」としてカードを作成しました');
+}
+
+function cdDeleteSelected(){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  const sorted=[...cdSelectedItems].sort((a,b)=>b-a);
+  sorted.forEach(i=>ol.items.splice(i,1));
+  ol.updatedAt=Date.now();save();
+  cdSelectedItems.clear();
+  openCardDetail(currentCardOutlineId);
+}
+
+function cdSelAll(){
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  ol.items.forEach((_,i)=>cdSelectedItems.add(i));
+  cdUpdateSelUI();
 }
 
 function renderCardGrid(){
@@ -3607,6 +3710,7 @@ function renderBacklinksSection(outlineId){
 
 function openCardDetail(outlineId){
   currentCardOutlineId=outlineId;
+  cdSelectedItems.clear();
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
   const detail=document.getElementById('cardDetail');
   const body=document.getElementById('cardDetailBody');
@@ -3663,11 +3767,10 @@ function openCardDetail(outlineId){
     return`<div class="cd-item" data-idx="${i}" style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:${lvl*22}px;">
       <span class="card-detail-bullet" style="cursor:pointer;user-select:none;flex-shrink:0;" onclick="cdToggleLevel('${ol.id}',${i})">•</span>
       <div style="flex:1;">
-        <div class="card-detail-text" contenteditable="true" spellcheck="false"
+        <div class="card-detail-text" contenteditable="false" spellcheck="false"
           data-ol="${ol.id}" data-idx="${i}" data-text="${esc(text)}"
-          style="outline:none;cursor:text;min-width:20px;white-space:pre-wrap;word-break:break-word;"
-          onfocus="cdOnFocus(this)"
-          onblur="cdOnBlur(this)"
+          style="outline:none;cursor:text;min-width:20px;white-space:pre-wrap;word-break:break-word;user-select:text;"
+          ondblclick="cdActivateEdit(this)"
           onkeydown="onCardDetailItemKey(event,this,'${ol.id}',${i})"
           oninput="cdOnInput(this)"
         >${linkifyCard(text)}</div>
@@ -3697,6 +3800,7 @@ function openCardDetail(outlineId){
         </datalist>
       </div>
     </div>`;
+  }).join('')+'</div>';
 
   body.innerHTML=`<div class="card-detail-card" style="${ol.isSource?'border-left:3px solid var(--source);background:var(--source-l);':''}" id="cardDetailCard">
     <!-- フロントマタートグル -->
