@@ -3720,7 +3720,7 @@ function openCardDetail(outlineId){
     }
     // フォーカス時はテキスト編集、それ以外はリンクレンダリング
     return`<div class="cd-item" data-idx="${i}" style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:${lvl*22}px;">
-      <span class="card-detail-bullet" style="cursor:pointer;user-select:none;flex-shrink:0;" onclick="cdToggleLevel('${ol.id}',${i})">•</span>
+      <span class="card-detail-bullet" style="cursor:pointer;user-select:none;flex-shrink:0;visibility:${text?'visible':'hidden'};" onclick="cdToggleLevel('${ol.id}',${i})">•</span>
       <div style="flex:1;">
         <div class="card-detail-text" contenteditable="true" spellcheck="false"
           data-ol="${ol.id}" data-idx="${i}" data-text="${esc(text)}"
