@@ -4324,7 +4324,14 @@ function renderObjectRelated(ol){
   let html='';
   if(linkedCards.length) html+=hd(`🔗 リンク先（${linkedCards.length}）`)+linkedCards.map(c=>cardThumb(c)).join('');
   if(backlinks.length)   html+=hd(`↩ バックリンク（${backlinks.length}）`)+backlinks.map(c=>cardThumb(c)).join('');
-  if(sameLabel.length){html+=hd(`🏷 同じラベル（${sameLabel.length}）`);html+=sameLabel.map(c=>cardThumb(c)).join('');}
+  if(sameLabel.length){
+    const hdId='sameLabelHd_'+ol.id;
+    const bodyId='sameLabelBody_'+ol.id;
+    html+=`<div class="card-related-hd" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;" onclick="const b=document.getElementById('${bodyId}');const a=this.querySelector('.sl-arrow');b.style.display=b.style.display==='none'?'block':'none';a.textContent=b.style.display==='none'?'▸':'▾';">
+      <span>🏷 同じラベル（${sameLabel.length}）</span><span class="sl-arrow" style="font-size:9px;">▸</span>
+    </div>`;
+    html+=`<div id="${bodyId}" style="display:none;">${sameLabel.map(c=>cardThumb(c)).join('')}</div>`;
+  }
   if(refMedia.length){
     html+=hd('📎 参照メディア');
     html+=refMedia.map(m=>{
