@@ -3457,22 +3457,59 @@ function cdAddItem(olId,afterIdx){
   openCardDetail(olId);
   setTimeout(()=>cdFocus(afterIdx+1),50);
 }
-function cdFocus(idx){
-  const divs=document.querySelectorAll('#cdItems .card-detail-text');
-  if(divs[idx])divs[idx].focus();
+function cdFocus(idx,atStart){
+  setTimeout(()=>{
+    const divs=document.querySelectorAll('#cdItems .card-detail-text');
+    const el=divs[idx];if(!el)return;
+    el.focus();
+    if(atStart){
+      // カーソルを先頭に
+      const r=document.createRange();
+      r.setStart(el.firstChild||el,0);r.collapse(true);
+      const s=window.getSelection();s.removeAllRanges();s.addRange(r);
+    }
+  },10);
 }
-function saveCardItemText(div){
-  // cdOnBlur で処理するためここは空でよい
+
+// アイテム部分だけ再レンダリング（onblur誤発火を防ぐ）
+function cdRenderItems(ol){
+  const container=document.getElementById('cdItems');
+  if(!container)return;
+  _cdMoving=true;
+  container.innerHTML=ol.items.map((it,i)=>{
+    const lvl=it.level||0;
+    const text=it.text||'';
+    return '<div class="cd-item" data-idx="'+i+'" style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:'+(lvl*22)+'px;">'
+      +'<span class="card-detail-bullet" style="cursor:pointer;user-select:none;flex-shrink:0;visibility:'+(text?'visible':'hidden')+'" onclick="cdToggleLevel(\''+ol.id+'\','+i+')">•</span>'
+      +'<div class="card-detail-text" contenteditable="true" spellcheck="false"'
+      +' data-ol="'+ol.id+'" data-idx="'+i+'" data-text="'+esc(text)+'"'
+      +' style="outline:none;cursor:text;min-width:20px;white-space:pre-wrap;word-break:break-word;"'
+      +' onfocus="cdOnFocus(this)" onblur="cdOnBlur(this)"'
+      +' onkeydown="onCardDetailItemKey(event,this,\''+ol.id+'\','+i+')"'
+      +' oninput="cdOnInput(this)"'
+      +'>'+linkifyCard(text)+'</div>'
+      +'</div>';
+  }).join('');
+  setTimeout(()=>{_cdMoving=false;},50);
 }
+
+// 全アイテムのテキストをol.itemsに保存
+function cdSaveAllTexts(ol){
+  document.querySelectorAll('#cdItems .card-detail-text').forEach(el=>{
+    const i=parseInt(el.dataset.idx);
+    if(!isNaN(i)&&ol.items[i])ol.items[i].text=el.textContent;
+  });
+}
+
 function onCardDetailItemKey(e,div,olId,idx){
   if(e.isComposing)return;
   const ol=outlines.find(x=>x.id===olId);if(!ol)return;
 
   if(e.key==='Enter'){
     e.preventDefault();
-    const text=div.textContent;
+    cdSaveAllTexts(ol);
+    const text=ol.items[idx].text||'';
     const curLevel=ol.items[idx].level||0;
-    // 正確なカーソル位置取得（focusOffsetは子ノードindex混在のため Range を使う）
     let pos=text.length;
     const sel=window.getSelection();
     if(sel&&sel.rangeCount>0){
@@ -3484,20 +3521,18 @@ function onCardDetailItemKey(e,div,olId,idx){
       }catch(err){pos=text.length;}
     }
     if(pos===0){
-      ol.items[idx].text=text;
       ol.items.splice(idx,0,{id:uid(),text:'',level:curLevel});
       ol.updatedAt=Date.now();save();
-      openCardDetail(olId);
-      setTimeout(()=>cdFocus(idx+1),50);
+      cdRenderItems(ol);
+      cdFocus(idx+1,true);
     } else {
       const before=text.slice(0,pos);
       const after=text.slice(pos);
       ol.items[idx].text=before;
-      div.dataset.text=before;
       ol.items.splice(idx+1,0,{id:uid(),text:after,level:curLevel});
       ol.updatedAt=Date.now();save();
-      openCardDetail(olId);
-      setTimeout(()=>cdFocus(idx+1),50);
+      cdRenderItems(ol);
+      cdFocus(idx+1,true);
     }
 
   } else if(e.key==='Backspace'&&div.textContent===''&&!e.isComposing){
@@ -3505,20 +3540,17 @@ function onCardDetailItemKey(e,div,olId,idx){
     if(ol.items.length<=1)return;
     ol.items.splice(idx,1);
     ol.updatedAt=Date.now();save();
-    openCardDetail(olId);
-    setTimeout(()=>{
-      const divs=document.querySelectorAll('#cdItems .card-detail-text');
-      const prev=divs[Math.max(0,idx-1)];
-      if(prev)prev.focus();
-    },50);
+    cdRenderItems(ol);
+    const prevIdx=Math.max(0,idx-1);
+    cdFocus(prevIdx,false);
 
   } else if(e.key==='Tab'){
     e.preventDefault();
-    div.dataset.text=div.textContent;ol.items[idx].text=div.textContent;
+    cdSaveAllTexts(ol);
     ol.items[idx].level=e.shiftKey?Math.max(0,(ol.items[idx].level||0)-1):(ol.items[idx].level||0)+1;
     ol.updatedAt=Date.now();save();
-    openCardDetail(olId);
-    setTimeout(()=>cdFocus(idx),50);
+    cdRenderItems(ol);
+    cdFocus(idx,false);
 
   } else if(e.key==='ArrowLeft'){
     const sel=window.getSelection();
@@ -3531,41 +3563,31 @@ function onCardDetailItemKey(e,div,olId,idx){
         atStart=r.toString().length===0;
       }catch(err){}
     }
-    if(atStart){
-      const divs=document.querySelectorAll('#cdItems .card-detail-text');
-      const prev=divs[idx-1];
-      if(prev){
-        e.preventDefault();
-        prev.focus();
-        const r=document.createRange();r.selectNodeContents(prev);r.collapse(false);
-        sel.removeAllRanges();sel.addRange(r);
-      }
+    if(atStart&&idx>0){
+      e.preventDefault();
+      cdFocus(idx-1,false);
     }
-  } else if(e.key==='ArrowUp'&&!e.shiftKey&&e.altKey){
+
+  } else if(e.key==='ArrowUp'&&e.altKey){
     e.preventDefault();
     if(idx===0)return;
-    // 全divのテキストを保存してからmove（onblurが古いidxで上書きするのを防ぐ）
-    document.querySelectorAll('#cdItems .card-detail-text').forEach(el=>{
-      const i=parseInt(el.dataset.idx);
-      if(!isNaN(i)&&ol.items[i])ol.items[i].text=el.textContent;
-    });
+    cdSaveAllTexts(ol);
     const tmp=ol.items.splice(idx,1)[0];
     ol.items.splice(idx-1,0,tmp);
     ol.updatedAt=Date.now();save();
-    _cdMoving=true;openCardDetail(olId);_cdMoving=false;
-    setTimeout(()=>cdFocus(idx-1),50);
-  } else if(e.key==='ArrowDown'&&!e.shiftKey&&e.altKey){
+    cdRenderItems(ol);
+    cdFocus(idx-1,false);
+
+  } else if(e.key==='ArrowDown'&&e.altKey){
     e.preventDefault();
     if(idx>=ol.items.length-1)return;
-    document.querySelectorAll('#cdItems .card-detail-text').forEach(el=>{
-      const i=parseInt(el.dataset.idx);
-      if(!isNaN(i)&&ol.items[i])ol.items[i].text=el.textContent;
-    });
+    cdSaveAllTexts(ol);
     const tmp=ol.items.splice(idx,1)[0];
     ol.items.splice(idx+1,0,tmp);
     ol.updatedAt=Date.now();save();
-    _cdMoving=true;openCardDetail(olId);_cdMoving=false;
-    setTimeout(()=>cdFocus(idx+1),50);
+    cdRenderItems(ol);
+    cdFocus(idx+1,false);
+
   } else if(e.key==='ArrowUp'&&!e.shiftKey){
     const divs=document.querySelectorAll('#cdItems .card-detail-text');
     if(divs[idx-1]){e.preventDefault();divs[idx-1].focus();}
@@ -3574,8 +3596,6 @@ function onCardDetailItemKey(e,div,olId,idx){
     if(divs[idx+1]){e.preventDefault();divs[idx+1].focus();}
   }
 }
-
-
 
 function renderCardSourceRefSection(ol){
   if(!ol)return'';
