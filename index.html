@@ -3539,6 +3539,26 @@ function onCardDetailItemKey(e,div,olId,idx){
         sel.removeAllRanges();sel.addRange(r);
       }
     }
+  } else if(e.key==='ArrowUp'&&!e.shiftKey&&e.altKey){
+    // Alt+↑: 行を上に移動
+    e.preventDefault();
+    if(idx===0)return;
+    div.dataset.text=div.textContent;ol.items[idx].text=div.textContent;
+    const tmp=ol.items.splice(idx,1)[0];
+    ol.items.splice(idx-1,0,tmp);
+    ol.updatedAt=Date.now();save();
+    openCardDetail(olId);
+    setTimeout(()=>cdFocus(idx-1),50);
+  } else if(e.key==='ArrowDown'&&!e.shiftKey&&e.altKey){
+    // Alt+↓: 行を下に移動
+    e.preventDefault();
+    if(idx>=ol.items.length-1)return;
+    div.dataset.text=div.textContent;ol.items[idx].text=div.textContent;
+    const tmp=ol.items.splice(idx,1)[0];
+    ol.items.splice(idx+1,0,tmp);
+    ol.updatedAt=Date.now();save();
+    openCardDetail(olId);
+    setTimeout(()=>cdFocus(idx+1),50);
   } else if(e.key==='ArrowUp'&&!e.shiftKey){
     const divs=document.querySelectorAll('#cdItems .card-detail-text');
     if(divs[idx-1]){e.preventDefault();divs[idx-1].focus();}
