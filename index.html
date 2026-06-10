@@ -1881,16 +1881,22 @@ async function loadFromSupabase(force=false){
       setSyncDot('saved');return;
     }
 
-    // 最新投稿のcreatedAtで比較
-    const latestLocal=localPosts.length
-      ?Math.max(...localPosts.map(p=>p.createdAt||0)):0;
-    const latestSb=Math.max(...sbPosts.map(p=>p.createdAt||0));
+    // 最新投稿のcreatedAt + outlinesのupdatedAtで比較
+    const latestLocal=Math.max(
+      localPosts.length?Math.max(...localPosts.map(p=>p.createdAt||0)):0,
+      localOutlines.length?Math.max(...localOutlines.map(o=>o.updatedAt||o.createdAt||0)):0
+    );
+    const sbOutlines=map.outlines||[];
+    const latestSb=Math.max(
+      sbPosts.length?Math.max(...sbPosts.map(p=>p.createdAt||0)):0,
+      sbOutlines.length?Math.max(...sbOutlines.map(o=>o.updatedAt||o.createdAt||0)):0
+    );
 
     console.log(`📊 ローカル最新: ${new Date(latestLocal).toLocaleString()}`);
     console.log(`📊 Supabase最新: ${new Date(latestSb).toLocaleString()}`);
 
-    if(latestSb>latestLocal){
-      // Supabaseが新しい→採用
+    if(latestSb>latestLocal&&!_skipNextSync){
+      // Supabaseが新しい→採用（復元直後はスキップ）
       console.log('✅ Supabaseを採用');
       posts=sbPosts;notes=map.notes||[];outlines=map.outlines||[];
       posts.forEach(p=>{if(!p.replies)p.replies=[];});
@@ -5290,8 +5296,13 @@ function importBackup(){
       localStorage.setItem(KN,JSON.stringify(notes));
       localStorage.setItem(KO,JSON.stringify(outlines));
 
-      // 2. 画面を更新
+      // 2. 画面を更新（カードも含む）
       renderSidebar();renderFeed();
+      if(typeof renderCardGrid==='function')renderCardGrid();
+
+      // 次のSupabase自動同期でデータが上書きされないようフラグを立てる
+      _skipNextSync=true;
+      setTimeout(()=>{_skipNextSync=false;},30000);
 
       // 3. Supabaseに書く（直接upsert、saveTimerなし）
       if(currentUser){
@@ -5396,6 +5407,7 @@ function mergeImages(postsArr){
   }));
 }
 
+let _skipNextSync=false;
 function save(){
   // localStorageにはdata:URLも含めて全部保存（表示に必要）
   try{localStorage.setItem(KP,JSON.stringify(posts));}catch(e){
