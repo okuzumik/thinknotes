@@ -3628,7 +3628,7 @@ function cdOnBlur(div){
   div.dataset.text=text;
   div.innerHTML=linkifyCard(text);
   const ol=outlines.find(x=>x.id===olId);
-  if(ol&&ol.items[idx]){ol.items[idx].text=text;ol.updatedAt=Date.now();save();}
+  if(ol&&ol.items[idx]){ol.items[idx].text=text;if(text.trim())ol.items[idx].blank=false;ol.updatedAt=Date.now();save();}
 }
 function cdToggleLevel(olId,idx){
   const ol=outlines.find(x=>x.id===olId);if(!ol)return;
@@ -3668,7 +3668,7 @@ function cdRenderItems(ol){
   container.innerHTML=ol.items.map((it,i)=>{
     const lvl=it.level||0;
     const text=it.text||'';
-    const bVis=(!text)?'hidden':'visible';
+    const bVis=((!text)&&it.blank)?'hidden':'visible';
     const displayHTML=linkifyCard(text);
     return '<div class="cd-item" data-idx="'+i+'" style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:'+(lvl*22)+'px;">'
       +'<span class="card-detail-bullet" style="cursor:pointer;user-select:none;flex-shrink:0;visibility:'+bVis+'" onclick="cdToggleLevel(\''+ol.id+'\','+i+')">•</span>'
@@ -3688,7 +3688,10 @@ function cdRenderItems(ol){
 function cdSaveAllTexts(ol){
   document.querySelectorAll('#cdItems .card-detail-text').forEach(el=>{
     const i=parseInt(el.dataset.idx);
-    if(!isNaN(i)&&ol.items[i])ol.items[i].text=el.textContent.trim()||el.dataset.text||'';
+    if(!isNaN(i)&&ol.items[i]){
+      ol.items[i].text=el.textContent.trim()||el.dataset.text||'';
+      if(ol.items[i].text)ol.items[i].blank=false;
+    }
   });
 }
 
@@ -3701,6 +3704,22 @@ function onCardDetailItemKey(e,div,olId,idx){
     cdSaveAllTexts(ol);
     const text=ol.items[idx].text||'';
     const curLevel=ol.items[idx].level||0;
+    // 空行でのEnter: 1回目はバレットを消してスペーサー化（その場に留まる）、
+    // すでにスペーサーなら下に新しい通常行を追加
+    if(!text.trim()){
+      if(!ol.items[idx].blank){
+        ol.items[idx].blank=true;
+        ol.updatedAt=Date.now();save();
+        cdRenderItems(ol);
+        cdFocus(idx,false);
+      } else {
+        ol.items.splice(idx+1,0,{id:uid(),text:'',level:curLevel});
+        ol.updatedAt=Date.now();save();
+        cdRenderItems(ol);
+        cdFocus(idx+1,true);
+      }
+      return;
+    }
     let pos=text.length;
     const sel=window.getSelection();
     if(sel&&sel.rangeCount>0){
@@ -3967,7 +3986,7 @@ function openCardDetail(outlineId){
       if(p?.images?.length)postImgsHtml=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${p.images.map(src=>`<img src="${src}" onclick="openLightbox('${src}')" class="card-detail-card-image" loading="lazy">`).join('')}</div>`;
     }
     // フォーカス時はテキスト編集、それ以外はリンクレンダリング
-    const bVis=(!text)?'hidden':'visible';
+    const bVis=((!text)&&it.blank)?'hidden':'visible';
     return`<div class="cd-item" data-idx="${i}" style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:${lvl*22}px;">
       <span class="card-detail-bullet" style="cursor:pointer;user-select:none;flex-shrink:0;visibility:${bVis};" onclick="cdToggleLevel('${ol.id}',${i})">•</span>
       <div style="flex:1;">
