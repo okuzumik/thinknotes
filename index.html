@@ -1696,6 +1696,25 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
   </div>
 </div>
 
+<!-- カードにつぶやきを追加するピッカー -->
+<div id="cardPostPickerModal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border-radius:var(--r);width:min(680px,96vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+      <span style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px;font-weight:700;color:var(--text);flex:1;">💬 つぶやきを選んでカードに追加</span>
+      <span id="cardPostPickerCount" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:12px;color:var(--accent);"></span>
+      <button onclick="closeCardPostPicker()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);">✕</button>
+    </div>
+    <div style="padding:8px 14px;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+      <input id="cardPostPickerSearch" placeholder="つぶやきを検索…" oninput="renderCardPostPicker()" style="width:100%;padding:6px 12px;border:0.5px solid var(--border2);border-radius:20px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg3);outline:none;">
+    </div>
+    <div id="cardPostPickerList" style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;overflow-y:auto;flex:1;"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 18px;border-top:0.5px solid var(--border);flex-shrink:0;background:var(--bg3);">
+      <button onclick="closeCardPostPicker()" style="padding:6px 16px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;color:var(--text2);cursor:pointer;">キャンセル</button>
+      <button onclick="confirmCardPostPicker()" style="padding:6px 20px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-left:auto;">＋ カードに追加</button>
+    </div>
+  </div>
+</div>
+
 <!-- 画像ライブラリモーダル -->
 <div id="imgLibraryModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
   <div style="background:var(--bg2);border-radius:var(--r);width:min(680px,96vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.2);">
@@ -2491,9 +2510,64 @@ async function createCardFromPost(postId){
   outlines.unshift(newOl);
   save();
 
-  // カードタブを開いてそのカードを表示
-  switchPhase(3);
+  // カードタブ（カード一覧）を開いてそのカードを表示
+  switchPhase(5);
   setTimeout(()=>openCardDetail(newOl.id),100);
+}
+
+// ─── カードにタイムラインのつぶやきを選んで追加 ───
+const cardPostPickerSel=new Set();
+function openCardPostPicker(){
+  if(!currentCardOutlineId)return;
+  cardPostPickerSel.clear();
+  const s=document.getElementById('cardPostPickerSearch');if(s)s.value='';
+  renderCardPostPicker();
+  document.getElementById('cardPostPickerModal').style.display='flex';
+}
+function closeCardPostPicker(){
+  const m=document.getElementById('cardPostPickerModal');if(m)m.style.display='none';
+}
+function renderCardPostPicker(){
+  const q=(document.getElementById('cardPostPickerSearch')?.value||'').toLowerCase();
+  let pool=[...posts].sort((a,b)=>b.createdAt-a.createdAt);
+  if(q)pool=pool.filter(p=>(p.content||'').toLowerCase().includes(q));
+  const list=document.getElementById('cardPostPickerList');if(!list)return;
+  const count=document.getElementById('cardPostPickerCount');
+  if(count)count.textContent=cardPostPickerSel.size?`${cardPostPickerSel.size}件選択中`:'';
+  if(!pool.length){list.innerHTML=`<div style="padding:2rem;text-align:center;font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;color:var(--text3);">つぶやきがありません</div>`;return;}
+  list.innerHTML=pool.map(p=>{
+    const sel=cardPostPickerSel.has(p.id);
+    const selIdx=sel?[...cardPostPickerSel].indexOf(p.id)+1:0;
+    const replies=p.replies||[];
+    return`<div onclick="cardPostPickerToggle('${p.id}')"
+      style="background:${sel?'var(--accent-l)':'var(--bg3)'};border:${sel?'1.5px solid var(--accent)':'0.5px solid var(--border)'};border-radius:8px;padding:10px 12px;cursor:pointer;position:relative;display:flex;flex-direction:column;gap:4px;transition:all .12s;">
+      ${sel?`<div style="position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">${selIdx}</div>`:''}
+      <div style="font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word;padding-right:${sel?'24px':'0'};">${esc(cleanText(p.content).slice(0,140))}</div>
+      <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:10px;color:var(--text3);">${fmtDt(p.createdAt)}${replies.length?` · ↩ 連ツイ${replies.length}件`:''}</div>
+    </div>`;
+  }).join('');
+}
+function cardPostPickerToggle(id){
+  if(cardPostPickerSel.has(id))cardPostPickerSel.delete(id);
+  else cardPostPickerSel.add(id);
+  renderCardPostPicker();
+}
+function confirmCardPostPicker(){
+  if(!cardPostPickerSel.size)return;
+  const ol=outlines.find(x=>x.id===currentCardOutlineId);if(!ol)return;
+  if(!ol.items)ol.items=[];
+  [...cardPostPickerSel].forEach(pid=>{
+    const p=posts.find(x=>x.id===pid);if(!p)return;
+    const mainText=cleanText(p.content);
+    if(mainText.trim())ol.items.push({id:uid(),text:mainText,level:0});
+    (p.replies||[]).forEach(r=>{
+      const rt=cleanText(r.content);
+      if(rt.trim())ol.items.push({id:uid(),text:rt,level:1});
+    });
+  });
+  ol.updatedAt=Date.now();save();
+  closeCardPostPicker();
+  openCardDetail(ol.id);
 }
 
 async function postToBsky(text, replyRef=null, imageUrls=[], originalFiles=[]){
@@ -4111,6 +4185,7 @@ function openCardDetail(outlineId){
   <div style="max-width:720px;margin:.5rem auto 0;display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:4px 0;">
     <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" style="flex:1;min-width:80px;max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
     <button class="card-img-upload-btn" onclick="addCardLabel()" style="font-size:11px;">＋</button>
+    ${(!ol.isSource&&!ol.isScrap)?`<button class="card-img-upload-btn" onclick="openCardPostPicker()" style="font-size:11px;" title="タイムラインのつぶやきから追加">💬</button>`:''}
     ${!ol.isScrap?`<button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()" style="font-size:11px;">🖼️</button><input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)"><button class="card-img-upload-btn" onclick="openImgLibrary('card')" style="font-size:11px;">📂</button><button class="card-img-upload-btn" onclick="toggleCardSourceRefPanel()" style="font-size:11px;" title="メディアに紐付ける">📎</button>`:''}\
     ${`<button onclick="${ol.isSource?'deleteSourceCardConfirm':ol.isScrap?'deleteScrapCard':'deleteNormalCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>`}\
   </div>
@@ -4232,6 +4307,8 @@ function closeCardDetail(){
   else if(currentPhase===9)renderScrapGrid();
   else if(currentPhase===10)renderObjectGrid();
   else if(currentPhase===5)renderCardGrid();
+  // 旧アウトライン一覧(phase3)は廃止 → カード一覧へ戻す
+  else if(currentPhase===3)switchPhase(5);
 }
 
 function outlineToCosensetText(ol){
@@ -6805,7 +6882,6 @@ function renderPost(p){
             <button class="pa" title="返信" onclick="startReply('${p.id}')">↩</button>
             <button class="pa" title="編集" onclick="startPostEdit('${p.id}')">✎</button>
             <button class="pa star ${p.starred?'on':''}" onclick="toggleStar('${p.id}')">★</button>
-            <button class="pa" title="カードを作成" onclick="createCardFromPost('${p.id}')">🗂</button>
             ${bskyIsConnected()&&!p.bskyUri?`<button class="pa" title="Blueskyに投稿" onclick="postExistingToBsky('${p.id}')">🦋</button>`:''}
             <button class="pa del" onclick="deletePost('${p.id}')">✕</button>
           </div>
