@@ -3876,7 +3876,7 @@ function clearCardSourceRef(){
 
 // ── カード間リンク [[カード名]] ─────────────────────────────
 // カード行のマークダウン解析（見出しなし）
-// カードリンク（[[リンク]]）描画のみ
+// カードリンク（[[リンク]]）＋URLハイパーリンク描画
 function linkifyCard(text){
   if(!text)return'';
   const t=text;
@@ -3887,6 +3887,14 @@ function linkifyCard(text){
     if(target)
       return`<span class="card-link" data-card-id="${target.id}" onmousedown="event.preventDefault();openCardDetail('${target.id}')" title="${esc(raw)}">${esc(raw)}</span>`;
     return`<span class="card-link new" data-card-title="${esc(raw)}" onmousedown="event.preventDefault();createCardFromLink('${esc(raw)}')" title="新規カードを作成: ${esc(raw)}">${esc(raw)}</span>`;
+  });
+  // URL → 短縮ハイパーリンク
+  html=html.replace(/(https?:\/\/[^\s<"]+)/g,url=>{
+    try{
+      const u=new URL(url);
+      const short=(u.hostname.replace(/^www\./,'')+u.pathname).slice(0,30);
+      return`<a href="${url}" target="_blank" contenteditable="false" onmousedown="window.open('${url}','_blank');event.preventDefault();" style="color:var(--accent-d);text-decoration:none;border-bottom:1px solid var(--accent-m);white-space:nowrap;font-size:inherit;">${short}</a>`;
+    }catch(e){return url;}
   });
   return html;
 }
