@@ -6805,6 +6805,7 @@ function renderPost(p){
             <button class="pa" title="返信" onclick="startReply('${p.id}')">↩</button>
             <button class="pa" title="編集" onclick="startPostEdit('${p.id}')">✎</button>
             <button class="pa star ${p.starred?'on':''}" onclick="toggleStar('${p.id}')">★</button>
+            <button class="pa" title="カードを作成" onclick="createCardFromPost('${p.id}')">🗂</button>
             ${bskyIsConnected()&&!p.bskyUri?`<button class="pa" title="Blueskyに投稿" onclick="postExistingToBsky('${p.id}')">🦋</button>`:''}
             <button class="pa del" onclick="deletePost('${p.id}')">✕</button>
           </div>
