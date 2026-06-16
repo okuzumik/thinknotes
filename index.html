@@ -3294,11 +3294,9 @@ function showBinderCard(id){
   const labels=(ol.labels||[]).map(lb=>'<span class="card-label-tag" style="cursor:default;">'+esc(lb)+'</span>').join('');
   const items=(ol.items||[]).map(it=>{
     const lvl=it.level||0; const text=it.text||'';
-    const m=cardItemMeta(text);
-    if(m.type==='hr')return'<div style="border-top:2px solid var(--border2);margin:8px 0;"></div>';
-    return'<div style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:'+(lvl*22)+'px;'+m.wrapStyle+'">'
-      +'<span style="color:var(--accent-m);flex-shrink:0;font-size:12px;visibility:'+(text&&!m.hideBullet?'visible':'hidden')+';">•</span>'
-      +'<span style="font-size:13px;white-space:pre-wrap;word-break:break-word;'+m.textStyle+'">'+linkifyCard(m.display||text)+'</span>'
+    return'<div style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:'+(lvl*22)+'px;">'
+      +'<span style="color:var(--accent-m);flex-shrink:0;font-size:12px;visibility:'+(text?'visible':'hidden')+';">•</span>'
+      +'<span style="font-size:13px;white-space:pre-wrap;word-break:break-word;">'+linkifyCard(text)+'</span>'
       +'</div>';
   }).join('');
   const imgHtml=(ol.images||[]).map(src=>'<img src="'+esc(src)+'" class="card-detail-card-image" style="margin-top:6px;cursor:pointer;" onclick="openLightbox(\''+src+'\')" loading="lazy">').join('');
@@ -3628,17 +3626,7 @@ function cdOnBlur(div){
   const idx=parseInt(div.dataset.idx);
   const text=div.textContent;
   div.dataset.text=text;
-  const m=cardItemMeta(text);
-  // HR行: テキストを隠して線を戻す
-  if(m.type==='hr'){
-    div.textContent='---';
-    div.style.cssText='width:0;height:0;overflow:hidden;outline:none;';
-    const line=div.parentElement?.querySelector('div[style*="border-top"]');
-    if(line)line.style.display='';
-  } else {
-    div.innerHTML=linkifyCard(m.display||text);
-    if(m.textStyle)div.style.cssText='outline:none;cursor:text;min-width:20px;white-space:pre-wrap;word-break:break-word;'+m.textStyle;
-  }
+  div.innerHTML=linkifyCard(text);
   const ol=outlines.find(x=>x.id===olId);
   if(ol&&ol.items[idx]){ol.items[idx].text=text;ol.updatedAt=Date.now();save();}
 }
@@ -3680,16 +3668,13 @@ function cdRenderItems(ol){
   container.innerHTML=ol.items.map((it,i)=>{
     const lvl=it.level||0;
     const text=it.text||'';
-    const m=cardItemMeta(text);
-    if(m.type==='hr')
-      return '<div class="cd-item" data-idx="'+i+'" style="display:flex;align-items:center;padding:'+(lvl*22)+'px 0 0;">'+'<div style="flex:1;border-top:2px solid var(--border2);margin:6px 0;"></div>'+'<div class="card-detail-text" contenteditable="true" spellcheck="false" data-ol="'+ol.id+'" data-idx="'+i+'" data-text="---"'+' style="width:0;height:0;overflow:hidden;outline:none;"'+' onfocus="cdOnFocus(this)" onblur="cdOnBlur(this)" onkeydown="onCardDetailItemKey(event,this,\''+ol.id+'\','+i+')">---</div>'+'</div>';
-    const bVis=(!text||m.hideBullet)?'hidden':'visible';
-    const displayHTML=linkifyCard(m.display||text);
-    return '<div class="cd-item" data-idx="'+i+'" style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:'+(lvl*22)+'px;'+m.wrapStyle+'">'
+    const bVis=(!text)?'hidden':'visible';
+    const displayHTML=linkifyCard(text);
+    return '<div class="cd-item" data-idx="'+i+'" style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:'+(lvl*22)+'px;">'
       +'<span class="card-detail-bullet" style="cursor:pointer;user-select:none;flex-shrink:0;visibility:'+bVis+'" onclick="cdToggleLevel(\''+ol.id+'\','+i+')">•</span>'
       +'<div class="card-detail-text" contenteditable="true" spellcheck="false"'
       +' data-ol="'+ol.id+'" data-idx="'+i+'" data-text="'+esc(text)+'"'
-      +' style="outline:none;cursor:text;min-width:20px;white-space:pre-wrap;word-break:break-word;'+m.textStyle+'"'
+      +' style="outline:none;cursor:text;min-width:20px;white-space:pre-wrap;word-break:break-word;"'
       +' onfocus="cdOnFocus(this)" onblur="cdOnBlur(this)"'
       +' onkeydown="onCardDetailItemKey(event,this,\''+ol.id+'\','+i+')"'
       +' oninput="cdOnInput(this)"'
@@ -3872,19 +3857,7 @@ function clearCardSourceRef(){
 
 // ── カード間リンク [[カード名]] ─────────────────────────────
 // カード行のマークダウン解析（見出しなし）
-function cardItemMeta(text){
-  const t=text||'';
-  if(t==='---'||t==='***')
-    return{type:'hr',display:'',hideBullet:true,
-      wrapStyle:'border-top:2px solid var(--border2);margin:6px 0;padding:0;',textStyle:''};
-  if(t.startsWith('> '))
-    return{type:'quote',display:t.slice(2),hideBullet:true,
-      wrapStyle:'border-left:3px solid var(--border2);padding-left:8px;margin:1px 0;',
-      textStyle:'color:var(--text2);font-style:italic;'};
-  return{type:'text',display:t,hideBullet:false,wrapStyle:'',textStyle:''};
-}
-
-// インラインマークダウン＋カードリンク＋URL描画
+// カードリンク（[[リンク]]）描画のみ
 function linkifyCard(text){
   if(!text)return'';
   const t=text;
@@ -3895,16 +3868,6 @@ function linkifyCard(text){
     if(target)
       return`<span class="card-link" data-card-id="${target.id}" onmousedown="event.preventDefault();openCardDetail('${target.id}')" title="${esc(raw)}">${esc(raw)}</span>`;
     return`<span class="card-link new" data-card-title="${esc(raw)}" onmousedown="event.preventDefault();createCardFromLink('${esc(raw)}')" title="新規カードを作成: ${esc(raw)}">${esc(raw)}</span>`;
-  });
-  // **bold**
-  html=html.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  // URL → 短縮リンク
-  html=html.replace(/(https?:\/\/[^\s<"]+)/g,url=>{
-    try{
-      const u=new URL(url);
-      const short=(u.hostname.replace(/^www\./,'')+u.pathname).slice(0,30);
-      return`<a href="${url}" target="_blank" contenteditable="false" onmousedown="window.open('${url}','_blank');event.preventDefault();" style="color:var(--accent-d);text-decoration:none;border-bottom:1px solid var(--accent-m);white-space:nowrap;font-size:inherit;">${short}</a>`;
-    }catch(e){return url;}
   });
   return html;
 }
@@ -4004,20 +3967,18 @@ function openCardDetail(outlineId){
       if(p?.images?.length)postImgsHtml=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${p.images.map(src=>`<img src="${src}" onclick="openLightbox('${src}')" class="card-detail-card-image" loading="lazy">`).join('')}</div>`;
     }
     // フォーカス時はテキスト編集、それ以外はリンクレンダリング
-    const m=cardItemMeta(text);
-    if(m.type==='hr') return`<div class="cd-item" data-idx="${i}" style="display:flex;align-items:center;padding-left:${lvl*22}px;"><div style="flex:1;border-top:2px solid var(--border2);margin:6px 0;"></div><div class="card-detail-text" contenteditable="true" spellcheck="false" data-ol="${ol.id}" data-idx="${i}" data-text="---" style="width:0;height:0;overflow:hidden;outline:none;" onfocus="cdOnFocus(this)" onblur="cdOnBlur(this)" onkeydown="onCardDetailItemKey(event,this,'${ol.id}',${i})">---</div></div>`;
-    const bVis=(!text||m.hideBullet)?'hidden':'visible';
-    return`<div class="cd-item" data-idx="${i}" style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:${lvl*22}px;${m.wrapStyle}">
+    const bVis=(!text)?'hidden':'visible';
+    return`<div class="cd-item" data-idx="${i}" style="display:flex;align-items:baseline;gap:6px;padding:2px 0;padding-left:${lvl*22}px;">
       <span class="card-detail-bullet" style="cursor:pointer;user-select:none;flex-shrink:0;visibility:${bVis};" onclick="cdToggleLevel('${ol.id}',${i})">•</span>
       <div style="flex:1;">
         <div class="card-detail-text" contenteditable="true" spellcheck="false"
           data-ol="${ol.id}" data-idx="${i}" data-text="${esc(text)}"
-          style="outline:none;cursor:text;min-width:20px;white-space:pre-wrap;word-break:break-word;${m.textStyle}"
+          style="outline:none;cursor:text;min-width:20px;white-space:pre-wrap;word-break:break-word;"
           onfocus="cdOnFocus(this)"
           onblur="cdOnBlur(this)"
           onkeydown="onCardDetailItemKey(event,this,'${ol.id}',${i})"
           oninput="cdOnInput(this)"
-        >${linkifyCard(m.display||text)}</div>
+        >${linkifyCard(text)}</div>
         ${postImgsHtml}
       </div>
     </div>`;
