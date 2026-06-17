@@ -4058,7 +4058,7 @@ function openCardDetail(outlineId){
       <div class="card-detail-card" style="border-left:3px solid #4a7a52;">
         <div class="card-detail-card-title" contenteditable="true" spellcheck="false"
           onblur="saveCardTitle(this);this.style.borderBottomColor='transparent'"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+          onkeydown="if(event.key==='Enter'&&!event.isComposing&&event.keyCode!==229){event.preventDefault();this.blur();}"
           onfocus="this.style.borderBottomColor='#a8c8a8'"
           style="outline:none;cursor:text;border-bottom:1.5px dashed transparent;transition:border-color .15s;color:#2e5235;"
         >${esc(ol.title||'無題')}</div>
@@ -4149,7 +4149,7 @@ function openCardDetail(outlineId){
     ${frontMatterHtml}
     <div class="card-detail-card-title" contenteditable="true" spellcheck="false"
       onblur="saveCardTitle(this);this.style.borderBottomColor='transparent'"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+      onkeydown="if(event.key==='Enter'&&!event.isComposing&&event.keyCode!==229){event.preventDefault();this.blur();}"
       onfocus="this.style.borderBottomColor='var(--border2)'"
       style="outline:none;cursor:text;border-bottom:1.5px dashed transparent;transition:border-color .15s;${ol.isSource?'color:var(--source);':''}"
     >${esc(ol.title||'無題')}</div>
