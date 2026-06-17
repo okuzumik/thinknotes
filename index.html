@@ -1129,8 +1129,6 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
       <div class="nav-group-tabs">
         <button class="phase-step" id="ps-5" onclick="switchPhase(5)">カード</button>
         <button class="phase-step" id="ps-5b" onclick="switchToBinderTab()" style="font-size:10px;">バインダー</button>
-        <button class="phase-step" id="ps-10" onclick="switchPhase(10)">メディア</button>
-        <button class="phase-step" id="ps-11" onclick="switchPhase(11)">スクラップ</button>
       </div>
     </div>
     <div class="nav-divider"></div>
@@ -1212,7 +1210,7 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
         <div class="compose-footer">
           <div style="display:flex;align-items:center;gap:6px;flex:1;">
             <button class="img-attach-btn" onclick="openImagePicker()" title="画像を追加">🖼️</button>
-            <button class="img-attach-btn" onclick="openSourcePicker()" title="ソースを引用" style="font-size:13px;">📎</button>
+            <button class="img-attach-btn" onclick="openSourcePicker()" title="カードに言及" style="font-size:13px;">📎</button>
             <input type="file" id="imageInput" accept="image/*" multiple style="display:none" onchange="onImageSelected(event)">
             <div class="compose-hint">Ctrl+Enter で投稿　<span>#タグ</span> は後から追加・削除できます</div>
             <button onclick="toggleQuoteTag()" id="quoteTagBtn" title="#引用タグを付けて引用スタイルで投稿" style="padding:3px 10px;background:none;border:0.5px solid var(--border2);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:var(--text3);cursor:pointer;">❝ 引用</button>
@@ -1748,8 +1746,8 @@ body.card-select-mode .card-cb-row input[type="checkbox"] { display:inline-block
 <div class="source-picker-modal" id="sourcePickerModal" onclick="if(event.target===this)closeSourcePicker()">
   <div class="source-picker-box">
     <div class="source-picker-head">
-      <span class="source-picker-title">📎 オブジェクトを選択</span>
-      <input class="source-picker-search" id="sourcePickerSearch" placeholder="媒体・スクラップを検索…" oninput="_editingSourceForPostId?renderSourcePickerListForEdit():renderSourcePickerList()">
+      <span class="source-picker-title">📎 言及するカードを選択</span>
+      <input class="source-picker-search" id="sourcePickerSearch" placeholder="カードを検索…" oninput="_editingSourceForPostId?renderSourcePickerListForEdit():renderSourcePickerList()">
       <button onclick="closeSourcePicker()" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;padding:0 4px;">✕</button>
     </div>
     <div class="source-picker-list" id="sourcePickerList"></div>
@@ -3461,6 +3459,7 @@ function switchToBinderTab(){
 }
 
 function renderCardGrid(){
+  unifyMediaScrapCards();
   const q=(document.getElementById('cardGridSearch')?.value||'').trim().toLowerCase();
   let pool=[...outlines].sort((a,b)=>b.updatedAt-a.updatedAt)
     .filter(ol=>!ol.isSource&&!ol.isScrap)
@@ -4014,6 +4013,7 @@ function renderBacklinksSection(outlineId){
 }
 
 function openCardDetail(outlineId){
+  unifyMediaScrapCards();
   currentCardOutlineId=outlineId;
   const ol=outlines.find(x=>x.id===outlineId);if(!ol)return;
   const detail=document.getElementById('cardDetail');
@@ -4186,7 +4186,7 @@ function openCardDetail(outlineId){
     <input class="card-label-in" id="cardLabelIn" placeholder="ラベルを追加…" style="flex:1;min-width:80px;max-width:160px;" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCardLabel();}">
     <button class="card-img-upload-btn" onclick="addCardLabel()" style="font-size:11px;">＋</button>
     ${(!ol.isSource&&!ol.isScrap)?`<button class="card-img-upload-btn" onclick="openCardPostPicker()" style="font-size:11px;" title="タイムラインのつぶやきから追加">💬</button>`:''}
-    ${!ol.isScrap?`<button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()" style="font-size:11px;">🖼️</button><input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)"><button class="card-img-upload-btn" onclick="openImgLibrary('card')" style="font-size:11px;">📂</button><button class="card-img-upload-btn" onclick="toggleCardSourceRefPanel()" style="font-size:11px;" title="メディアに紐付ける">📎</button>`:''}\
+    ${!ol.isScrap?`<button class="card-img-upload-btn" onclick="document.getElementById('cardImgInput').click()" style="font-size:11px;">🖼️</button><input type="file" id="cardImgInput" accept="image/*" multiple style="display:none" onchange="onCardImageSelected(event)"><button class="card-img-upload-btn" onclick="openImgLibrary('card')" style="font-size:11px;">📂</button>`:''}\
     ${`<button onclick="${ol.isSource?'deleteSourceCardConfirm':ol.isScrap?'deleteScrapCard':'deleteNormalCard'}()" style="margin-left:auto;padding:4px 12px;background:none;color:var(--red);border:0.5px solid var(--red);border-radius:20px;font-size:11px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;cursor:pointer;">🗑</button>`}\
   </div>
   <div id="cardLinkedPostsSection" style="max-width:720px;margin:.5rem auto 0;"></div>
@@ -4557,8 +4557,11 @@ function renderObjectRelated(ol){
     ? outlines.filter(x=>x.id===ol.cardSourceRef.outlineId)
     : [];
 
-  const hasContent=linkedCards.length||backlinks.length||sameLabel.length||refMedia.length;
-  console.log('renderObjectRelated:', ol.title, {linkedCards:linkedCards.length, backlinks:backlinks.length, sameLabel:sameLabel.length, refMedia:refMedia.length, hasContent});
+  // 5. 言及つぶやき（このカードを sourceRef で参照している投稿）
+  const mentions=posts.filter(p=>p.sourceRef&&p.sourceRef.outlineId===ol.id)
+    .sort((a,b)=>b.createdAt-a.createdAt);
+
+  const hasContent=linkedCards.length||backlinks.length||sameLabel.length||refMedia.length||mentions.length;
   if(!hasContent){related.style.display='none';return;}
   related.style.display='flex';
 
@@ -4597,6 +4600,19 @@ function renderObjectRelated(ol){
         <div style="${tts}color:var(--source);">📎 ${esc(m.title||'無題')}</div>
         ${sub}
         <div style="${ms}">${esc(domain)}</div>
+      </div>`;
+    }).join('');
+  }
+  // 5. 言及つぶやき（カード枠外・関連の下にぶら下げる）
+  if(mentions.length){
+    html+=hd(`💬 言及つぶやき（${mentions.length}）`);
+    html+=mentions.map(p=>{
+      const txt=esc(cleanText(p.content).slice(0,120));
+      const rep=(p.replies||[]).length;
+      const jump=`switchPhase(1);closeCardDetail();setTimeout(()=>{const el=document.getElementById('post-'+'${p.id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},120);`;
+      return`<div onclick="${jump}" style="padding:3px 4px;cursor:pointer;flex-shrink:0;color:var(--text);" onmouseover="this.style.color='var(--accent-d)'" onmouseout="this.style.color='var(--text)'">
+        <div style="font-size:11px;color:inherit;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${txt}</div>
+        <div style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:9px;color:var(--text3);margin-top:2px;">${fmtDt(p.createdAt)}${rep?` · ↩ ${rep}件`:''}</div>
       </div>`;
     }).join('');
   }
@@ -5403,6 +5419,52 @@ function loadLocal(){
   if(!posts.length)posts=DEMO_POSTS;
   if(!notes.length)notes=DEMO_NOTES;
   if(!outlines.length)outlines=DEMO_OUTLINES;
+  unifyMediaScrapCards();
+}
+
+// ─── メディア・スクラップを通常カードに統合（廃止に伴う移行・冪等）───
+// 固有データ（URL/メモ/エピソード/ハイライト等）を本文項目に流し込み、
+// サムネ画像はカード画像へ。元フィールドは内部保持で消失なし。
+function unifyMediaScrapCards(){
+  let changed=false;
+  (outlines||[]).forEach(ol=>{
+    if(!ol.isSource&&!ol.isScrap)return;
+    changed=true;
+    if(!ol.items)ol.items=[];
+    if(!ol.images)ol.images=[];
+    const extra=[];
+    if(ol.isSource){
+      if(ol.sourceUrl)extra.push('🔗 '+ol.sourceUrl);
+      if(ol.sourcePdfUrl)extra.push('📄 '+ol.sourcePdfUrl);
+      if(ol.sourceMemo)extra.push(ol.sourceMemo);
+      (ol.sourceSubItems||[]).forEach(si=>{
+        const t=(si.label||'')+(si.url?(' '+si.url):'');
+        if(t.trim())extra.push('• '+t);
+      });
+      if(ol.sourceImage&&!ol.images.includes(ol.sourceImage))ol.images.push(ol.sourceImage);
+    }
+    if(ol.isScrap){
+      if(ol.scrapUrl)extra.push('🔗 '+ol.scrapUrl);
+      if(ol.scrapDescription)extra.push(ol.scrapDescription);
+      if(ol.scrapSnippet)extra.push(ol.scrapSnippet);
+      (ol.scrapHighlights||[]).forEach(h=>{
+        const t=(h.text||'')+(h.comment?(' — '+h.comment):'');
+        if(t.trim())extra.push('“'+t+'”');
+      });
+      [ol.scrapImage,...(ol.scrapImages||[])].filter(Boolean).forEach(src=>{
+        if(!ol.images.includes(src))ol.images.push(src);
+      });
+    }
+    const existing=new Set(ol.items.map(it=>(it.text||'').trim()));
+    extra.forEach(t=>{
+      const tt=(t||'').trim();
+      if(tt&&!existing.has(tt)){ol.items.push({id:uid(),text:tt,level:0});existing.add(tt);}
+    });
+    delete ol.isSource;
+    delete ol.isScrap;
+    ol.updatedAt=Date.now();
+  });
+  if(changed)save();
 }
 // ─── State ────────────────────────────────────────────────
 const KP='tn_posts_v20', KN='tn_notes_v20', KO='tn_outlines_v20';
@@ -5739,40 +5801,18 @@ function renderSourcePickerList(){
   const q=(document.getElementById('sourcePickerSearch')?.value||'').toLowerCase();
   const list=document.getElementById('sourcePickerList');
   if(!list)return;
-  const objects=[...outlines.filter(ol=>ol.isSource||ol.isScrap)]
-    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q)||(ol.scrapSiteName||'').toLowerCase().includes(q))
-    .sort((a,b)=>(a.title||'').localeCompare(b.title||'','ja'));
+  const objects=[...outlines]
+    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q))
+    .sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
   if(!objects.length){
-    list.innerHTML=`<div class="source-picker-none">メディア・スクラップがありません<br><span style="font-size:11px;color:var(--text3);">「オブジェクト」タブから作成できます</span></div>`;
+    list.innerHTML=`<div class="source-picker-none">カードがありません<br><span style="font-size:11px;color:var(--text3);">「カード」タブから作成できます</span></div>`;
     return;
   }
   list.innerHTML=objects.map(ol=>{
-    if(ol.isScrap){
-      const site=ol.scrapSiteName||'';
-      return`<div class="source-picker-item" style="border-left:2px solid #3d6b45;">
-        <div class="source-picker-item-title" style="color:#3d6b45;" onclick="event.stopPropagation();selectSourceRef('${ol.id}',null)">✂️ ${esc(ol.title||'無題')}</div>
-        <div class="source-picker-item-meta">${esc(site)}${ol.scrapHighlights?.length?` · ${ol.scrapHighlights.length}件のメモ`:''}</div>
-        <div style="padding:4px 8px 6px;">
-          <div class="source-picker-sub-item" onclick="event.stopPropagation();selectSourceRef('${ol.id}',null)" style="color:#3d6b45;background:#f0f5f0;">引用する</div>
-        </div>
-      </div>`;
-    }
-    const subs=ol.sourceSubItems||[];
-    const subsHtml=subs.length?`
-      <div class="source-picker-sub-list">
-        <div style="font-size:10px;color:var(--text3);font-family:'Hiragino Kaku Gothic ProN',sans-serif;margin-bottom:2px;">エピソード・サブアイテムを選択：</div>
-        ${subs.map(si=>`
-          <div class="source-picker-sub-item" onclick="event.stopPropagation();selectSourceRef('${ol.id}','${si.id}')">
-            ${esc(si.label)}${si.url?`<span style="font-size:9px;color:var(--source);margin-left:6px;">🔗</span>`:''}
-          </div>`).join('')}
-        <div class="source-picker-sub-item" style="color:var(--text3);font-style:italic;" onclick="event.stopPropagation();selectSourceRef('${ol.id}',null)">この媒体全体として引用</div>
-      </div>`:
-      `<div style="padding:4px 8px 6px;"><div class="source-picker-sub-item" onclick="event.stopPropagation();selectSourceRef('${ol.id}',null)" style="color:var(--source);">引用する</div></div>`;
-    const domain=ol.sourceUrl?(()=>{try{return new URL(ol.sourceUrl).hostname;}catch{return ol.sourceUrl.slice(0,30);}})():'';
+    const cnt=(ol.items||[]).length;
     return`<div class="source-picker-item">
-      <div class="source-picker-item-title" onclick="toggleSourcePickerItem(this)">📎 ${esc(ol.title||'無題')}</div>
-      <div class="source-picker-item-meta">${[domain,subs.length?subs.length+'件のサブアイテム':''].filter(Boolean).join(' · ')}</div>
-      ${subsHtml}
+      <div class="source-picker-item-title" onclick="event.stopPropagation();selectSourceRef('${ol.id}',null)">📎 ${esc(ol.title||'無題')}</div>
+      <div class="source-picker-item-meta">${cnt}項目 · ${fmtDate(ol.updatedAt)}</div>
     </div>`;
   }).join('');
 }
@@ -5821,17 +5861,9 @@ function dismissSourceRef(){
 function renderPostSourceCard(ref){
   if(!ref)return'';
   const ol=outlines.find(x=>x.id===ref.outlineId);
-  const isScrap=ol?.isScrap;
   const url=ref.url||(ol?.scrapUrl)||(ol?.sourceUrl)||'';
   const sub=ref.subLabel?` · ${esc(ref.subLabel)}`:'';
-  if(isScrap){
-    return`<div class="post-scrap-card" onclick="event.stopPropagation();switchPhase(10);setTimeout(()=>{renderMediaGrid();openCardDetail('${ref.outlineId}');},50)">
-      <span style="font-size:10px;flex-shrink:0;">✂️</span>
-      <div class="post-scrap-card-title">${esc(ref.title)}</div>
-      ${url?`<a href="${esc(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;color:#3d6b45;flex-shrink:0;">↗</a>`:''}
-    </div>`;
-  }
-  return`<div class="post-source-card" onclick="event.stopPropagation();switchPhase(10);setTimeout(()=>{renderMediaGrid();openCardDetail('${ref.outlineId}');},50)">
+  return`<div class="post-source-card" onclick="event.stopPropagation();switchPhase(5);setTimeout(()=>openCardDetail('${ref.outlineId}'),60)">
     <span class="post-source-card-icon">📎</span>
     <div class="post-source-card-body">
       <div class="post-source-card-title">${esc(ref.title)}<span style="font-weight:400;color:var(--text3);">${sub}</span></div>
@@ -7188,29 +7220,15 @@ function renderSourcePickerListForEdit(){
   const q=(document.getElementById('sourcePickerSearch')?.value||'').toLowerCase();
   const list=document.getElementById('sourcePickerList');
   if(!list)return;
-  const objects=outlines.filter(ol=>ol.isSource||ol.isScrap)
-    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q)||(ol.scrapSiteName||'').toLowerCase().includes(q))
-    .sort((a,b)=>(a.title||'').localeCompare(b.title||'','ja'));
-  if(!objects.length){list.innerHTML=`<div class="source-picker-none">メディア・スクラップがありません</div>`;return;}
+  const objects=[...outlines]
+    .filter(ol=>!q||(ol.title||'').toLowerCase().includes(q))
+    .sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  if(!objects.length){list.innerHTML=`<div class="source-picker-none">カードがありません</div>`;return;}
   list.innerHTML=objects.map(ol=>{
-    if(ol.isScrap){
-      return`<div class="source-picker-item" style="border-left:2px solid #3d6b45;">
-        <div class="source-picker-item-title" style="color:#3d6b45;">✂️ ${esc(ol.title||'無題')}</div>
-        <div class="source-picker-item-meta">${esc(ol.scrapSiteName||'')}${ol.scrapHighlights?.length?` · ${ol.scrapHighlights.length}件のメモ`:''}</div>
-        <div style="padding:4px 8px 6px;"><div class="source-picker-sub-item" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}',null)" style="color:#3d6b45;background:#f0f5f0;">引用する</div></div>
-      </div>`;
-    }
-    const subs=ol.sourceSubItems||[];
-    const subsHtml=subs.length?`
-      <div class="source-picker-sub-list">
-        ${subs.map(si=>`<div class="source-picker-sub-item" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}','${si.id}')">${esc(si.label)}</div>`).join('')}
-        <div class="source-picker-sub-item" style="color:var(--text3);font-style:italic;" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}',null)">この媒体全体として引用</div>
-      </div>`:
-      `<div style="padding:4px 8px 6px;"><div class="source-picker-sub-item" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}',null)" style="color:var(--source);">引用する</div></div>`;
+    const cnt=(ol.items||[]).length;
     return`<div class="source-picker-item">
-      <div class="source-picker-item-title">📎 ${esc(ol.title||'無題')}</div>
-      <div class="source-picker-item-meta">${subs.length?subs.length+'件のサブアイテム':''}</div>
-      ${subsHtml}
+      <div class="source-picker-item-title" onclick="event.stopPropagation();editSourceRef(_editingSourceForPostId,'${ol.id}',null)">📎 ${esc(ol.title||'無題')}</div>
+      <div class="source-picker-item-meta">${cnt}項目 · ${fmtDate(ol.updatedAt)}</div>
     </div>`;
   }).join('');
 }
