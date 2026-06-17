@@ -1928,6 +1928,10 @@ async function loadFromSupabase(force=false){
     } else {
       console.log('✅ 同じ');
     }
+    // 起動時対策: クラウド確認後、カード一覧を最新の outlines で再描画する
+    // （以前は renderFeed のみで、カード一覧が古いまま残っていた）
+    const _dOpen=document.getElementById('cardDetail')?.style.display!=='none';
+    if(currentPhase===5&&!_dOpen){renderCardGrid();renderCardFilterPanelContent();}
   }catch(e){console.warn('load error:',e);}
   setSyncDot('saved');
 }
@@ -2360,6 +2364,8 @@ function startRealtime(){
       localStorage.setItem(KO,JSON.stringify(outlines));
       setSyncDot('saved');
       renderSidebar();renderFeed();
+      const _dOpen=document.getElementById('cardDetail')?.style.display!=='none';
+      if(currentPhase===5&&!_dOpen){renderCardGrid();renderCardFilterPanelContent();}
     })
     .subscribe((status,err)=>{
       console.log('📡 Realtime status:',status,err||'');
