@@ -1885,6 +1885,7 @@ async function loadFromSupabase(force=false){
     if(error)throw error;
     const map={};(data||[]).forEach(r=>{map[r.data_key]=r.data_value;});
     const sbPosts=map.posts||[];
+    _cloudCount={posts:sbPosts.length,outlines:(map.outlines||[]).length};
 
     if(!sbPosts.length){
       // Supabaseが空→ローカルをアップロード
@@ -2187,9 +2188,34 @@ async function forceSyncFromSupabase(){
 
 let lastSaveOk=true; // 最後の保存が成功したか
 
+// 既知のクラウド件数（安全弁用）。load/save時に更新
+let _cloudCount={posts:null,outlines:null};
 async function saveToSupabase(){
   if(!currentUser)return;
   if(!posts.length&&!notes.length){console.warn('saveToSupabase: 空データスキップ');return;}
+  // ── 安全弁: クラウドより大幅に件数が減る上書きは確認する ──
+  if(_cloudCount.posts!=null&&(posts.length<_cloudCount.posts-5||outlines.length<(_cloudCount.outlines??0)-3)){
+    let cloudPosts=_cloudCount.posts,cloudOutlines=_cloudCount.outlines??0;
+    try{
+      const {data:cur}=await sb.from('thinkdata').select('data_key,data_value')
+        .eq('user_id',currentUser.id).in('data_key',['posts','outlines']);
+      const cmap={};(cur||[]).forEach(r=>{cmap[r.data_key]=r.data_value;});
+      cloudPosts=(cmap.posts||[]).length;cloudOutlines=(cmap.outlines||[]).length;
+    }catch(e){/* 取得失敗時はキャッシュ値で判定 */}
+    if(posts.length<cloudPosts-5||outlines.length<cloudOutlines-3){
+      const ok=confirm('⚠️ データ消失の可能性があります\n\n'
+        +'クラウド: 投稿'+cloudPosts+'件 / カード'+cloudOutlines+'件\n'
+        +'今回の上書き: 投稿'+posts.length+'件 / カード'+outlines.length+'件\n\n'
+        +'件数が大きく減っています。この内容でクラウドを上書きしますか？\n'
+        +'キャンセルするとアップロードを中止し、クラウドのデータを保持します。');
+      if(!ok){
+        _cloudCount={posts:cloudPosts,outlines:cloudOutlines};
+        setSyncDot('');
+        console.warn('saveToSupabase: 縮小上書きをユーザーがキャンセル');
+        return;
+      }
+    }
+  }
   setSyncDot('syncing');
   const uid=currentUser.id,ts=new Date().toISOString();
   const stripped=posts.map(p=>({...p,
@@ -2205,6 +2231,7 @@ async function saveToSupabase(){
     const {error}=await sb.from('thinkdata').upsert(rows,{onConflict:'user_id,data_key'});
     if(error)throw error;
     lastSaveOk=true;_lastSaveTime=Date.now();
+    _cloudCount={posts:posts.length,outlines:outlines.length};
     setSyncDot('saved');
     console.log('✅ 保存完了 投稿'+posts.length+'件');
   }catch(e){
@@ -5423,19 +5450,20 @@ function loadLocal(){
 // ─── メディア・スクラップを通常カードに統合（廃止に伴う移行・冪等）───
 // 固有データ（URL/メモ/エピソード/ハイライト等）を本文項目に流し込み、
 // サムネ画像はカード画像へ。元フィールドは内部保持で消失なし。
+// ⚠️ 重要: この関数は updatedAt を変更せず save() も呼ばない（メモリ上の表示変換のみ）。
+// 以前は updatedAt を「今」に更新して自動アップロードしていたため、古い端末が
+// 「自分が最新」と誤認してクラウドを上書きし、データを失う事故が起きた。
+// 永続化はユーザーがカードを実際に編集した時の save() に委ねる。
 function unifyMediaScrapCards(){
-  let changed=false;
   (outlines||[]).forEach(ol=>{
     // 旧メディア/スクラップ判定（統合後も残存フィールドで識別できる）
     const wasMedia=ol.isSource||ol.sourceUrl!==undefined||ol.sourceSubItems!==undefined||ol.sourceImage!==undefined||ol.sourceMemo!==undefined||ol.sourcePdfUrl!==undefined;
     const wasScrap=ol.isScrap||ol.scrapUrl!==undefined||ol.scrapHighlights!==undefined||ol.scrapSnippet!==undefined||ol.scrapImages!==undefined;
-    // タイプ色を付与（未設定時のみ・既統合カードにも反映）
+    // タイプ色を付与（未設定時のみ・既統合カードにも反映）※updatedAtは変更しない
     if(!ol.cardType&&(wasMedia||wasScrap)){
       ol.cardType=wasScrap?'スクラップ':'メディア';
-      changed=true;ol.updatedAt=Date.now();
     }
     if(!ol.isSource&&!ol.isScrap)return;
-    changed=true;
     if(!ol.items)ol.items=[];
     if(!ol.images)ol.images=[];
     const extra=[];
@@ -5466,11 +5494,10 @@ function unifyMediaScrapCards(){
       const tt=(t||'').trim();
       if(tt&&!existing.has(tt)){ol.items.push({id:uid(),text:tt,level:0});existing.add(tt);}
     });
+    // フラグはメモリ上で解除（永続化しない＝同期事故を避ける）
     delete ol.isSource;
     delete ol.isScrap;
-    ol.updatedAt=Date.now();
   });
-  if(changed)save();
 }
 // ─── State ────────────────────────────────────────────────
 const KP='tn_posts_v20', KN='tn_notes_v20', KO='tn_outlines_v20';
